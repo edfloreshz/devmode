@@ -3,7 +3,7 @@
     <h1>Dev(mode)</h1>
 </div>
 
-Devmode is a code management utility for developers.
+Devmode is a project management utility for developers.
 
 ## Clone a repo
 
