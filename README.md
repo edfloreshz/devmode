@@ -4,3 +4,17 @@
 </div>
 
 Devmode is a code management utility for developers.
+
+## Clone a repo
+
+#### URL
+
+```bash
+devmode clone https://github.com/edfloreshz/devmode
+```
+
+#### No URL
+
+```bash
+devmode clone github edfloreshz devmode
+```

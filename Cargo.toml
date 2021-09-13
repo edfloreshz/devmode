@@ -13,6 +13,9 @@ readme = "README.md"
 
 [dependencies]
 clap = "*"
+regex = "1.5.4"
+git2 = "0.13.22"
+dirs = "3.0.2"
 
 [dev-dependencies]
 assert_cmd = "0.10"
