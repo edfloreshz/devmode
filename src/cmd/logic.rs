@@ -73,9 +73,9 @@ impl<'a> Host<'a> {
         }
     }
     pub fn from(text: &'a str) -> Option<Self> {
-        match text {
-            "github.com" => Some(Host::GitHub("github")),
-            "gitlab.com" => Some(Host::GitHub("gitlab")),
+        match text.to_lowercase().as_str() {
+            "github.com" | "github" | "gh" => Some(Host::GitHub("github")),
+            "gitlab.com" | "gitlab" | "gl" => Some(Host::GitLab("gitlab")),
             _ => None
         }
     }

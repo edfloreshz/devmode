@@ -1,6 +1,7 @@
-use clap::{App, AppSettings, Arg, Error, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 use crate::cmd::cli::parse;
+use colored::Colorize;
 
 mod cmd;
 mod git;
@@ -33,28 +34,12 @@ fn main() {
         .get_matches();
     let cmd = parse(&matches);
     if let Err(e) = cmd.check() {
-        let error = e
-            .downcast::<Error>()
-            .expect("The pointed-to value must be of type Error");
-        println!("{}", error.message);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    // Add methods on commands
-    use std::process::Command;
-
-    use assert_cmd::prelude::*;
-
-    // Run programs
-    #[test]
-    fn open_project() -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = Command::cargo_bin("devmode")?;
-
-        cmd.arg("open").arg("devmode");
-        cmd.assert().success();
-
-        Ok(())
+        if let Some(e) = e.downcast_ref::<clap::Error>() {
+            println!("{}", e.message)
+        } else if let Some(e) = e.downcast_ref::<git2::Error>() {
+            println!("{} {}", "error:".red(), e.message())
+        } else {
+            println!("{:?}", e);
+        }
     }
 }
