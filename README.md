@@ -3,10 +3,10 @@
     <h1>Dev(mode)</h1>
 </div>
 
-Devmode is a project management utility for developers.
+**Dev(mode)** is a project management utility for developers.
 
 ## Clone a repo
-Dev(mode) facilitates repository organization in your filesystem by using the following structure.
+**Dev(mode)** facilitates repository organization in your filesystem by using the following structure.
 ```
 home
 └── Developer
