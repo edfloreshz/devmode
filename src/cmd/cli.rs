@@ -9,12 +9,15 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
         if values.len() == 1 {
             let url = values.get(0).map(|v| *v);
             let rx = Regex::new(
-                r#"((git@|http(s)?://)([\w.@]+)([/:]))([\w,\-_]+)/([\w,\-_]+)(.git)?((/)?)"#,
-            )
-                .unwrap();
+                r#"((git@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.git)?((/)?)"#,
+            ).unwrap();
             let clone = if rx.is_match(url.unwrap().as_ref()) {
-                // TODO: Create Clone from url.
-                Clone::new(None, None, None)
+                let captures = rx.captures(url.unwrap().as_ref()).unwrap();
+                let host = captures.get(4).map_or("", |m| std::str::from_utf8(m.as_bytes()).unwrap());
+                let owner = captures.get(6).map_or("", |m| std::str::from_utf8(m.as_bytes()).unwrap());
+                let repo = captures.get(7).map_or("", |m| std::str::from_utf8(m.as_bytes()).unwrap());
+                println!("host: {}, owner: {}, repo: {}", host, owner, repo);
+                Clone::new(Host::from(host), Option::from(owner), Option::from(repo))
             } else {
                 Clone::new(None, None, None)
             };

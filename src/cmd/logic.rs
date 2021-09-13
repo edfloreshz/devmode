@@ -72,6 +72,13 @@ impl<'a> Host<'a> {
             Host::GitLab(_) => "https://gitlab.com",
         }
     }
+    pub fn from(text: &'a str) -> Option<Self> {
+        match text {
+            "github.com" => Some(Host::GitHub("github")),
+            "gitlab.com" => Some(Host::GitHub("gitlab")),
+            _ => None
+        }
+    }
 }
 
 pub struct Clone<'a> {
