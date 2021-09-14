@@ -43,6 +43,18 @@ fn main() {
                         .long("editor")
                         .help("Sets the favorite editor to open projects."),
                 )
+                .arg(
+                    Arg::with_name("owner")
+                        .short("o")
+                        .long("owner")
+                        .help("Sets the favorite editor to open projects."),
+                )
+                .arg(
+                    Arg::with_name("host")
+                        .short("h")
+                        .long("host")
+                        .help("Sets the favorite editor to open projects."),
+                )
                 .about("Sets options for configuration."),
         )
         .get_matches();
