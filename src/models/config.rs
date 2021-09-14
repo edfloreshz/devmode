@@ -30,20 +30,20 @@ impl AppOptions {
             editor,
         }
     }
-    pub fn current() -> AppOptions { // TODO: return AppOptions
+    pub fn current() -> AppOptions {
+        // TODO: return AppOptions
         let config_file = dirs::data_dir()
             .expect("Data dir not present.")
             .join("devmode/config/config.toml");
         let file = read_to_string(config_file).unwrap_or_default();
-        let content = toml::from_slice(file.as_bytes())
-            .unwrap_or(AppOptions::default());
+        let content = toml::from_slice(file.as_bytes()).unwrap_or_default();
         content
     }
 }
 
 impl ConfigWriter for AppOptions {
     fn write_to_config(&self) -> Result<()> {
-        let data_dir = dirs::data_dir().unwrap_or(PathBuf::new()).join("devmode");
+        let data_dir = dirs::data_dir().unwrap_or_default();
         let logs_dir = data_dir.join("logs");
         let config_dir = data_dir.join("config");
         let config_file = data_dir.join("config/config.toml");

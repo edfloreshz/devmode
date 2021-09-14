@@ -29,7 +29,7 @@ pub fn make_dev_paths() -> Result<()> {
         dirs::home_dir().unwrap().display(),
         "/.config/devmode/paths/devpaths"
     );
-    if !Path::exists(&path.as_ref()) {
+    if !Path::exists(path.as_ref()) {
         create_dir_all(&path)?
     }
     run_cmd!(find $dev -maxdepth 3 -mindepth 2 -type d -print > $devpath)?;

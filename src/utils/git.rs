@@ -4,7 +4,7 @@ use regex::bytes::Regex;
 use crate::models::logic::{Clone, Host};
 use crate::Result;
 
-pub fn clone<'a>(clone: &Clone) -> Result<()> {
+pub fn clone(clone: &Clone) -> Result<()> {
     let path = format!(
         "{}/Developer/{}/{}/{}",
         home_dir().unwrap().display(),
