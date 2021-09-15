@@ -12,7 +12,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "*"
+clap = { version = "*", features = ["yaml"] }
 regex = "1.5.4"
 git2 = "0.13.22"
 dirs = "3.0.2"
