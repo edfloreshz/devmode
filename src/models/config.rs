@@ -31,7 +31,6 @@ impl AppOptions {
         }
     }
     pub fn current() -> AppOptions {
-        // TODO: return AppOptions
         let config_file = dirs::data_dir()
             .expect("Data dir not present.")
             .join("devmode/config/config.toml");
@@ -43,7 +42,7 @@ impl AppOptions {
 
 impl ConfigWriter for AppOptions {
     fn write_to_config(&self) -> Result<()> {
-        let data_dir = dirs::data_dir().unwrap_or_default();
+        let data_dir = dirs::data_dir().unwrap_or_default().join("devmode");
         let logs_dir = data_dir.join("logs");
         let config_dir = data_dir.join("config");
         let config_file = data_dir.join("config/config.toml");
@@ -55,17 +54,14 @@ impl ConfigWriter for AppOptions {
                 .expect("Unable to write data.");
             println!("Config file located at: {}", config_file.display());
         } else {
-            // let file = read_to_string(&config_file)?;
-            // let content: AppOptions = toml::from_str(&*file)?;
-            AppOptions::current();
-            // if &content == self {
-            //     println!("Configuration already present.");
-            // } else {
-            //     std::fs::File::open(&config_file)?
-            //         .write_all(toml::to_string(self).unwrap_or(String::new()).as_bytes())
-            //         .expect("Unable to write data.");
-            //     println!("Settings updated.")
-            // }
+            if &AppOptions::current() == self {
+                println!("No settings were changed.");
+            } else {
+                std::fs::File::open(&config_file)?
+                    .write_all(toml::to_string(self).unwrap_or(String::new()).as_bytes())
+                    .expect("Unable to write data.");
+                println!("Settings updated.")
+            }
         }
         Ok(())
     }
