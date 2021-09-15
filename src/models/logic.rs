@@ -10,7 +10,6 @@ use {
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
     Open(Project<'a>),
-    Edit(Project<'a>),
     Config(Option<AppOptions>),
     ShowConfig,
     None,
