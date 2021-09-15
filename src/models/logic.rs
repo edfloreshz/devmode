@@ -40,9 +40,7 @@ impl<'a> Cmd<'a> {
                 if let Some(_project) = open.name {
                     self.open()
                 } else {
-                    Err(ArgumentNotFound::from(
-                        "The argument <project> was not provided",
-                    ))
+                    Err(ArgumentNotFound::from("The argument <project> was not provided"))
                 }
             }
             Cmd::Config(options) => options.as_ref().unwrap().write_to_config(),
@@ -55,10 +53,9 @@ impl<'a> Cmd<'a> {
     }
     fn clone(&self) -> Result<()> {
         if let Cmd::Clone(clone) = self {
-            crate::utils::git::clone(clone)
-        } else {
-            Ok(())
+            return crate::utils::git::clone(clone);
         }
+        Ok(())
     }
     fn open(&self) -> Result<()> {
         if let Cmd::Open(open) = self {
