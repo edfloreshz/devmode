@@ -12,7 +12,7 @@ pub enum Cmd<'a> {
 }
 
 impl<'a> Cmd<'a> {
-    pub(crate) fn check(&self) -> Result<()> {
+    pub fn check(&self) -> Result<()> {
         match self {
             Cmd::Clone(clone) => {
                 if clone.host.is_none() {

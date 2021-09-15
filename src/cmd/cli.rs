@@ -1,5 +1,6 @@
 use clap::ArgMatches;
 use regex::bytes::Regex;
+use requestty::Answer;
 
 use crate::models::config::AppOptions;
 use crate::models::editor::{Editor, EditorApp};
@@ -31,53 +32,48 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
                 .message("Choose your favorite editor:")
                 .choices(vec!["Vim", "Nano", "VSCode"])
                 .build();
-            println!("{:#?}", requestty::prompt_one(question));
-            Cmd::Config(AppOptions::new(
-                "".into(),
-                "".into(),
-                Editor::new(EditorApp::from('v')),
-            ))
+            if let Answer::ListItem(i) = requestty::prompt_one(question).unwrap() {
+                let mut options = AppOptions::current();
+                options.editor = Editor::new(EditorApp::from(&*i.text));
+                return Cmd::Config(options);
+            }
+            Cmd::Config(AppOptions::current())
         } else if config.is_present("owner") {
             let question = requestty::Question::input("owner")
                 .message("What's your Git username:")
                 .build();
-            println!("{:#?}", requestty::prompt_one(question));
-            Cmd::Config(AppOptions::new(
-                "".into(),
-                "".into(),
-                Editor::new(EditorApp::from('v')),
-            ))
+            if let Answer::String(owner) = requestty::prompt_one(question).unwrap() {
+                let mut options = AppOptions::current();
+                options.owner = owner;
+                return Cmd::Config(options);
+            }
+            Cmd::Config(AppOptions::current())
         } else if config.is_present("host") {
             let question = requestty::Question::select("host")
                 .message("Choose your Git host:")
                 .choices(vec!["GitHub", "GitLab"])
                 .build();
-            println!("{:#?}", requestty::prompt_one(question));
-            Cmd::Config(AppOptions::new(
-                "".into(),
-                "".into(),
-                Editor::new(EditorApp::Vim),
-            ))
+            if let Answer::ListItem(host) = requestty::prompt_one(question).unwrap() {
+                let mut options = AppOptions::current();
+                options.host = Host::from(&*host.text).unwrap().display().parse().unwrap();
+                return Cmd::Config(options);
+            }
+            Cmd::Config(AppOptions::current())
         } else {
-            let questions = vec![
-                requestty::Question::select("editor")
-                    .message("Choose your favorite editor:")
-                    .choices(vec!["Vim", "Nano", "VSCode"])
-                    .build(),
-                requestty::Question::input("owner")
-                    .message("What's your Git username:")
-                    .build(),
-                requestty::Question::select("host")
-                    .message("Choose your Git host:")
-                    .choices(vec!["GitHub", "GitLab"])
-                    .build(),
-            ];
-            println!("{:#?}", requestty::prompt(questions));
-            Cmd::Config(AppOptions::new(
-                "".into(),
-                "".into(),
-                Editor::new(EditorApp::Vim),
-            ))
+            // let questions = vec![
+            //     requestty::Question::select("editor")
+            //         .message("Choose your favorite editor:")
+            //         .choices(vec!["Vim", "Nano", "VSCode"])
+            //         .build(),
+            //     requestty::Question::input("owner")
+            //         .message("What's your Git username:")
+            //         .build(),
+            //     requestty::Question::select("host")
+            //         .message("Choose your Git host:")
+            //         .choices(vec!["GitHub", "GitLab"])
+            //         .build(),
+            // ];
+            Cmd::Config(AppOptions::current())
         }
     } else {
         Cmd::None

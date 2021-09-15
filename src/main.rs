@@ -64,6 +64,8 @@ fn main() {
             println!("{}", e.message)
         } else if let Some(e) = e.downcast_ref::<git2::Error>() {
             println!("{} {}", "error:".red(), e.message())
+        } else if let Some(e) = e.downcast_ref::<std::io::Error>() {
+            println!("{} {}", "error:".red(), e.to_string())
         } else {
             println!("{:?}", e);
         }

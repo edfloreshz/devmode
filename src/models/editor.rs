@@ -25,11 +25,11 @@ impl Default for EditorApp {
 }
 
 impl<'a> EditorApp {
-    pub fn from(key: char) -> Self {
-        match key {
-            'v' => EditorApp::Vim,
-            'c' => EditorApp::VSCode,
-            'n' => EditorApp::Nano,
+    pub fn from(key: &str) -> Self {
+        match key.to_lowercase().as_str() {
+            "vim" => EditorApp::Vim,
+            "vscode" => EditorApp::VSCode,
+            "nano" => EditorApp::Nano,
             _ => EditorApp::None,
         }
     }
