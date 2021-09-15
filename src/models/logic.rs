@@ -1,8 +1,8 @@
 use crate::error::custom::ArgumentNotFound;
 use crate::models::config::{AppOptions, ConfigWriter};
-use crate::Result;
 use crate::utils::project;
 use crate::utils::project::make_dev_paths;
+use crate::Result;
 use std::fmt::{Display, Formatter};
 
 pub enum Cmd<'a> {
@@ -19,7 +19,9 @@ impl<'a> Cmd<'a> {
             Cmd::Clone(clone) => {
                 if clone.host.is_none() {
                     Err(ArgumentNotFound::from(
-                        "Host should be one of the following: \n1. GitHub \n2. GitLab",
+                        "You can't do this unless you set your configuration with `devmode config`\n\
+                        In the meantime, you can clone by specifying <host> <owner> <repo> \n\n\
+                        Host should be one of the following: \n1. GitHub \n2. GitLab",
                     ))
                 } else if clone.owner.is_none() {
                     Err(ArgumentNotFound::from("Missing arguments: <owner> <repo>"))
@@ -42,7 +44,10 @@ impl<'a> Cmd<'a> {
                 }
             }
             Cmd::Config(options) => options.as_ref().unwrap().write_to_config(),
-            Cmd::ShowConfig => Ok(AppOptions::current().unwrap().show()),
+            Cmd::ShowConfig => {
+                AppOptions::current().unwrap().show();
+                Ok(())
+            }
             Cmd::None => Err(ArgumentNotFound::from("No argument found")),
         }
     }
@@ -94,11 +99,11 @@ impl<'a> Display for Host<'a> {
 pub struct Clone<'a> {
     pub host: Option<Host<'a>>,
     pub owner: Option<String>,
-    pub repo: Option<&'a str>,
+    pub repo: Option<String>,
 }
 
 impl<'a> Clone<'a> {
-    pub fn new(host: Option<Host<'a>>, owner: Option<String>, repo: Option<&'a str>) -> Self {
+    pub fn new(host: Option<Host<'a>>, owner: Option<String>, repo: Option<String>) -> Self {
         Clone { host, owner, repo }
     }
     pub fn url(&self) -> String {

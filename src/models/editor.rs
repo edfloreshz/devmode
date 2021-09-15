@@ -34,7 +34,10 @@ impl Display for EditorApp {
             EditorApp::VSCode => write!(f, "Visual Studio Code"),
             EditorApp::Vim => write!(f, "Vim"),
             EditorApp::Nano => write!(f, "Nano"),
-            EditorApp::None => write!(f, "No editor set, run devmode config -e | --editor to configure it."),
+            EditorApp::None => write!(
+                f,
+                "No editor set, run devmode config -e, --editor to configure it."
+            ),
         }
     }
 }

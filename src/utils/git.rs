@@ -12,10 +12,19 @@ pub fn clone(clone: &Clone) -> Result<()> {
         clone.owner.as_ref().unwrap(),
         clone.repo.as_ref().unwrap()
     );
-    println!("Cloning {}/{} from {}...", clone.owner.as_ref().unwrap(), clone.repo.as_ref().unwrap(), clone.host.as_ref().unwrap().to_string());
+    println!(
+        "Cloning {}/{} from {}...",
+        clone.owner.as_ref().unwrap(),
+        clone.repo.as_ref().unwrap(),
+        clone.host.as_ref().unwrap().to_string()
+    );
     match git2::Repository::clone(clone.url().as_str(), &path) {
         Ok(_) => {
-            println!("{} cloned successfully to {}", clone.repo.unwrap(), path);
+            println!(
+                "{} cloned successfully to {}",
+                clone.repo.as_ref().unwrap(),
+                path
+            );
             Ok(())
         }
         Err(e) => Err(Box::new(e)),
@@ -36,5 +45,9 @@ pub fn parse_url(url: &str, rx: Regex) -> Clone {
         .get(7)
         .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
         .unwrap();
-    Clone::new(Host::from(host.into()), Option::from(owner.to_string()), Option::from(repo))
+    Clone::new(
+        Host::from(host.into()),
+        Option::from(owner.to_string()),
+        Option::from(repo.to_string()),
+    )
 }

@@ -39,10 +39,13 @@ impl AppOptions {
         }
     }
     pub fn show(&self) {
-        println!("Current settings: \n\
+        println!(
+            "Current settings: \n\
         Host: {}\n\
         Owner: {}\n\
-        Editor: {}", self.host, self.owner, self.editor.app)
+        Editor: {}",
+            self.host, self.owner, self.editor.app
+        )
     }
 }
 
@@ -59,7 +62,6 @@ impl ConfigWriter for AppOptions {
             file.write_all(toml::to_string(self).unwrap().as_bytes())?;
             println!("Config file located at: {}", config_file.display());
         } else if &AppOptions::current().unwrap() != self {
-            println!("{}", config);
             std::fs::File::create(&config_file)?
                 .write_all(toml::to_string(self).unwrap().as_bytes())?;
             println!("Settings updated.")

@@ -11,23 +11,48 @@ use {
 
 pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
     if let Some(matches) = matches.subcommand_matches("clone") {
-        let args = matches.values_of("args").unwrap().collect::<Vec<_>>();
-        let url = args.get(0).copied().unwrap();
+        let args = matches
+            .values_of("args")
+            .unwrap_or_default()
+            .collect::<Vec<_>>();
+        let url = args.get(0).copied().unwrap_or_default();
         let rx = Regex::new(r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#).unwrap();
-        if rx.is_match(url.as_ref()) {
+        if args.is_empty() {
+            let mut clone = Clone::new(None, None, None);
+            let question = requestty::Question::select("host")
+                .message("Choose your Git host:")
+                .choices(vec!["GitHub", "GitLab"])
+                .build();
+            if let Answer::ListItem(host) = requestty::prompt_one(question).unwrap() {
+                clone.host = Host::from(host.text);
+            }
+            let question = requestty::Question::input("owner")
+                .message("Git username:")
+                .build();
+            if let Answer::String(owner) = requestty::prompt_one(question).unwrap() {
+                clone.owner = Option::from(owner);
+            }
+            let question = requestty::Question::input("repo")
+                .message("Git repo name:")
+                .build();
+            if let Answer::String(repo) = requestty::prompt_one(question).unwrap() {
+                clone.repo = Option::from(repo);
+            }
+            Cmd::Clone(clone)
+        } else if rx.is_match(url.as_ref()) {
             let clone = parse_url(url, rx);
             Cmd::Clone(clone)
         } else if let Some(options) = AppOptions::current() {
             Cmd::Clone(Clone::new(
                 Host::from(options.host),
                 Option::from(options.owner),
-                args.get(0).copied(),
+                args.get(0).map(|a| a.to_string()),
             ))
         } else {
             Cmd::Clone(Clone::new(
                 Host::from(url.into()),
                 args.get(1).map(|a| a.to_string()),
-                args.get(2).copied(),
+                args.get(2).map(|a| a.to_string()),
             ))
         }
     } else if let Some(open) = matches.subcommand_matches("open") {
