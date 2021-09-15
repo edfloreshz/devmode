@@ -25,14 +25,6 @@ impl Default for EditorApp {
 }
 
 impl<'a> EditorApp {
-    fn command(&self) -> &'a str {
-        match self {
-            EditorApp::VSCode => "code",
-            EditorApp::Vim => "vim",
-            EditorApp::Nano => "nano",
-            EditorApp::None => "",
-        }
-    }
     pub fn from(key: char) -> Self {
         match key {
             'v' => EditorApp::Vim,
