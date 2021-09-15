@@ -14,11 +14,7 @@ pub fn clone(clone: &Clone) -> Result<()> {
     );
     match git2::Repository::clone(clone.url().as_str(), &path) {
         Ok(_) => {
-            println!(
-                "{} cloned successfully to {}",
-                clone.repo.unwrap(),
-                path
-            );
+            println!("{} cloned successfully to {}", clone.repo.unwrap(), path);
             Ok(())
         }
         Err(e) => Err(Box::new(e)),

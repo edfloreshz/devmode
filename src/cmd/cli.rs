@@ -1,11 +1,13 @@
-use clap::ArgMatches;
-use regex::bytes::Regex;
-use requestty::Answer;
-
-use crate::models::config::AppOptions;
-use crate::models::editor::{Editor, EditorApp};
-use crate::models::logic::*;
-use crate::utils::git::parse_url;
+use {
+    crate::models::config::AppOptions,
+    crate::models::editor::{Editor, EditorApp},
+    crate::models::logic::Clone,
+    crate::models::logic::*,
+    crate::utils::git::parse_url,
+    clap::ArgMatches,
+    regex::bytes::Regex,
+    requestty::Answer,
+};
 
 pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
     if let Some(matches) = matches.subcommand_matches("clone") {
@@ -27,53 +29,77 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
             project: open.value_of("project"),
         })
     } else if let Some(config) = matches.subcommand_matches("config") {
-        if config.is_present("editor") {
-            let question = requestty::Question::select("editor")
-                .message("Choose your favorite editor:")
-                .choices(vec!["Vim", "Nano", "VSCode"])
-                .build();
-            if let Answer::ListItem(i) = requestty::prompt_one(question).unwrap() {
-                let mut options = AppOptions::current();
-                options.editor = Editor::new(EditorApp::from(&*i.text));
-                return Cmd::Config(options);
+        if AppOptions::current().is_some() {
+            if config.is_present("editor") {
+                let question = requestty::Question::select("editor")
+                    .message("Choose your favorite editor:")
+                    .choices(vec!["Vim", "Nano", "VSCode"])
+                    .build();
+                let mut options = AppOptions::current().unwrap();
+                if let Answer::ListItem(i) = requestty::prompt_one(question).unwrap() {
+                    options.editor = Editor::new(EditorApp::from(&*i.text));
+                }
+                Cmd::Config(Option::from(options))
+            } else if config.is_present("owner") {
+                let question = requestty::Question::input("owner")
+                    .message("What's your Git username:")
+                    .build();
+                let mut options = AppOptions::current().unwrap();
+                if let Answer::String(owner) = requestty::prompt_one(question).unwrap() {
+                    options.owner = owner;
+                }
+                Cmd::Config(Option::from(options))
+            } else if config.is_present("host") {
+                let question = requestty::Question::select("host")
+                    .message("Choose your Git host:")
+                    .choices(vec!["GitHub", "GitLab"])
+                    .build();
+                let mut options = AppOptions::current().unwrap();
+                if let Answer::ListItem(host) = requestty::prompt_one(question).unwrap() {
+                    options.host = Host::from(&*host.text).unwrap().display().parse().unwrap();
+                }
+                Cmd::Config(Option::from(options))
+            } else {
+                Cmd::Config(AppOptions::current())
             }
-            Cmd::Config(AppOptions::current())
-        } else if config.is_present("owner") {
-            let question = requestty::Question::input("owner")
-                .message("What's your Git username:")
-                .build();
-            if let Answer::String(owner) = requestty::prompt_one(question).unwrap() {
-                let mut options = AppOptions::current();
-                options.owner = owner;
-                return Cmd::Config(options);
-            }
-            Cmd::Config(AppOptions::current())
-        } else if config.is_present("host") {
-            let question = requestty::Question::select("host")
-                .message("Choose your Git host:")
-                .choices(vec!["GitHub", "GitLab"])
-                .build();
-            if let Answer::ListItem(host) = requestty::prompt_one(question).unwrap() {
-                let mut options = AppOptions::current();
-                options.host = Host::from(&*host.text).unwrap().display().parse().unwrap();
-                return Cmd::Config(options);
-            }
-            Cmd::Config(AppOptions::current())
         } else {
-            // let questions = vec![
-            //     requestty::Question::select("editor")
-            //         .message("Choose your favorite editor:")
-            //         .choices(vec!["Vim", "Nano", "VSCode"])
-            //         .build(),
-            //     requestty::Question::input("owner")
-            //         .message("What's your Git username:")
-            //         .build(),
-            //     requestty::Question::select("host")
-            //         .message("Choose your Git host:")
-            //         .choices(vec!["GitHub", "GitLab"])
-            //         .build(),
-            // ];
-            Cmd::Config(AppOptions::current())
+            let editor: String = match requestty::prompt_one(
+                requestty::Question::select("editor")
+                    .message("Choose your favorite editor:")
+                    .choices(vec!["Vim", "Nano", "VSCode"])
+                    .build(),
+            )
+                .unwrap()
+            {
+                Answer::ListItem(editor) => editor.text,
+                _ => String::new(),
+            };
+            let owner: String = match requestty::prompt_one(
+                requestty::Question::input("owner")
+                    .message("What's your Git username:")
+                    .build(),
+            )
+                .unwrap()
+            {
+                Answer::String(owner) => owner,
+                _ => String::new(),
+            };
+            let host: String = match requestty::prompt_one(
+                requestty::Question::select("host")
+                    .message("Choose your Git host:")
+                    .choices(vec!["GitHub", "GitLab"])
+                    .build(),
+            )
+                .unwrap()
+            {
+                Answer::ListItem(host) => host.text,
+                _ => String::new(),
+            };
+            Cmd::Config(Some(AppOptions::new(
+                host,
+                owner,
+                Editor::new(EditorApp::from(editor.as_str())),
+            )))
         }
     } else {
         Cmd::None

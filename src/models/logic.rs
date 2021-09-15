@@ -1,13 +1,13 @@
 use crate::error::custom::ArgumentNotFound;
 use crate::models::config::{AppOptions, ConfigWriter};
-use crate::Result;
 use crate::utils::project;
 use crate::utils::project::make_dev_paths;
+use crate::Result;
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
     Open(Open<'a>),
-    Config(AppOptions),
+    Config(Option<AppOptions>),
     None,
 }
 
@@ -39,7 +39,7 @@ impl<'a> Cmd<'a> {
                     ))
                 }
             }
-            Cmd::Config(options) => options.write_to_config(),
+            Cmd::Config(options) => options.clone().unwrap().write_to_config(),
             Cmd::None => Err(ArgumentNotFound::from("No argument found")),
         }
     }
