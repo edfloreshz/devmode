@@ -1,9 +1,12 @@
-use crate::error::custom::ArgumentNotFound;
-use crate::models::config::{AppOptions, ConfigWriter};
-use crate::utils::project;
-use crate::utils::project::make_dev_paths;
-use crate::Result;
-use std::fmt::{Display, Formatter};
+use {
+    crate::error::custom::ArgumentNotFound,
+    crate::models::config::{AppOptions, ConfigWriter},
+    crate::utils::project,
+    crate::utils::project::make_dev_paths,
+    crate::Result,
+    std::fmt::{Display, Formatter},
+};
+
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),

@@ -1,11 +1,11 @@
-use std::fs;
-use std::fs::read_to_string;
-use std::io::Write;
-
-use serde::{Deserialize, Serialize};
-
-use crate::models::editor::Editor;
-use crate::Result;
+use {
+    std::fs,
+    std::fs::read_to_string,
+    std::io::Write,
+    serde::{Deserialize, Serialize},
+    crate::models::editor::Editor,
+    crate::Result,
+};
 
 pub trait ConfigWriter {
     fn write_to_config(&self) -> Result<()>;

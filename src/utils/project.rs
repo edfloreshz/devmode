@@ -1,7 +1,8 @@
-use std::fs::create_dir_all;
-use std::path::Path;
-
-use cmd_lib::*;
+use {
+    std::fs::create_dir_all,
+    std::path::Path,
+    cmd_lib::*,
+};
 
 use crate::Result;
 
