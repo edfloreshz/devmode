@@ -1,10 +1,9 @@
 use {
-    dirs::home_dir,
-    regex::bytes::Regex,
     crate::models::logic::{Clone, Host},
     crate::Result,
+    dirs::home_dir,
+    regex::bytes::Regex,
 };
-
 
 pub fn clone(clone: &Clone) -> Result<()> {
     let path = format!(

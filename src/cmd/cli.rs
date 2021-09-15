@@ -36,7 +36,9 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
             Cmd::Clone(Clone::new(host, owner, repo))
         }
     } else if let Some(open) = matches.subcommand_matches("open") {
-        Cmd::Open(Open { project: open.value_of("project") })
+        Cmd::Open(Open {
+            project: open.value_of("project"),
+        })
     } else if let Some(config) = matches.subcommand_matches("config") {
         if config.is_present("all") {
             config_all()

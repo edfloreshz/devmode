@@ -7,7 +7,6 @@ use {
     std::fmt::{Display, Formatter},
 };
 
-
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
     Open(Open<'a>),

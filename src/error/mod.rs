@@ -1,8 +1,5 @@
 pub mod custom {
-    use {
-        crate::models::logic::Cmd,
-        colored::Colorize,
-    };
+    use {crate::models::logic::Cmd, colored::Colorize};
 
     pub struct ArgumentNotFound {}
 

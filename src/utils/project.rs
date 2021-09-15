@@ -1,8 +1,4 @@
-use {
-    std::fs::create_dir_all,
-    std::path::Path,
-    cmd_lib::*,
-};
+use {cmd_lib::*, std::fs::create_dir_all, std::path::Path};
 
 use crate::Result;
 

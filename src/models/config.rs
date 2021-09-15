@@ -1,10 +1,10 @@
 use {
+    crate::models::editor::Editor,
+    crate::Result,
+    serde::{Deserialize, Serialize},
     std::fs,
     std::fs::read_to_string,
     std::io::Write,
-    serde::{Deserialize, Serialize},
-    crate::models::editor::Editor,
-    crate::Result,
 };
 
 pub trait ConfigWriter {
