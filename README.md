@@ -5,7 +5,7 @@
 
 **Dev(mode)** is a project management utility for developers.
 
-```bash
+```
 USAGE:
     devmode [SUBCOMMAND]
 
@@ -20,8 +20,63 @@ SUBCOMMANDS:
     open      Opens a project on your selected text editor.
 ```
 
+## Configuration
+
+The `config` command will help you configure `devmode` to your liking.
+
+### Text Editor
+
+You can set your favorite text editor running:
+
+```
+devmode config -e | devmode config --editor
+``` 
+
+### Git Host
+
+You can set your Git host running:
+
+```
+devmode config -h | devmode config --host
+``` 
+
+### Git User
+
+You can set your Git user running:
+
+```
+devmode config -o | devmode config --owner
+``` 
+
+### Configure everything
+
+You can configure everything running:
+
+```
+devmode config -a | devmode config --all
+``` 
+
+### Show config
+
+You can show your current config running:
+
+```
+devmode config -s | devmode config --show
+
+Current settings:
+Host: GitHub
+Owner: edfloreshz
+Editor: Visual Studio Code
+``` 
+
 ## Clone a repo
-**Dev(mode)** facilitates repository organization in your filesystem by using the following structure.
+
+**Dev(mode)** facilitates repository storage and organization in your filesystem.
+
+### How it works
+
+When you clone a repository it will be stored to your filesystem using a specific folder structure.
+
 ```
 home
 └── Developer
@@ -29,10 +84,13 @@ home
         └── owner
             └── repo
 ```
-### Usage
-```bash
-Clones a utils repository in a specific folder structure.
 
+This makes it easier for you to find repositories and allows `devmode` to open them by just specifying the name of the
+project.
+
+### Usage
+
+```
 USAGE:
     devmode clone <args>...
 
@@ -43,21 +101,54 @@ FLAGS:
 ARGS:
     <args>...    Provide either a Git <url> or a Git <host> <owner> <repo>.
 ```
-#### URL
-You can clone by using a URL.
+
+#### Clone by URL
+
 ```bash
 devmode clone https://github.com/edfloreshz/devmode
 ```
-#### No URL
-You can also type `<host>` `<owner>` `<repository>`
+
+#### Clone without URL
+
 ```bash
-devmode clone github edfloreshz devmode
+devmode clone <host> <owner> <repository>
+```
+
+#### Clone with `config.toml`
+
+Running `devmode config` asks you to specify your Git `host` and `user`, now just type one of your repos.
+
+```bash
+devmode clone <repo>
+```
+
+#### Just clone
+
+You can clone without specifying the arguments.
+
+```bash
+devmode clone
+```
+
+You will be presented with the following setup:
+
+```
+ᐅ  devmode clone
+
+? Choose your Git host: ›
+❯ GitHub
+  GitLab
+? Git username: › user
+? Git repo name: › repo
+
+Cloning edfloreshz/blog from GitHub...
 ```
 
 ## Open a project
-```
-Opens a project on your selected text editor.
 
+Opens a project with your selected text editor.
+
+```
 USAGE:
     devmode open <project>
 
@@ -68,45 +159,11 @@ FLAGS:
 ARGS:
     <project>    Provide a project name.
 ```
+
 You can open a project with the following command:
+
 ```bash
 devmode open <project>
 ```
+
 If two or more projects with the same name are found, you will have to choose which one to open.
-
-## Configuration
-```bash
-Sets options for configuration.
-
-USAGE:
-    devmode config [FLAGS]
-
-FLAGS:
-    -e, --editor     Sets the favorite editor to open projects.
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-```
-You can configure your favorite text editor by executing:
-```bash
-devmode config -e
-```
-
-You will be presented with the following:
-```bash
-ᐅ  devmode config -e
-? Choose your favorite editor: (vcnxH)
-  v) Vim
-  c) VSCode
-  n) Nano
-   ──────────────
-  x) Abort
-  h) Help, list all options
-  Answer:
-```
-
-Choose your prefered text editor
-
-```bash 
-✔ Choose your favorite editor: · Vim
-Settings updated.
-```
