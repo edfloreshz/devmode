@@ -9,7 +9,8 @@ use {
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
-    Open(Open<'a>),
+    Open(Project<'a>),
+    Edit(Project<'a>),
     Config(Option<AppOptions>),
     ShowConfig,
     None,
@@ -37,7 +38,7 @@ impl<'a> Cmd<'a> {
                 }
             }
             Cmd::Open(open) => {
-                if let Some(_project) = open.project {
+                if let Some(_project) = open.name {
                     self.open()
                 } else {
                     Err(ArgumentNotFound::from(
@@ -62,7 +63,7 @@ impl<'a> Cmd<'a> {
     }
     fn open(&self) -> Result<()> {
         if let Cmd::Open(open) = self {
-            return project::open(open.project.unwrap());
+            return project::open(open.name.unwrap());
         }
         Ok(())
     }
@@ -118,6 +119,6 @@ impl<'a> Clone<'a> {
     }
 }
 
-pub struct Open<'a> {
-    pub(crate) project: Option<&'a str>,
+pub struct Project<'a> {
+    pub(crate) name: Option<&'a str>,
 }

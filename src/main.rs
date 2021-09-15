@@ -1,6 +1,6 @@
-use crate::error::custom::downcast_err;
 use {
     crate::cmd::cli::parse,
+    crate::error::custom::downcast_err,
     clap::{load_yaml, App},
 };
 
