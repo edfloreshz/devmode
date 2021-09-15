@@ -1,8 +1,8 @@
 use crate::error::custom::ArgumentNotFound;
 use crate::models::config::{AppOptions, ConfigWriter};
+use crate::Result;
 use crate::utils::project;
 use crate::utils::project::make_dev_paths;
-use crate::Result;
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
@@ -16,13 +16,13 @@ impl<'a> Cmd<'a> {
         match self {
             Cmd::Clone(clone) => {
                 if clone.host.is_none() {
-                    Err(ArgumentNotFound::new(
+                    Err(ArgumentNotFound::from(
                         "Host should be one of the following: \n1. GitHub \n2. GitLab",
                     ))
                 } else if clone.owner.is_none() {
-                    Err(ArgumentNotFound::new("Missing arguments: <owner> <repo>"))
+                    Err(ArgumentNotFound::from("Missing arguments: <owner> <repo>"))
                 } else if clone.repo.is_none() {
-                    Err(ArgumentNotFound::new("Missing argument: <repo>"))
+                    Err(ArgumentNotFound::from("Missing argument: <repo>"))
                 } else {
                     match self.clone() {
                         Ok(_) => make_dev_paths(),
@@ -34,13 +34,13 @@ impl<'a> Cmd<'a> {
                 if let Some(_project) = open.project {
                     self.open()
                 } else {
-                    Err(ArgumentNotFound::new(
+                    Err(ArgumentNotFound::from(
                         "The argument <project> was not provided",
                     ))
                 }
             }
             Cmd::Config(options) => options.write_to_config(),
-            Cmd::None => Err(ArgumentNotFound::new("No argument found")),
+            Cmd::None => Err(ArgumentNotFound::from("No argument found")),
         }
     }
     fn clone(&self) -> Result<()> {
