@@ -17,10 +17,16 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
         if rx.is_match(url.as_ref()) {
             let clone = parse_url(url, rx);
             Cmd::Clone(clone)
+        } else if let Some(options) = AppOptions::current() {
+            Cmd::Clone(Clone::new(
+                Host::from(options.host),
+                Option::from(options.owner),
+                args.get(0).copied(),
+            ))
         } else {
             Cmd::Clone(Clone::new(
-                Host::from(url),
-                args.get(1).copied(),
+                Host::from(url.into()),
+                args.get(1).map(|a| a.to_string()),
                 args.get(2).copied(),
             ))
         }
@@ -56,9 +62,11 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Cmd<'a> {
                     .build();
                 let mut options = AppOptions::current().unwrap();
                 if let Answer::ListItem(host) = requestty::prompt_one(question).unwrap() {
-                    options.host = Host::from(&*host.text).unwrap().display().parse().unwrap();
+                    options.host = Host::from(host.text).unwrap().to_string();
                 }
                 Cmd::Config(Option::from(options))
+            } else if config.is_present("show") {
+                Cmd::ShowConfig
             } else {
                 Cmd::Config(AppOptions::current())
             }

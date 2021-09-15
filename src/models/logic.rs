@@ -1,13 +1,15 @@
 use crate::error::custom::ArgumentNotFound;
 use crate::models::config::{AppOptions, ConfigWriter};
+use crate::Result;
 use crate::utils::project;
 use crate::utils::project::make_dev_paths;
-use crate::Result;
+use std::fmt::{Display, Formatter};
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
     Open(Open<'a>),
     Config(Option<AppOptions>),
+    ShowConfig,
     None,
 }
 
@@ -39,7 +41,8 @@ impl<'a> Cmd<'a> {
                     ))
                 }
             }
-            Cmd::Config(options) => options.clone().unwrap().write_to_config(),
+            Cmd::Config(options) => options.as_ref().unwrap().write_to_config(),
+            Cmd::ShowConfig => Ok(AppOptions::current().unwrap().show()),
             Cmd::None => Err(ArgumentNotFound::from("No argument found")),
         }
     }
@@ -70,29 +73,32 @@ impl<'a> Host<'a> {
             Host::GitLab(_) => "https://gitlab.com",
         }
     }
-    pub fn from(text: &'a str) -> Option<Self> {
+    pub fn from(text: String) -> Option<Self> {
         match text.to_lowercase().as_str() {
-            "github.com" | "github" | "gh" => Some(Host::GitHub("github")),
-            "gitlab.com" | "gitlab" | "gl" => Some(Host::GitLab("gitlab")),
+            "github.com" | "github" | "gh" => Some(Host::GitHub("GitHub")),
+            "gitlab.com" | "gitlab" | "gl" => Some(Host::GitLab("GitLab")),
             _ => None,
         }
     }
-    pub fn display(&self) -> &'a str {
+}
+
+impl<'a> Display for Host<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Host::GitHub(host) => *host,
-            Host::GitLab(host) => *host,
+            Host::GitHub(host) => write!(f, "{}", host),
+            Host::GitLab(host) => write!(f, "{}", host),
         }
     }
 }
 
 pub struct Clone<'a> {
     pub host: Option<Host<'a>>,
-    pub owner: Option<&'a str>,
+    pub owner: Option<String>,
     pub repo: Option<&'a str>,
 }
 
 impl<'a> Clone<'a> {
-    pub fn new(host: Option<Host<'a>>, owner: Option<&'a str>, repo: Option<&'a str>) -> Self {
+    pub fn new(host: Option<Host<'a>>, owner: Option<String>, repo: Option<&'a str>) -> Self {
         Clone { host, owner, repo }
     }
     pub fn url(&self) -> String {

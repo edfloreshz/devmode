@@ -2,34 +2,42 @@ name: (Dev)mode
 version: "0.1.0"
 author: "Eduardo F. <edfloreshz@gmail.com>"
 about: "Dev(mode) is a project management utility for developers."
-settings: [ArgRequiredElseHelp, ColoredHelp]
+settings: [ ArgRequiredElseHelp, ColoredHelp ]
 subcommands:
-    - clone:
-        about: Clones a utils repository in a specific folder structure
-        args:
-            - args:
-                help: "Provide either a Git <url> or a Git <host> <owner> <repo>."
-                required: true
-                min_values: 1
-    - open:
-        about: Opens a project on your selected text editor.
-        args:
-            - project:
-                help: "Provide a project name."
-                takes_value: true
-                required: true
-    - config:
-        about: Sets options for configuration.
-        args:
-            - editor:
-                help: "Sets the favorite editor to open projects"
-                short: e
-                long: editor
-            - owner:
-                help: "Sets the favorite editor to open projects"
-                short: o
-                long: owner
-            - host:
-                help: "Sets the favorite editor to open projects"
-                short: h
-                long: host
+  - clone:
+      about: Clones a utils repository in a specific folder structure
+      args:
+        - args:
+            help: "Provide either a Git <url> or a Git <host> <owner> <repo>."
+            required: true
+            min_values: 1
+  - open:
+      about: Opens a project on your selected text editor.
+      args:
+        - project:
+            help: "Provide a project name."
+            takes_value: true
+            required: true
+  - config:
+      about: Sets options for configuration.
+      args:
+        - show:
+            help: "Show the current configuration"
+            short: s
+            long: show
+        - all:
+            help: "Reconfigure everything."
+            short: a
+            long: all
+        - editor:
+            help: "Sets the favorite editor to open projects"
+            short: e
+            long: editor
+        - owner:
+            help: "Sets the favorite editor to open projects"
+            short: o
+            long: owner
+        - host:
+            help: "Sets the favorite editor to open projects"
+            short: h
+            long: host

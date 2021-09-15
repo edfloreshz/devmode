@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Editor {
@@ -24,6 +25,17 @@ pub enum EditorApp {
 impl Default for EditorApp {
     fn default() -> Self {
         EditorApp::None
+    }
+}
+
+impl Display for EditorApp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EditorApp::VSCode => write!(f, "Visual Studio Code"),
+            EditorApp::Vim => write!(f, "Vim"),
+            EditorApp::Nano => write!(f, "Nano"),
+            EditorApp::None => write!(f, "No editor set, run devmode config -e | --editor to configure it."),
+        }
     }
 }
 
