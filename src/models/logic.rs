@@ -2,8 +2,9 @@ use {
     crate::models::config::{AppOptions, ConfigWriter},
     crate::utils::project,
     crate::utils::project::make_dev_paths,
-    crate::{Result, Error::*},
+    crate::{Result},
     std::fmt::{Display, Formatter},
+    anyhow::bail,
 };
 
 pub enum Cmd<'a> {
@@ -19,11 +20,13 @@ impl<'a> Cmd<'a> {
         match self {
             Cmd::Clone(clone) => {
                 if clone.host.is_none() {
-                    Err(Box::new(CloneWithNoConfig))
+                    bail!("You can't do this unless you set your configuration with `devmode config`\n\
+                    In the meantime, you can clone by specifying <host> <owner> <repo> \n\n\
+                    Host should be one of the following: \n1. GitHub \n2. GitLab")
                 } else if clone.owner.is_none() {
-                    Err(Box::new(MissingCloneOwnerRepo))
+                    bail!("Missing arguments: <owner> <repo>")
                 } else if clone.repo.is_none() {
-                    Err(Box::new(MissingCloneRepo))
+                    bail!("Missing arguments: <repo>")
                 } else {
                     match self.clone() {
                         Ok(_) => make_dev_paths(),
@@ -35,7 +38,7 @@ impl<'a> Cmd<'a> {
                 if let Some(_project) = open.name {
                     self.open()
                 } else {
-                    Err(Box::new(ArgumentMissing(open.name.unwrap().to_string())))
+                    bail!("Project name was not provided")
                 }
             }
             Cmd::Config(options) => options.as_ref().unwrap().write_to_config(),
@@ -43,7 +46,7 @@ impl<'a> Cmd<'a> {
                 AppOptions::current().unwrap().show();
                 Ok(())
             }
-            Cmd::None => Err(Box::new(GenericFailure("No argument found".into()))),
+            Cmd::None => bail!("No argument found."),
         }
     }
 
@@ -61,6 +64,7 @@ impl<'a> Cmd<'a> {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum Host<'a> {
     GitHub(&'a str),
     GitLab(&'a str),
@@ -104,7 +108,7 @@ impl<'a> Clone<'a> {
     pub fn url(&self) -> String {
         format!(
             "{}/{}/{}",
-            self.host.as_ref().unwrap().url(),
+            self.host.unwrap().url(),
             self.owner.as_ref().unwrap(),
             self.repo.as_ref().unwrap()
         )

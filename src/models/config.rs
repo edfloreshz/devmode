@@ -1,3 +1,4 @@
+use anyhow::Context;
 use {
     crate::models::editor::Editor,
     crate::Result,
@@ -56,14 +57,33 @@ impl ConfigWriter for AppOptions {
         let config_dir = data_dir.join("config");
         let config_file = data_dir.join("config/config.toml");
         if !data_dir.exists() {
-            fs::create_dir_all(&logs_dir)?;
-            fs::create_dir_all(&config_dir)?;
-            let mut file = std::fs::File::create(&config_file)?;
-            file.write_all(toml::to_string(self).unwrap().as_bytes())?;
+            fs::create_dir_all(&logs_dir).with_context(|| {
+                "Failed to create the `logs` directory, you may need additional permissions."
+            })?;
+            fs::create_dir_all(&config_dir).with_context(|| {
+                "Failed to create the `config` directory, you may need additional permissions."
+            })?;
+            let mut file = std::fs::File::create(&config_file).with_context(|| {
+                "Failed to create `config.toml`, you may need additional permissions."
+            })?;
+            file.write_all(
+                toml::to_string(self)
+                    .with_context(|| "Failed to parse app options.")?
+                    .as_bytes(),
+            )
+                .with_context(|| "Failed to write changes to `config.toml`.")?;
             println!("Config file located at: {}", config_file.display());
         } else if &AppOptions::current().unwrap() != self {
-            std::fs::File::create(&config_file)?
-                .write_all(toml::to_string(self).unwrap().as_bytes())?;
+            std::fs::File::create(&config_file)
+                .with_context(|| {
+                    "Failed to open `config.toml`, you may need additional permissions."
+                })?
+                .write_all(
+                    toml::to_string(self)
+                        .with_context(|| "Failed to parse app options.")?
+                        .as_bytes(),
+                )
+                .with_context(|| "Failed to write changes to `config.toml`.")?;
             println!("Settings updated.")
         } else {
             println!("No settings were changed.");

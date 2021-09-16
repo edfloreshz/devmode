@@ -1,6 +1,10 @@
-use {cmd_lib::*, std::fs::create_dir_all, std::path::Path};
-
-use crate::Result;
+use {
+    cmd_lib::*,
+    std::fs::create_dir_all,
+    std::path::Path,
+    crate::Result,
+    anyhow::Context,
+};
 
 pub fn open(project: &str) -> Result<()> {
     let devpath = format!(
@@ -8,7 +12,7 @@ pub fn open(project: &str) -> Result<()> {
         dirs::data_dir().unwrap().display(),
         "/devmode/paths/devpaths"
     );
-    let grep: String = run_fun!(grep $project $devpath)?;
+    let grep: String = run_fun!(grep $project $devpath)?; //TODO: Manage errors
     if grep.lines().collect::<Vec<&str>>().len() == 1 {
         println!("Opening {}", project);
         run_cmd!(code $grep)?;
@@ -34,7 +38,7 @@ pub fn make_dev_paths() -> Result<()> {
         "/devmode/paths/devpaths"
     );
     if !Path::exists(path.as_ref()) {
-        create_dir_all(&path)?
+        create_dir_all(&path).with_context(|| "Failed to create `paths` directory.")?
     }
     run_cmd!(find $dev -maxdepth 3 -mindepth 2 -type d -print > $devpath)?;
     Ok(())

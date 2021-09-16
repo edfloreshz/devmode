@@ -13,7 +13,7 @@ readme = "README.md"
 
 [dependencies]
 clap = { version = "*", features = ["yaml"] }
-thiserror = "1.0.29"
+anyhow = "1.0.44"
 regex = "1.5.4"
 git2 = "0.13.22"
 dirs = "3.0.2"
