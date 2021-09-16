@@ -1,9 +1,8 @@
 use {
-    crate::error::custom::ArgumentNotFound,
     crate::models::config::{AppOptions, ConfigWriter},
     crate::utils::project,
     crate::utils::project::make_dev_paths,
-    crate::Result,
+    crate::{Result, Error::*},
     std::fmt::{Display, Formatter},
 };
 
@@ -20,15 +19,11 @@ impl<'a> Cmd<'a> {
         match self {
             Cmd::Clone(clone) => {
                 if clone.host.is_none() {
-                    Err(ArgumentNotFound::from(
-                        "You can't do this unless you set your configuration with `devmode config`\n\
-                        In the meantime, you can clone by specifying <host> <owner> <repo> \n\n\
-                        Host should be one of the following: \n1. GitHub \n2. GitLab",
-                    ))
+                    Err(Box::new(CloneWithNoConfig))
                 } else if clone.owner.is_none() {
-                    Err(ArgumentNotFound::from("Missing arguments: <owner> <repo>"))
+                    Err(Box::new(MissingCloneOwnerRepo))
                 } else if clone.repo.is_none() {
-                    Err(ArgumentNotFound::from("Missing argument: <repo>"))
+                    Err(Box::new(MissingCloneRepo))
                 } else {
                     match self.clone() {
                         Ok(_) => make_dev_paths(),
@@ -40,7 +35,7 @@ impl<'a> Cmd<'a> {
                 if let Some(_project) = open.name {
                     self.open()
                 } else {
-                    Err(ArgumentNotFound::from("The argument <project> was not provided"))
+                    Err(Box::new(ArgumentMissing(open.name.unwrap().to_string())))
                 }
             }
             Cmd::Config(options) => options.as_ref().unwrap().write_to_config(),
@@ -48,9 +43,10 @@ impl<'a> Cmd<'a> {
                 AppOptions::current().unwrap().show();
                 Ok(())
             }
-            Cmd::None => Err(ArgumentNotFound::from("No argument found")),
+            Cmd::None => Err(Box::new(GenericFailure("No argument found".into()))),
         }
     }
+
     fn clone(&self) -> Result<()> {
         if let Cmd::Clone(clone) = self {
             return crate::utils::git::clone(clone);

@@ -33,7 +33,7 @@ impl AppOptions {
         if !config_file.exists() {
             None
         } else {
-            let file = read_to_string(config_file).unwrap_or_default();
+            let file = read_to_string(config_file).unwrap();
             let content = toml::from_slice(file.as_bytes()).unwrap_or_default();
             Some(content)
         }

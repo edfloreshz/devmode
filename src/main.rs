@@ -1,8 +1,9 @@
 use {
     crate::cmd::cli::parse,
-    crate::error::custom::downcast_err,
     clap::{load_yaml, App},
+    crate::error::custom::Error,
 };
+use crate::error::custom::downcast_err;
 
 mod cmd;
 mod error;
@@ -15,5 +16,6 @@ fn main() {
     let yaml = load_yaml!("app.yml");
     let matches = App::from_yaml(yaml).get_matches();
     let cmd = parse(&matches);
-    downcast_err(cmd)
+    let check = cmd.check();
+    downcast_err(check)
 }

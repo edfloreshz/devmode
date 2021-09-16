@@ -5,26 +5,33 @@ use crate::Result;
 pub fn open(project: &str) -> Result<()> {
     let devpath = format!(
         "{}{}",
-        dirs::home_dir().unwrap().display(),
-        "/.config/devmode/paths/devpaths"
+        dirs::data_dir().unwrap().display(),
+        "/devmode/paths/devpaths"
     );
-    let grep = run_fun!(grep $project $devpath)?;
-    println!("Opening {}", project);
-    run_cmd!(code $grep)?;
+    let grep: String = run_fun!(grep $project $devpath)?;
+    if grep.lines().collect::<Vec<&str>>().len() == 1 {
+        println!("Opening {}", project);
+        run_cmd!(code $grep)?;
+    }
+    println!("Two or more projects found: \n");
+    for line in grep.lines() {
+        println!("-> {}", line)
+        // TODO: Let the user decide.
+    }
     Ok(())
 }
 
 pub fn make_dev_paths() -> Result<()> {
     let path = format!(
         "{}{}",
-        dirs::home_dir().unwrap().display(),
-        "/.config/devmode/paths"
+        dirs::data_dir().unwrap().display(),
+        "/devmode/paths"
     );
     let dev = format!("{}{}", dirs::home_dir().unwrap().display(), "/Developer");
     let devpath = format!(
         "{}{}",
-        dirs::home_dir().unwrap().display(),
-        "/.config/devmode/paths/devpaths"
+        dirs::data_dir().unwrap().display(),
+        "/devmode/paths/devpaths"
     );
     if !Path::exists(path.as_ref()) {
         create_dir_all(&path)?
