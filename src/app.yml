@@ -42,5 +42,4 @@ subcommands:
             long: owner
         - host:
             help: "Sets the favorite editor to open projects"
-            short: h
             long: host
