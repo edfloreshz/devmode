@@ -1,9 +1,6 @@
 use {
-    cmd_lib::*,
-    std::fs::create_dir_all,
-    std::path::Path,
-    crate::Result,
-    anyhow::Context,
+    crate::Result, anyhow::Context, cmd_lib::*, std::fs::create_dir_all, std::fs::OpenOptions,
+    std::io::Write, std::path::Path, walkdir::WalkDir,
 };
 
 pub fn open(project: &str) -> Result<()> {
@@ -13,7 +10,7 @@ pub fn open(project: &str) -> Result<()> {
         "/devmode/paths/devpaths"
     );
     let grep: String = run_fun!(grep $project $devpath)?; //TODO: Manage errors
-    if grep.lines().collect::<Vec<&str>>().len() == 1 {
+    if grep.lines().count() == 1 {
         println!("Opening {}", project);
         run_cmd!(code $grep)?;
     }
@@ -26,20 +23,25 @@ pub fn open(project: &str) -> Result<()> {
 }
 
 pub fn make_dev_paths() -> Result<()> {
-    let path = format!(
-        "{}{}",
-        dirs::data_dir().unwrap().display(),
-        "/devmode/paths"
-    );
-    let dev = format!("{}{}", dirs::home_dir().unwrap().display(), "/Developer");
-    let devpath = format!(
-        "{}{}",
-        dirs::data_dir().unwrap().display(),
-        "/devmode/paths/devpaths"
-    );
-    if !Path::exists(path.as_ref()) {
-        create_dir_all(&path).with_context(|| "Failed to create `paths` directory.")?
+    let paths_dir = dirs::data_dir().unwrap().join("devmode/paths");
+    println!("{}", paths_dir.display());
+    let mut devpaths = OpenOptions::new()
+        .write(true)
+        .open(dirs::data_dir().unwrap().join("devmode/paths/devpaths"))?;
+    if !Path::exists(paths_dir.as_path()) {
+        create_dir_all(paths_dir.as_path())
+            .with_context(|| "Failed to create `paths` directory.")?;
     }
-    run_cmd!(find $dev -maxdepth 3 -mindepth 2 -type d -print > $devpath)?;
+    for entry in WalkDir::new(dirs::home_dir().unwrap().join("Developer"))
+        .max_depth(3)
+        .min_depth(2)
+    {
+        let entry = entry.unwrap();
+        if entry.depth() == 3 && entry.path().is_dir() {
+            if let Err(e) = writeln!(devpaths, "{}", entry.path().display().to_string()) {
+                eprintln!("Couldn't write to file: {}", e);
+            }
+        }
+    }
     Ok(())
 }

@@ -20,6 +20,10 @@ subcommands:
   - config:
       about: Sets options for configuration.
       args:
+        - map:
+            help: "Map your project paths"
+            short: m
+            long: map
         - show:
             help: "Show the current configuration"
             short: s

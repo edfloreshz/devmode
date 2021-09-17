@@ -22,7 +22,7 @@ pub fn clone(clone: &Clone) -> Result<()> {
         clone.host.unwrap()
     );
     Repository::clone(clone.url().as_str(), &path)
-        .with_context(|| format!("Failed to clone repository."))?;
+        .with_context(|| "Failed to clone repository.")?;
     Ok(())
 }
 
@@ -40,11 +40,9 @@ pub fn parse_url(url: &str, rx: Regex) -> Result<Clone> {
         .get(7)
         .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
         .with_context(|| "Could not map url.")?;
-    Ok(
-        Clone::new(
-            Host::from(host.into()),
-            Option::from(owner),
-            Option::from(repo),
-        )
-    )
+    Ok(Clone::new(
+        Host::from(host.into()),
+        Option::from(owner),
+        Option::from(repo),
+    ))
 }

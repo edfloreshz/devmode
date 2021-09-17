@@ -2,9 +2,9 @@ use {
     crate::models::config::{AppOptions, ConfigWriter},
     crate::utils::project,
     crate::utils::project::make_dev_paths,
-    crate::{Result},
-    std::fmt::{Display, Formatter},
+    crate::Result,
     anyhow::bail,
+    std::fmt::{Display, Formatter},
 };
 
 pub enum Cmd<'a> {
@@ -12,6 +12,7 @@ pub enum Cmd<'a> {
     Open(Project<'a>),
     Config(Option<AppOptions>),
     ShowConfig,
+    MapPaths,
     None,
 }
 
@@ -47,6 +48,7 @@ impl<'a> Cmd<'a> {
                 Ok(())
             }
             Cmd::None => bail!("No argument found."),
+            Cmd::MapPaths => make_dev_paths(),
         }
     }
 
