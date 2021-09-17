@@ -1,8 +1,6 @@
-use {
-    anyhow::Result,
-    clap::{App, load_yaml},
-    crate::models::cmd::Cmd,
-};
+use anyhow::Result;
+use clap::{App, load_yaml};
+use crate::models::cmd::Cmd;
 
 mod cmd;
 mod models;

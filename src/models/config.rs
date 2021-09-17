@@ -1,13 +1,12 @@
-use anyhow::Context;
+use std::fs;
+use std::fs::read_to_string;
+use std::io::Write;
 
-use {
-    crate::models::editor::Editor,
-    crate::Result,
-    serde::{Deserialize, Serialize},
-    std::fs,
-    std::fs::read_to_string,
-    std::io::Write,
-};
+use anyhow::Context;
+use serde::{Deserialize, Serialize};
+
+use crate::models::editor::Editor;
+use crate::Result;
 
 pub trait ConfigWriter {
     fn write_to_config(&self) -> Result<()>;

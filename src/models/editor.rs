@@ -1,9 +1,9 @@
-use {
-    crate::Result,
-    cmd_lib::*,
-    serde::{Deserialize, Serialize},
-    std::fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
+
+use cmd_lib::*;
+use serde::{Deserialize, Serialize};
+
+use crate::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Editor {

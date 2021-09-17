@@ -1,13 +1,12 @@
-use {
-    anyhow::Context,
-    crate::models::clone::Clone,
-    crate::models::cmd::*,
-    crate::models::config::AppOptions,
-    crate::models::editor::{Editor, EditorApp},
-    crate::models::host::Host,
-    crate::Result,
-    requestty::Answer,
-};
+use anyhow::Context;
+use requestty::Answer;
+
+use crate::models::clone::Clone;
+use crate::models::cmd::*;
+use crate::models::config::AppOptions;
+use crate::models::editor::{Editor, EditorApp};
+use crate::models::host::Host;
+use crate::Result;
 
 pub const GIT_URL: &str = r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#;
 
