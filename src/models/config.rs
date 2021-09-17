@@ -1,4 +1,5 @@
 use anyhow::Context;
+
 use {
     crate::models::editor::Editor,
     crate::Result,
@@ -71,7 +72,7 @@ impl ConfigWriter for AppOptions {
                     .with_context(|| "Failed to parse app options.")?
                     .as_bytes(),
             )
-            .with_context(|| "Failed to write changes to `config.toml`.")?;
+                .with_context(|| "Failed to write changes to `config.toml`.")?;
             println!("Config file located at: {}", config_file.display());
         } else if &AppOptions::current().unwrap() != self {
             std::fs::File::create(&config_file)

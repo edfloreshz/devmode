@@ -1,7 +1,7 @@
 use {
-    crate::models::cmd::Cmd,
     anyhow::Result,
-    clap::{load_yaml, App},
+    clap::{App, load_yaml},
+    crate::models::cmd::Cmd,
 };
 
 mod cmd;

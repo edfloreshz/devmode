@@ -1,11 +1,11 @@
-use crate::models::host::Host;
 use {
+    anyhow::Context,
     crate::models::clone::Clone,
     crate::models::cmd::*,
     crate::models::config::AppOptions,
     crate::models::editor::{Editor, EditorApp},
+    crate::models::host::Host,
     crate::Result,
-    anyhow::Context,
     requestty::Answer,
 };
 

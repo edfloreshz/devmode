@@ -1,15 +1,16 @@
+use {
+    anyhow::bail,
+    clap::ArgMatches,
+    crate::cmd::cli::{clone_setup, config_all, config_editor, config_host, config_owner},
+    crate::cmd::cli::GIT_URL,
+    crate::models::config::{AppOptions, ConfigWriter},
+    crate::Result,
+    regex::bytes::Regex,
+};
+
 use crate::models::clone::Clone;
 use crate::models::host::Host;
 use crate::models::project::Project;
-use {
-    crate::cmd::cli::GIT_URL,
-    crate::cmd::cli::{clone_setup, config_all, config_editor, config_host, config_owner},
-    crate::models::config::{AppOptions, ConfigWriter},
-    crate::Result,
-    anyhow::bail,
-    clap::ArgMatches,
-    regex::bytes::Regex,
-};
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),

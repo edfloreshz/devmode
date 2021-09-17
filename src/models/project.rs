@@ -1,10 +1,12 @@
-use crate::models::config::AppOptions;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+
 use {
-    crate::Result, anyhow::Context, std::fs::create_dir_all, std::fs::OpenOptions, std::io::Write,
+    anyhow::Context, crate::Result, std::fs::create_dir_all, std::fs::OpenOptions, std::io::Write,
     std::path::Path, walkdir::WalkDir,
 };
+
+use crate::models::config::AppOptions;
 
 pub struct Project<'a> {
     pub name: Option<&'a str>,
