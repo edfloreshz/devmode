@@ -1,15 +1,15 @@
+use anyhow::Context;
 use {
     crate::models::config::AppOptions,
     crate::models::editor::{Editor, EditorApp},
     crate::models::logic::Clone,
     crate::models::logic::*,
     crate::utils::git::parse_url,
+    crate::Result,
     clap::ArgMatches,
     regex::bytes::Regex,
     requestty::Answer,
-    crate::Result,
 };
-use anyhow::Context;
 
 const GIT_URL: &str = r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#;
 
@@ -38,14 +38,14 @@ pub fn parse<'a>(matches: &'a ArgMatches<'a>) -> Result<Cmd<'a>> {
             Ok(Cmd::Clone(Clone::new(host, owner, repo)))
         }
     } else if let Some(open) = matches.subcommand_matches("open") {
-        Ok(
-            Cmd::Open(Project {
-                name: open.value_of("project"),
-            })
-        )
+        Ok(Cmd::Open(Project {
+            name: open.value_of("project"),
+        }))
     } else if let Some(config) = matches.subcommand_matches("config") {
         if config.is_present("all") {
             config_all()
+        } else if config.is_present("map") {
+            Ok(Cmd::MapPaths)
         } else if AppOptions::current().is_some() {
             return if config.is_present("editor") {
                 config_editor()
@@ -110,8 +110,7 @@ fn config_all<'a>() -> Result<Cmd<'a>> {
             .message("Choose your favorite editor:")
             .choices(vec!["Vim", "Nano", "VSCode"])
             .build(),
-    )?
-    {
+    )? {
         Answer::ListItem(editor) => editor.text,
         _ => String::new(),
     };
@@ -126,8 +125,7 @@ fn config_all<'a>() -> Result<Cmd<'a>> {
                 }
             })
             .build(),
-    )?
-    {
+    )? {
         Answer::String(owner) => owner,
         _ => String::new(),
     };
@@ -136,18 +134,15 @@ fn config_all<'a>() -> Result<Cmd<'a>> {
             .message("Choose your Git host:")
             .choices(vec!["GitHub", "GitLab"])
             .build(),
-    )?
-    {
+    )? {
         Answer::ListItem(host) => host.text,
         _ => String::new(),
     };
-    Ok(
-        Cmd::Config(Some(AppOptions::new(
-            host,
-            owner,
-            Editor::new(EditorApp::from(editor.as_str())),
-        )))
-    )
+    Ok(Cmd::Config(Some(AppOptions::new(
+        host,
+        owner,
+        Editor::new(EditorApp::from(editor.as_str())),
+    ))))
 }
 
 fn config_owner<'a>() -> Result<Cmd<'a>> {
@@ -175,7 +170,9 @@ fn config_host<'a>() -> Result<Cmd<'a>> {
         .build();
     let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
     if let Answer::ListItem(host) = requestty::prompt_one(question)? {
-        options.host = Host::from(host.text).with_context(|| "Couldn't get a host.")?.to_string();
+        options.host = Host::from(host.text)
+            .with_context(|| "Couldn't get a host.")?
+            .to_string();
     }
     Ok(Cmd::Config(Option::from(options)))
 }
