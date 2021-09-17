@@ -1,30 +1,46 @@
+use crate::models::config::AppOptions;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use {
-    crate::Result, anyhow::Context, cmd_lib::*, std::fs::create_dir_all, std::fs::OpenOptions,
-    std::io::Write, std::path::Path, walkdir::WalkDir,
+    crate::Result, anyhow::Context, std::fs::create_dir_all, std::fs::OpenOptions, std::io::Write,
+    std::path::Path, walkdir::WalkDir,
 };
 
 pub fn open(project: &str) -> Result<()> {
-    let devpath = format!(
-        "{}{}",
-        dirs::data_dir().unwrap().display(),
-        "/devmode/paths/devpaths"
-    );
-    let grep: String = run_fun!(grep $project $devpath)?; //TODO: Manage errors
-    if grep.lines().count() == 1 {
+    let devpath = dirs::data_dir().unwrap().join("devmode/paths/devpaths");
+    let reader = BufReader::new(File::open(devpath)?);
+    let paths = reader
+        .lines()
+        .map(|e| e.unwrap())
+        .filter(|e| {
+            let split: Vec<&str> = e.split('/').collect();
+            split.last().unwrap() == &project
+        })
+        .collect::<Vec<String>>();
+    if paths.is_empty() {
+        println!(
+            "No project was found.\n\
+        If you know this project exists, run `devmode config -m, --map` to refresh the paths file."
+        );
+    } else if paths.len() > 1 {
+        println!("Two or more projects found."); // TODO: Let user decide which
+        for path in paths {
+            println!("{}", path)
+        }
+    } else {
         println!("Opening {}", project);
-        run_cmd!(code $grep)?;
-    }
-    println!("Two or more projects found: \n");
-    for line in grep.lines() {
-        println!("-> {}", line)
-        // TODO: Let the user decide.
+        let path = &paths[0];
+        AppOptions::current()
+            .unwrap()
+            .editor
+            .app
+            .run(path.clone())?
     }
     Ok(())
 }
 
 pub fn make_dev_paths() -> Result<()> {
     let paths_dir = dirs::data_dir().unwrap().join("devmode/paths");
-    println!("{}", paths_dir.display());
     let mut devpaths = OpenOptions::new()
         .write(true)
         .open(dirs::data_dir().unwrap().join("devmode/paths/devpaths"))?;

@@ -1,4 +1,6 @@
 use {
+    crate::Result,
+    cmd_lib::*,
     serde::{Deserialize, Serialize},
     std::fmt::{Display, Formatter},
 };
@@ -20,7 +22,6 @@ impl Editor {
 pub enum EditorApp {
     VSCode,
     Vim,
-    Nano,
     None,
 }
 
@@ -35,7 +36,6 @@ impl Display for EditorApp {
         match self {
             EditorApp::VSCode => write!(f, "Visual Studio Code"),
             EditorApp::Vim => write!(f, "Vim"),
-            EditorApp::Nano => write!(f, "Nano"),
             EditorApp::None => write!(
                 f,
                 "No editor set, run devmode config -e, --editor to configure it."
@@ -49,15 +49,21 @@ impl EditorApp {
         String::from(match self {
             EditorApp::VSCode => "code",
             EditorApp::Vim => "vim",
-            EditorApp::Nano => "nano",
             EditorApp::None => "",
         })
+    }
+    pub fn run(&self, arg: String) -> Result<()> {
+        match self {
+            EditorApp::VSCode => run_cmd!(code $arg)?,
+            EditorApp::Vim => run_cmd!(vim $arg)?,
+            EditorApp::None => {}
+        }
+        Ok(())
     }
     pub fn from(key: &str) -> Self {
         match key.to_lowercase().as_str() {
             "vim" => EditorApp::Vim,
             "vscode" => EditorApp::VSCode,
-            "nano" => EditorApp::Nano,
             _ => EditorApp::None,
         }
     }

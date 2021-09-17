@@ -108,7 +108,7 @@ fn config_all<'a>() -> Result<Cmd<'a>> {
     let editor: String = match requestty::prompt_one(
         requestty::Question::select("editor")
             .message("Choose your favorite editor:")
-            .choices(vec!["Vim", "Nano", "VSCode"])
+            .choices(vec!["Vim", "VSCode"])
             .build(),
     )? {
         Answer::ListItem(editor) => editor.text,
@@ -180,7 +180,7 @@ fn config_host<'a>() -> Result<Cmd<'a>> {
 fn config_editor<'a>() -> Result<Cmd<'a>> {
     let question = requestty::Question::select("editor")
         .message("Choose your favorite editor:")
-        .choices(vec!["Vim", "Nano", "VSCode"])
+        .choices(vec!["Vim", "VSCode"])
         .build();
     let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
     if let Answer::ListItem(i) = requestty::prompt_one(question)? {
