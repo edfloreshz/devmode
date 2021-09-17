@@ -167,3 +167,6 @@ devmode open <project>
 ```
 
 If two or more projects with the same name are found, you will have to choose which one to open.
+
+## Proposals
+If you have a proposal for a new feature, open a new [issue](https://github.com/edfloreshz/devmode/issues).
