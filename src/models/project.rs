@@ -1,8 +1,8 @@
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
 use std::io::Write;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use anyhow::Context;
@@ -50,13 +50,13 @@ impl<'a> Project<'a> {
     }
     pub fn make_dev_paths() -> Result<()> {
         let paths_dir = dirs::data_dir().unwrap().join("devmode/paths");
-        let mut devpaths = OpenOptions::new()
-            .write(true)
-            .open(dirs::data_dir().unwrap().join("devmode/paths/devpaths"))?;
+        let paths_file = paths_dir.join("devpaths");
         if !Path::exists(paths_dir.as_path()) {
             create_dir_all(paths_dir.as_path())
                 .with_context(|| "Failed to create `paths` directory.")?;
+            File::create(paths_file.clone())?;
         }
+        let mut devpaths = OpenOptions::new().write(true).open(paths_file)?;
         for entry in WalkDir::new(dirs::home_dir().unwrap().join("Developer"))
             .max_depth(3)
             .min_depth(2)
