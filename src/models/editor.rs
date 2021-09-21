@@ -11,10 +11,23 @@ pub struct Editor {
     pub command: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
+pub struct EditorCustom {
+    pub name: String,
+    pub command: String,
+}
+
 impl Editor {
     pub fn new(app: EditorApp) -> Self {
-        let command = app.command();
-        Editor { app, command }
+        if let EditorApp::Custom(editor_custom) = app {
+            Editor {
+                app: EditorApp::CustomEditor,
+                command: editor_custom.command,
+            }
+        } else {
+            let command = app.command();
+            Editor { app, command }
+        }
     }
 }
 
@@ -22,6 +35,8 @@ impl Editor {
 pub enum EditorApp {
     VSCode,
     Vim,
+    Custom(EditorCustom),
+    CustomEditor,
     None,
 }
 
@@ -36,7 +51,7 @@ impl Display for EditorApp {
         match self {
             EditorApp::VSCode => write!(f, "Visual Studio Code"),
             EditorApp::Vim => write!(f, "Vim"),
-            EditorApp::None => write!(
+            _ => write!(
                 f,
                 "No editor set, run devmode config -e, --editor to configure it."
             ),
@@ -49,14 +64,14 @@ impl EditorApp {
         String::from(match self {
             EditorApp::VSCode => "code",
             EditorApp::Vim => "vim",
-            EditorApp::None => "",
+            _ => "",
         })
     }
     pub fn run(&self, arg: String) -> Result<()> {
         match self {
             EditorApp::VSCode => run_cmd!(code $arg)?,
             EditorApp::Vim => run_cmd!(vim $arg)?,
-            EditorApp::None => {}
+            _ => {}
         }
         Ok(())
     }
@@ -64,6 +79,7 @@ impl EditorApp {
         match key.to_lowercase().as_str() {
             "vim" => EditorApp::Vim,
             "vscode" => EditorApp::VSCode,
+            "custom" => EditorApp::Custom(EditorCustom::new()),
             _ => EditorApp::None,
         }
     }

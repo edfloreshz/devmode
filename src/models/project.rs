@@ -1,3 +1,4 @@
+use cmd_lib::*;
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -8,7 +9,7 @@ use std::path::Path;
 use anyhow::Context;
 use walkdir::WalkDir;
 
-use crate::models::config::AppOptions;
+use crate::models::{config::AppOptions, editor::EditorApp};
 use crate::Result;
 
 pub struct Project<'a> {
@@ -40,11 +41,18 @@ impl<'a> Project<'a> {
         } else {
             println!("Opening {}", self.name.unwrap());
             let path = &paths[0];
-            AppOptions::current()
-                .unwrap()
-                .editor
-                .app
-                .run(path.clone())?
+
+            if let EditorApp::CustomEditor = AppOptions::current().unwrap().editor.app {
+                let command_editor = AppOptions::current().unwrap().editor.command;
+                let route = path.clone();
+                run_cmd!($command_editor $route)?
+            } else {
+                AppOptions::current()
+                    .unwrap()
+                    .editor
+                    .app
+                    .run(path.clone())?
+            }
         }
         Ok(())
     }
