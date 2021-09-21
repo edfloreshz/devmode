@@ -49,44 +49,25 @@ pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
 }
 
 pub fn config_all<'a>() -> Result<Cmd<'a>> {
-    let editor: String = match requestty::prompt_one(
-        requestty::Question::select("editor")
-            .message("Choose your favorite editor:")
-            .choices(vec!["Vim", "VSCode"])
-            .build(),
-    )? {
-        Answer::ListItem(editor) => editor.text,
-        _ => String::new(),
+    let editor = config_editor()?;
+    let editor = if let Cmd::Config(options) = editor {
+        options.unwrap().editor
+    } else {
+        Editor::default()
     };
-    let owner: String = match requestty::prompt_one(
-        requestty::Question::input("owner")
-            .message("What's your Git username:")
-            .validate(|owner, _previous| {
-                if owner.is_empty() {
-                    Err("Please enter a Git username.".to_owned())
-                } else {
-                    Ok(())
-                }
-            })
-            .build(),
-    )? {
-        Answer::String(owner) => owner,
-        _ => String::new(),
+    let owner = config_owner()?;
+    let owner = if let Cmd::Config(options) = owner {
+        options.unwrap().owner
+    } else {
+        String::new()
     };
-    let host: String = match requestty::prompt_one(
-        requestty::Question::select("host")
-            .message("Choose your Git host:")
-            .choices(vec!["GitHub", "GitLab"])
-            .build(),
-    )? {
-        Answer::ListItem(host) => host.text,
-        _ => String::new(),
+    let host = config_host()?;
+    let host = if let Cmd::Config(options) = host {
+        options.unwrap().host
+    } else {
+        String::new()
     };
-    Ok(Cmd::Config(Some(AppOptions::new(
-        host,
-        owner,
-        Editor::new(EditorApp::from(editor.as_str())),
-    ))))
+    Ok(Cmd::Config(Some(AppOptions::new(host, owner, editor))))
 }
 
 pub fn config_owner<'a>() -> Result<Cmd<'a>> {
@@ -124,11 +105,29 @@ pub fn config_host<'a>() -> Result<Cmd<'a>> {
 pub fn config_editor<'a>() -> Result<Cmd<'a>> {
     let question = requestty::Question::select("editor")
         .message("Choose your favorite editor:")
-        .choices(vec!["Vim", "VSCode"])
+        .choices(vec!["Vim", "VSCode", "Custom"])
         .build();
     let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
     if let Answer::ListItem(i) = requestty::prompt_one(question)? {
-        options.editor = Editor::new(EditorApp::from(&*i.text));
+        if i.text.to_lowercase() == "custom" {
+            let mut command: Option<String> = None;
+            let question = requestty::Question::input("command")
+                .message("Editor command:")
+                .validate(|owner, _previous| {
+                    if owner.is_empty() {
+                        Err("Please enter a editor command".to_owned())
+                    } else {
+                        Ok(())
+                    }
+                })
+                .build();
+            if let Answer::String(cmd) = requestty::prompt_one(question).unwrap() {
+                command = Option::from(cmd);
+            }
+            options.editor = Editor::custom(command.unwrap());
+        } else {
+            options.editor = Editor::new(EditorApp::from(&*i.text));
+        }
     }
     Ok(Cmd::Config(Option::from(options)))
 }

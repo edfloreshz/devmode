@@ -78,7 +78,7 @@ Editor: Visual Studio Code
 When you clone a repository it will be stored to your filesystem using a specific folder structure.
 
 ```
-home
+$HOME
 └── Developer
     └── host
         └── owner
