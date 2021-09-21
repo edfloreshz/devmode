@@ -37,9 +37,9 @@ subcommands:
             short: e
             long: editor
         - owner:
-            help: "Sets the favorite editor to open projects"
+            help: "Sets the favorite owner to projects"
             short: o
             long: owner
         - host:
-            help: "Sets the favorite editor to open projects"
+            help: "Sets the favorite host to clone projects"
             long: host
