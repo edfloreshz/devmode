@@ -1,11 +1,11 @@
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::io::Write;
 use std::path::Path;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use walkdir::WalkDir;
 
 use crate::models::config::AppOptions;
@@ -17,8 +17,9 @@ pub struct Project<'a> {
 
 impl<'a> Project<'a> {
     pub fn open(&self) -> Result<()> {
-        let devpath = dirs::data_dir().unwrap().join("devmode/paths/devpaths");
-        let reader = BufReader::new(File::open(devpath)?);
+        let reader = BufReader::new(File::open(
+            dirs::data_dir().unwrap().join("devmode/paths/devpaths"),
+        )?);
         let paths = reader
             .lines()
             .map(|e| e.unwrap())
@@ -28,12 +29,10 @@ impl<'a> Project<'a> {
             })
             .collect::<Vec<String>>();
         if paths.is_empty() {
-            println!(
-                "No project was found.\n\
-        If you know this project exists, run `devmode config -m, --map` to refresh the paths file."
-            );
+            bail!("No project was found.\n\
+        If you know this project exists, run `devmode config -m, --map` to refresh the paths file.")
         } else if paths.len() > 1 {
-            println!("Two or more projects found."); // TODO: Let user decide which
+            eprintln!("Two or more projects found."); // TODO: Let user decide which
             for path in paths {
                 println!("{}", path)
             }
