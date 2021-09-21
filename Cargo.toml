@@ -9,7 +9,7 @@ documentation = "https://docs.rs/devmode"
 repository = "https://github.com/edfloreshz/devmode/"
 readme = "README.md"
 exclude = [
-    ".idea/*",
+    ".idea",
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
