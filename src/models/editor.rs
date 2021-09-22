@@ -16,12 +16,19 @@ impl Editor {
         let command = app.command();
         Editor { app, command }
     }
+    pub fn custom(command: String) -> Self {
+        Editor {
+            app: EditorApp::Custom,
+            command,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum EditorApp {
     VSCode,
     Vim,
+    Custom,
     None,
 }
 
@@ -36,7 +43,8 @@ impl Display for EditorApp {
         match self {
             EditorApp::VSCode => write!(f, "Visual Studio Code"),
             EditorApp::Vim => write!(f, "Vim"),
-            EditorApp::None => write!(
+            EditorApp::Custom => write!(f, "Custom"),
+            _ => write!(
                 f,
                 "No editor set, run devmode config -e, --editor to configure it."
             ),
@@ -49,14 +57,14 @@ impl EditorApp {
         String::from(match self {
             EditorApp::VSCode => "code",
             EditorApp::Vim => "vim",
-            EditorApp::None => "",
+            _ => "",
         })
     }
     pub fn run(&self, arg: String) -> Result<()> {
         match self {
             EditorApp::VSCode => run_cmd!(code $arg)?,
             EditorApp::Vim => run_cmd!(vim $arg)?,
-            EditorApp::None => {}
+            _ => {}
         }
         Ok(())
     }

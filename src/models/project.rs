@@ -1,14 +1,15 @@
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
 use std::io::Write;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use anyhow::{bail, Context};
+use cmd_lib::*;
 use walkdir::WalkDir;
 
-use crate::models::config::AppOptions;
+use crate::models::{config::AppOptions, editor::EditorApp};
 use crate::Result;
 
 pub struct Project<'a> {
@@ -29,21 +30,30 @@ impl<'a> Project<'a> {
             })
             .collect::<Vec<String>>();
         if paths.is_empty() {
-            bail!("No project was found.\n\
-        If you know this project exists, run `devmode config -m, --map` to refresh the paths file.")
+            bail!(
+                "No project was found.\n\
+        If you know this project exists, run `devmode config -m, --map` to refresh the paths file."
+            )
         } else if paths.len() > 1 {
             eprintln!("Two or more projects found."); // TODO: Let user decide which
             for path in paths {
                 println!("{}", path)
             }
         } else {
-            println!("Opening {}", self.name.unwrap());
+            println!(
+                "Opening {}... \n\n\
+            If the editor does not support openning from a path, you'll have to open it yourself.",
+                self.name.unwrap()
+            );
             let path = &paths[0];
-            AppOptions::current()
-                .unwrap()
-                .editor
-                .app
-                .run(path.clone())?
+            let options = AppOptions::current().unwrap();
+            if let EditorApp::Custom = options.editor.app {
+                let command_editor = options.editor.command;
+                let route = path.clone();
+                run_cmd!($command_editor $route)?
+            } else {
+                options.editor.app.run(path.clone())?
+            }
         }
         Ok(())
     }
