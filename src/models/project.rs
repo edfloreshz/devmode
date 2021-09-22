@@ -1,12 +1,12 @@
-use cmd_lib::*;
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::io::Write;
 use std::path::Path;
 
 use anyhow::Context;
+use cmd_lib::*;
 use walkdir::WalkDir;
 
 use crate::models::{config::AppOptions, editor::EditorApp};
@@ -39,19 +39,16 @@ impl<'a> Project<'a> {
                 println!("{}", path)
             }
         } else {
-            println!("Opening {}", self.name.unwrap());
+            println!("Opening {}... \n\n\
+            If the editor does not support openning from a path, you'll have to open it yourself.", self.name.unwrap());
             let path = &paths[0];
-
-            if let EditorApp::CustomEditor = AppOptions::current().unwrap().editor.app {
-                let command_editor = AppOptions::current().unwrap().editor.command;
+            let options = AppOptions::current().unwrap();
+            if let EditorApp::Custom = options.editor.app {
+                let command_editor = options.editor.command;
                 let route = path.clone();
                 run_cmd!($command_editor $route)?
             } else {
-                AppOptions::current()
-                    .unwrap()
-                    .editor
-                    .app
-                    .run(path.clone())?
+                options.editor.app.run(path.clone())?
             }
         }
         Ok(())
