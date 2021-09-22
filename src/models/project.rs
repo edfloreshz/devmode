@@ -5,7 +5,7 @@ use std::io::{BufRead, BufReader};
 use std::io::Write;
 use std::path::Path;
 
-use anyhow::Context;
+use anyhow::{Context, bail};
 use cmd_lib::*;
 use walkdir::WalkDir;
 
