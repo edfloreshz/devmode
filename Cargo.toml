@@ -1,18 +1,21 @@
 [package]
 name = "devmode"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
 license = "GPL-2.0"
-description = "Devmode is a code management utility for developers."
+description = "Devmode is a project management utility for developers."
 homepage = "https://devmode.edfloreshz.dev/"
 documentation = "https://docs.rs/devmode"
 repository = "https://github.com/edfloreshz/devmode/"
 readme = "README.md"
+exclude = [
+    ".idea",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "*", features = ["yaml"] }
+clap = { version = "2.33.3", features = ["yaml"] }
 anyhow = "1.0.44"
 regex = "1.5.4"
 walkdir = "2.3.2"

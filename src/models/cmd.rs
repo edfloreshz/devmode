@@ -2,8 +2,8 @@ use anyhow::bail;
 use clap::ArgMatches;
 use regex::bytes::Regex;
 
-use crate::cmd::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
 use crate::cmd::cli::GIT_URL;
+use crate::cmd::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
 use crate::models::clone::Clone;
 use crate::models::config::{AppOptions, ConfigWriter};
 use crate::models::host::Host;
