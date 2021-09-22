@@ -54,7 +54,6 @@ impl EditorApp {
         String::from(match self {
             EditorApp::VSCode => "code",
             EditorApp::Vim => "vim",
-            EditorApp::Custom => "vim",
             _ => "",
         })
     }
