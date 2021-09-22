@@ -1,6 +1,6 @@
 [package]
 name = "devmode"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2018"
 license = "GPL-2.0"
 description = "Devmode is a project management utility for developers."
