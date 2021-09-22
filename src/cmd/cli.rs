@@ -165,22 +165,9 @@ impl EditorCustom {
             editor_command = Option::from(editor_c);
         }
 
-        let mut build = Self {
-            name: String::new(),
-            command: String::new(),
-        };
-        if let Some(name) = editor_name {
-            build.name = name.clone();
-            if let Some(command) = editor_command {
-                build.command = command;
-            } else {
-                build.command = name;
-            }
-        } else {
-            build.name = "vscode".to_string();
-            build.command = "code".to_string();
+        Self {
+            name: editor_name.unwrap_or("vscode".to_string()),
+            command: editor_command.unwrap_or("code".to_string()),
         }
-
-        build
     }
 }
