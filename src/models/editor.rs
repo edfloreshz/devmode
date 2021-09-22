@@ -16,8 +16,11 @@ impl Editor {
         let command = app.command();
         Editor { app, command }
     }
-    pub fn custom(command:  String) -> Self {
-        Editor { app: EditorApp::Custom, command }
+    pub fn custom(command: String) -> Self {
+        Editor {
+            app: EditorApp::Custom,
+            command,
+        }
     }
 }
 

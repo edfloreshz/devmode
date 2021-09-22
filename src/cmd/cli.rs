@@ -52,20 +52,22 @@ pub fn config_all<'a>() -> Result<Cmd<'a>> {
     let editor = config_editor()?;
     let editor = if let Cmd::Config(options) = editor {
         options.unwrap().editor
-    } else { Editor::default() };
+    } else {
+        Editor::default()
+    };
     let owner = config_owner()?;
     let owner = if let Cmd::Config(options) = owner {
         options.unwrap().owner
-    } else { String::new() };
+    } else {
+        String::new()
+    };
     let host = config_host()?;
     let host = if let Cmd::Config(options) = host {
         options.unwrap().host
-    } else { String::new() };
-    Ok(Cmd::Config(Some(AppOptions::new(
-        host,
-        owner,
-        editor,
-    ))))
+    } else {
+        String::new()
+    };
+    Ok(Cmd::Config(Some(AppOptions::new(host, owner, editor))))
 }
 
 pub fn config_owner<'a>() -> Result<Cmd<'a>> {
