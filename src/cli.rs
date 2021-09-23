@@ -1,17 +1,15 @@
-use anyhow::Context;
+use anyhow::Result;
+use libdmd::utils::clone::Clone;
+use libdmd::utils::config::AppOptions;
+use libdmd::utils::editor::{Editor, EditorApp};
+use libdmd::utils::fork::Fork;
+use libdmd::utils::host::Host;
 use requestty::Answer;
 
-use crate::models::clone::Clone;
-use crate::models::cmd::*;
-use crate::models::config::AppOptions;
-use crate::models::editor::{Editor, EditorApp};
-use crate::models::host::Host;
-use crate::Result;
+use crate::cmd::*;
 
-pub const GIT_URL: &str = r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#;
-
-pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
-    let mut clone = Clone::new(None, None, None);
+pub fn clone_setup() -> Result<Cmd> {
+    let mut clone = Clone::new();
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
@@ -30,7 +28,7 @@ pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
         })
         .build();
     if let Answer::String(owner) = requestty::prompt_one(question)? {
-        clone.owner = Option::from(owner);
+        clone.owner = owner;
     }
     let question = requestty::Question::input("repo")
         .message("Git repo name:")
@@ -43,34 +41,86 @@ pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
         })
         .build();
     if let Answer::String(repo) = requestty::prompt_one(question)? {
-        clone.repo = Option::from(repo);
+        clone.repos.push(repo);
     }
     Ok(Cmd::Clone(clone))
 }
 
-pub fn config_all<'a>() -> Result<Cmd<'a>> {
+pub fn fork_setup() -> Result<Cmd> {
+    let mut fork = Fork::new();
+    let question = requestty::Question::select("host")
+        .message("Choose your Git host:")
+        .choices(vec!["GitHub", "GitLab"])
+        .build();
+    if let Answer::ListItem(host) = requestty::prompt_one(question)? {
+        fork.host = Host::from(host.text);
+    }
+    let question = requestty::Question::input("owner")
+        .message("Git username:")
+        .validate(|owner, _previous| {
+            if owner.is_empty() {
+                Err("Please enter a Git username.".to_owned())
+            } else {
+                Ok(())
+            }
+        })
+        .build();
+    if let Answer::String(owner) = requestty::prompt_one(question)? {
+        fork.owner = owner;
+    }
+    let question = requestty::Question::input("repo")
+        .message("Git repo name:")
+        .validate(|owner, _previous| {
+            if owner.is_empty() {
+                Err("Please enter a Git repo name.".to_owned())
+            } else {
+                Ok(())
+            }
+        })
+        .build();
+    if let Answer::String(repo) = requestty::prompt_one(question)? {
+        fork.repo = repo;
+    }
+
+    let question = requestty::Question::input("upstream")
+        .message("Git URL (upstream):")
+        .validate(|owner, _previous| {
+            if owner.is_empty() {
+                Err("Please enter a Git URL.".to_owned())
+            } else {
+                Ok(())
+            }
+        })
+        .build();
+    if let Answer::String(repo) = requestty::prompt_one(question)? {
+        fork.upstream = repo;
+    }
+    Ok(Cmd::Fork(fork))
+}
+
+pub fn config_all() -> Result<Cmd> {
     let editor = config_editor()?;
     let editor = if let Cmd::Config(options) = editor {
-        options.unwrap().editor
+        options.editor
     } else {
         Editor::default()
     };
     let owner = config_owner()?;
     let owner = if let Cmd::Config(options) = owner {
-        options.unwrap().owner
+        options.owner
     } else {
         String::new()
     };
     let host = config_host()?;
     let host = if let Cmd::Config(options) = host {
-        options.unwrap().host
+        options.host
     } else {
         String::new()
     };
-    Ok(Cmd::Config(Some(AppOptions::new(host, owner, editor))))
+    Ok(Cmd::Config(AppOptions::new(host, owner, editor)))
 }
 
-pub fn config_owner<'a>() -> Result<Cmd<'a>> {
+pub fn config_owner() -> Result<Cmd> {
     let question = requestty::Question::input("owner")
         .message("What's your Git username:")
         .validate(|owner, _previous| {
@@ -81,33 +131,31 @@ pub fn config_owner<'a>() -> Result<Cmd<'a>> {
             }
         })
         .build();
-    let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
+    let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::String(owner) = requestty::prompt_one(question)? {
         options.owner = owner;
     }
-    Ok(Cmd::Config(Option::from(options)))
+    Ok(Cmd::Config(options))
 }
 
-pub fn config_host<'a>() -> Result<Cmd<'a>> {
+pub fn config_host() -> Result<Cmd> {
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
         .build();
-    let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
+    let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::ListItem(host) = requestty::prompt_one(question)? {
-        options.host = Host::from(host.text)
-            .with_context(|| "Couldn't get a host.")?
-            .to_string();
+        options.host = Host::from(host.text).to_string();
     }
-    Ok(Cmd::Config(Option::from(options)))
+    Ok(Cmd::Config(options))
 }
 
-pub fn config_editor<'a>() -> Result<Cmd<'a>> {
+pub fn config_editor() -> Result<Cmd> {
     let question = requestty::Question::select("editor")
         .message("Choose your favorite editor:")
         .choices(vec!["Vim", "VSCode", "Custom"])
         .build();
-    let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
+    let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::ListItem(i) = requestty::prompt_one(question)? {
         if i.text.to_lowercase() == "custom" {
             let mut command: Option<String> = None;
@@ -129,5 +177,5 @@ pub fn config_editor<'a>() -> Result<Cmd<'a>> {
             options.editor = Editor::new(EditorApp::from(&*i.text));
         }
     }
-    Ok(Cmd::Config(Option::from(options)))
+    Ok(Cmd::Config(options))
 }

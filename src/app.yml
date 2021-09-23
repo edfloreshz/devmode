@@ -1,24 +1,40 @@
 name: (Dev)mode
-version: "0.1.2"
+version: "0.1.3"
 author: "Eduardo F. <edfloreshz@gmail.com>"
 about: "Dev(mode) is a project management utility for developers."
-settings: [ ArgRequiredElseHelp, ColoredHelp ]
+settings: [ArgRequiredElseHelp, ColoredHelp]
 subcommands:
   - clone:
       about: Clones a utils repository in a specific folder structure
+      alias: "cl"
       args:
         - args:
             help: "Provide either a Git <url> or a Git <host> <owner> <repo>."
             min_values: 1
   - open:
       about: Opens a project on your selected text editor.
+      alias: "o"
       args:
         - project:
             help: "Provide a project name."
             takes_value: true
             required: true
+  - fork:
+      about: Clone repo and set upstream to your fork
+      alias: "fk"
+      args:
+        - args:
+            help: "Provide either a Git <url> or a Git <host> <owner> <repo>."
+            min_values: 1
+        - upstream:
+            help: "Set the upstream to your fork <url>"
+            short: u
+            long: upstream
+            takes_value: true
+            required: true
   - config:
       about: Sets options for configuration.
+      alias: "cf"
       args:
         - map:
             help: "Map your project paths"
