@@ -20,6 +20,19 @@ SUBCOMMANDS:
     open      Opens a project on your selected text editor.
 ```
 
+## Installation
+
+#### Arch Linux
+```
+paru -S devmode-git
+```
+
+#### Cargo
+```
+cargo install devmode
+```
+
+
 ## Configuration
 
 The `config` command will help you configure `devmode` to your liking.
