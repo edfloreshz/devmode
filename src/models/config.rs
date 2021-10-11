@@ -31,13 +31,13 @@ impl AppOptions {
         let config_file = dirs::data_dir()
             .expect("Data dir not present.")
             .join("devmode/config/config.toml");
-        if !config_file.exists() {
-            None
+        Option::from(if !config_file.exists() {
+            AppOptions::default()
         } else {
             let file = read_to_string(config_file).unwrap();
             let content = toml::from_slice(file.as_bytes()).unwrap_or_default();
-            Some(content)
-        }
+            content
+        })
     }
     pub fn show(&self) {
         println!(

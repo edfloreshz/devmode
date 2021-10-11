@@ -81,7 +81,7 @@ pub fn config_owner<'a>() -> Result<Cmd<'a>> {
             }
         })
         .build();
-    let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
+    let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::String(owner) = requestty::prompt_one(question)? {
         options.owner = owner;
     }
@@ -93,7 +93,7 @@ pub fn config_host<'a>() -> Result<Cmd<'a>> {
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
         .build();
-    let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
+    let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::ListItem(host) = requestty::prompt_one(question)? {
         options.host = Host::from(host.text)
             .with_context(|| "Couldn't get a host.")?
@@ -107,7 +107,7 @@ pub fn config_editor<'a>() -> Result<Cmd<'a>> {
         .message("Choose your favorite editor:")
         .choices(vec!["Vim", "VSCode", "Custom"])
         .build();
-    let mut options = AppOptions::current().with_context(|| "Couldn't get current settings.")?;
+    let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::ListItem(i) = requestty::prompt_one(question)? {
         if i.text.to_lowercase() == "custom" {
             let mut command: Option<String> = None;
