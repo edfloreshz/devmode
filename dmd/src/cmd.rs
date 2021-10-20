@@ -3,13 +3,13 @@ use anyhow::Result;
 use clap::ArgMatches;
 use regex::bytes::Regex;
 
-use dvmlib::constants::GIT_URL;
+use dmdlib::constants::GIT_URL;
 
 use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
-use dvmlib::models::clone::Clone;
-use dvmlib::models::config::{AppOptions, ConfigWriter};
-use dvmlib::models::host::Host;
-use dvmlib::models::project::Project;
+use dmdlib::models::clone::Clone;
+use dmdlib::models::config::{AppOptions, ConfigWriter};
+use dmdlib::models::host::Host;
+use dmdlib::models::project::Project;
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),

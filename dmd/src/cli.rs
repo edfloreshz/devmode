@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use requestty::Answer;
 
-use dvmlib::models::clone::Clone;
+use dmdlib::models::clone::Clone;
 
 use crate::cmd::*;
-use dvmlib::models::config::AppOptions;
-use dvmlib::models::editor::{Editor, EditorApp};
-use dvmlib::models::host::Host;
+use dmdlib::models::config::AppOptions;
+use dmdlib::models::editor::{Editor, EditorApp};
+use dmdlib::models::host::Host;
 
 pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
     let mut clone = Clone::new(None, None, None);

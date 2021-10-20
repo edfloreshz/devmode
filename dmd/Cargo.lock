@@ -162,18 +162,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "dvm"
+name = "dmd"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "dvmlib",
+ "dmdlib",
  "regex",
  "requestty",
 ]
 
 [[package]]
-name = "dvmlib"
+name = "dmdlib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
