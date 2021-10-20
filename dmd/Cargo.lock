@@ -175,6 +175,8 @@ dependencies = [
 [[package]]
 name = "dmdlib"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea00296976c2700cf7e6d37f57d99f8b9c16758392f9ee0f0a3b917763f9c182"
 dependencies = [
  "anyhow",
  "cmd_lib",
