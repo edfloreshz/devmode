@@ -1,14 +1,12 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use requestty::Answer;
 
-use crate::models::clone::Clone;
-use crate::models::cmd::*;
-use crate::models::config::AppOptions;
-use crate::models::editor::{Editor, EditorApp};
-use crate::models::host::Host;
-use crate::Result;
+use dvmlib::models::clone::Clone;
 
-pub const GIT_URL: &str = r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#;
+use crate::cmd::*;
+use dvmlib::models::config::AppOptions;
+use dvmlib::models::editor::{Editor, EditorApp};
+use dvmlib::models::host::Host;
 
 pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
     let mut clone = Clone::new(None, None, None);

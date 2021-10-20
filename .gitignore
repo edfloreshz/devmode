@@ -11,4 +11,6 @@
 
 # Added by cargo
 
-/target
+dvm/target
+dvm-lib/target
+dvmt/target

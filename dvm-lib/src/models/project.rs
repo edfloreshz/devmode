@@ -1,16 +1,16 @@
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::io::Write;
 use std::path::Path;
 
 use anyhow::{bail, Context};
+use anyhow::Result;
 use cmd_lib::*;
 use walkdir::WalkDir;
 
 use crate::models::{config::AppOptions, editor::EditorApp};
-use crate::Result;
 
 pub struct Project<'a> {
     pub name: Option<&'a str>,

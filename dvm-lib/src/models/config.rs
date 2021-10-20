@@ -6,7 +6,7 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 use crate::models::editor::Editor;
-use crate::Result;
+use anyhow::Result;
 
 pub trait ConfigWriter {
     fn write_to_config(&self) -> Result<()>;

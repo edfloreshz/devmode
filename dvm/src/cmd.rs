@@ -1,14 +1,15 @@
 use anyhow::bail;
+use anyhow::Result;
 use clap::ArgMatches;
 use regex::bytes::Regex;
 
-use crate::cmd::cli::GIT_URL;
-use crate::cmd::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
-use crate::models::clone::Clone;
-use crate::models::config::{AppOptions, ConfigWriter};
-use crate::models::host::Host;
-use crate::models::project::Project;
-use crate::Result;
+use dvmlib::constants::GIT_URL;
+
+use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
+use dvmlib::models::clone::Clone;
+use dvmlib::models::config::{AppOptions, ConfigWriter};
+use dvmlib::models::host::Host;
+use dvmlib::models::project::Project;
 
 pub enum Cmd<'a> {
     Clone(Clone<'a>),
@@ -26,23 +27,26 @@ impl<'a> Cmd<'a> {
                 .values_of("args")
                 .unwrap_or_default()
                 .collect::<Vec<_>>();
-            let url = args.get(0).copied().unwrap_or_default();
+            let first = args.get(0).copied().unwrap_or_default();
             let rx = Regex::new(GIT_URL).unwrap();
             if args.is_empty() {
                 clone_setup()
-            } else if rx.is_match(url.as_ref()) {
-                let clone = Clone::parse_url(url, rx)?;
+            } else if rx.is_match(first.as_ref()) {
+                let clone = Clone::parse_url(first, rx)?;
                 Ok(Cmd::Clone(clone))
-            } else if let Some(options) = AppOptions::current() {
-                let host = Host::from(options.host);
-                let owner = Option::from(options.owner);
-                let repo = args.get(0).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::new(host, owner, repo)))
             } else {
-                let host = Host::from(url.into());
-                let owner = args.get(1).map(|a| a.to_string());
-                let repo = args.get(2).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::new(host, owner, repo)))
+                if args.len() == 1 {
+                    let options = AppOptions::current().unwrap();
+                    let host = Host::from(options.host);
+                    let owner = Option::from(options.owner);
+                    let repo = args.get(0).map(|a| a.to_string());
+                    Ok(Cmd::Clone(Clone::new(host, owner, repo)))
+                } else {
+                    let host = Host::from(first.into());
+                    let owner = args.get(1).map(|a| a.to_string());
+                    let repo = args.get(2).map(|a| a.to_string());
+                    Ok(Cmd::Clone(Clone::new(host, owner, repo)))
+                }
             }
         } else if let Some(open) = matches.subcommand_matches("open") {
             Ok(Cmd::Open(Project {

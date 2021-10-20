@@ -1,10 +1,9 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use dirs::home_dir;
 use git2::Repository;
 use regex::bytes::Regex;
 
 use crate::models::host::Host;
-use crate::Result;
 
 pub struct Clone<'a> {
     pub host: Option<Host<'a>>,

@@ -1,9 +1,8 @@
 use std::fmt::{Display, Formatter};
 
+use anyhow::Result;
 use cmd_lib::*;
 use serde::{Deserialize, Serialize};
-
-use crate::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Editor {
