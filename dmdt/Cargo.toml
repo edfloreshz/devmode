@@ -2,7 +2,15 @@
 name = "dmdt"
 version = "0.1.0"
 edition = "2018"
-
+license = "GPL-2.0"
+description = "Devmode TUI is a project management utility for developers."
+homepage = "https://devmode.edfloreshz.dev/"
+documentation = "https://docs.rs/devmode"
+repository = "https://github.com/edfloreshz/devmode/"
+readme = "README.md"
+exclude = [
+    ".idea",
+]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
