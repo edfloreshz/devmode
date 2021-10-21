@@ -1,5 +1,12 @@
-pub mod models;
+use std::path::PathBuf;
+use crate::utils::constants::messages::{DATA_DIR_NOT_CREATED, HOME_DIR_NOT_CREATED};
 
-pub mod constants {
-    pub const GIT_URL: &str = r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#;
+pub mod utils;
+
+pub fn data() -> PathBuf {
+    dirs::data_dir().expect(DATA_DIR_NOT_CREATED)
+}
+
+pub fn home() -> PathBuf {
+    dirs::home_dir().expect(HOME_DIR_NOT_CREATED)
 }

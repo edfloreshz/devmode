@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
-use dirs::home_dir;
 use git2::Repository;
 use regex::bytes::Regex;
 
-use crate::models::host::Host;
+use crate::home;
+use crate::utils::constants::messages::*;
+use crate::utils::host::Host;
 
 pub struct Clone<'a> {
     pub host: Option<Host<'a>>,
@@ -26,7 +27,7 @@ impl<'a> Clone<'a> {
     pub fn clone_repo(&self) -> Result<()> {
         let path = format!(
             "{}/Developer/{}/{}/{}",
-            home_dir().unwrap().display(),
+            home().display(),
             self.host.unwrap(),
             self.owner.as_ref().unwrap(),
             self.repo.as_ref().unwrap()
@@ -38,7 +39,7 @@ impl<'a> Clone<'a> {
             self.host.unwrap()
         );
         Repository::clone(self.url().as_str(), &path)
-            .with_context(|| "Failed to clone repository.")?;
+            .with_context(|| FAILED_TO_CLONE_REPO)?;
         Ok(())
     }
     pub fn parse_url(url: &str, rx: Regex) -> Result<Clone> {
@@ -46,15 +47,15 @@ impl<'a> Clone<'a> {
         let host = captures
             .get(4)
             .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
-            .with_context(|| "Could not map url.")?;
+            .with_context(|| UNABLE_TO_MAP_URL)?;
         let owner = captures
             .get(6)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
-            .with_context(|| "Could not map url.")?;
+            .with_context(|| UNABLE_TO_MAP_URL)?;
         let repo = captures
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
-            .with_context(|| "Could not map url.")?;
+            .with_context(|| UNABLE_TO_MAP_URL)?;
         Ok(Clone::new(
             Host::from(host.into()),
             Option::from(owner),

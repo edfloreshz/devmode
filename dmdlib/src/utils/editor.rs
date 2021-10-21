@@ -3,6 +3,9 @@ use std::fmt::{Display, Formatter};
 use anyhow::Result;
 use cmd_lib::*;
 use serde::{Deserialize, Serialize};
+use crate::utils::constants::commands::{VIM_CMD, VSCODE_CMD};
+use crate::utils::constants::messages::NO_EDITOR_SET;
+use crate::utils::constants::names::{CUSTOM_NAME, VIM_NAME, VSCODE_NAME};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Editor {
@@ -40,13 +43,10 @@ impl Default for EditorApp {
 impl Display for EditorApp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            EditorApp::VSCode => write!(f, "Visual Studio Code"),
-            EditorApp::Vim => write!(f, "Vim"),
-            EditorApp::Custom => write!(f, "Custom"),
-            _ => write!(
-                f,
-                "No editor set, run devmode config -e, --editor to configure it."
-            ),
+            EditorApp::VSCode => write!(f, "{}", VSCODE_NAME),
+            EditorApp::Vim => write!(f, "{}", VIM_NAME),
+            EditorApp::Custom => write!(f, "{}", CUSTOM_NAME),
+            _ => write!(f, "{}", NO_EDITOR_SET),
         }
     }
 }
@@ -54,8 +54,8 @@ impl Display for EditorApp {
 impl EditorApp {
     pub fn command(&self) -> String {
         String::from(match self {
-            EditorApp::VSCode => "code",
-            EditorApp::Vim => "vim",
+            EditorApp::VSCode => VSCODE_CMD,
+            EditorApp::Vim => VIM_CMD,
             _ => "",
         })
     }

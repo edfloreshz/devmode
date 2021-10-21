@@ -2,17 +2,17 @@ use std::io;
 
 use anyhow::Result;
 use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-use tui::style::Style;
-use tui::text::Spans;
-use tui::widgets::{List, ListItem};
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders},
     Terminal,
+    widgets::{Block, Borders},
 };
+use tui::style::Style;
+use tui::text::Spans;
+use tui::widgets::{List, ListItem};
 
-use dmdlib::models::project::get_projects;
+use dmdlib::utils::project::get_projects;
 
 use crate::util::event::{Event, Events};
 use crate::util::StatefulList;
