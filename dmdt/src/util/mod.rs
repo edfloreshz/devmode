@@ -10,6 +10,7 @@ pub struct RandomSignal {
     rng: ThreadRng,
 }
 
+#[allow(dead_code)]
 impl RandomSignal {
     pub fn new(lower: u64, upper: u64) -> RandomSignal {
         RandomSignal {
@@ -34,6 +35,7 @@ pub struct SinSignal {
     scale: f64,
 }
 
+#[allow(dead_code)]
 impl SinSignal {
     pub fn new(interval: f64, period: f64, scale: f64) -> SinSignal {
         SinSignal {
@@ -53,12 +55,12 @@ impl Iterator for SinSignal {
         Some(point)
     }
 }
-
+#[allow(dead_code)]
 pub struct TabsState<'a> {
     pub titles: Vec<&'a str>,
     pub index: usize,
 }
-
+#[allow(dead_code)]
 impl<'a> TabsState<'a> {
     pub fn new(titles: Vec<&'a str>) -> TabsState {
         TabsState { titles, index: 0 }
@@ -81,6 +83,7 @@ pub struct StatefulList<T> {
     pub items: Vec<T>,
 }
 
+#[allow(dead_code)]
 impl<T> StatefulList<T> {
     pub fn new() -> StatefulList<T> {
         StatefulList {

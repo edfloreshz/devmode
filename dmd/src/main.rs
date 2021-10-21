@@ -1,9 +1,9 @@
-use anyhow::Result;
-use clap::{App, load_yaml};
 use crate::cmd::Cmd;
+use anyhow::Result;
+use clap::{load_yaml, App};
 
-mod cmd;
 mod cli;
+mod cmd;
 
 fn main() -> Result<()> {
     let yaml = load_yaml!("app.yml");

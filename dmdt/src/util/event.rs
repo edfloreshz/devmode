@@ -2,6 +2,7 @@ use std::io;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+
 use termion::event::Key;
 use termion::input::TermRead;
 
@@ -14,7 +15,9 @@ pub enum Event<I> {
 /// type is handled in its own thread and returned to a common `Receiver`
 pub struct Events {
     rx: mpsc::Receiver<Event<Key>>,
+    #[allow(dead_code)]
     input_handle: thread::JoinHandle<()>,
+    #[allow(dead_code)]
     tick_handle: thread::JoinHandle<()>,
 }
 
@@ -42,12 +45,10 @@ impl Events {
             let tx = tx.clone();
             thread::spawn(move || {
                 let stdin = io::stdin();
-                for evt in stdin.keys() {
-                    if let Ok(key) = evt {
-                        if let Err(err) = tx.send(Event::Input(key)) {
-                            eprintln!("{}", err);
-                            return;
-                        }
+                for key in stdin.keys().flatten() {
+                    if let Err(err) = tx.send(Event::Input(key)) {
+                        eprintln!("{}", err);
+                        return;
                     }
                 }
             })

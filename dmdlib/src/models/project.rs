@@ -1,12 +1,12 @@
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
 use std::io::Write;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use anyhow::{bail, Context};
 use anyhow::Result;
+use anyhow::{bail, Context};
 use cmd_lib::*;
 use walkdir::WalkDir;
 
@@ -89,8 +89,8 @@ pub fn get_projects() -> Result<Vec<String>> {
         .lines()
         .map(|e| e.unwrap())
         .map(|e| {
-            let parts = e.split("/").collect::<Vec<&str>>();
-            let a = &parts[0].len() + &parts[1].len() + &parts[2].len() + &parts[3].len() + 4;
+            let parts = e.split('/').collect::<Vec<&str>>();
+            let a = parts[0].len() + parts[1].len() + parts[2].len() + parts[3].len() + 4;
             e[a..].to_string()
         })
         .collect();

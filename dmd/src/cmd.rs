@@ -34,19 +34,17 @@ impl<'a> Cmd<'a> {
             } else if rx.is_match(first.as_ref()) {
                 let clone = Clone::parse_url(first, rx)?;
                 Ok(Cmd::Clone(clone))
+            } else if args.len() == 1 {
+                let options = AppOptions::current().unwrap();
+                let host = Host::from(options.host);
+                let owner = Option::from(options.owner);
+                let repo = args.get(0).map(|a| a.to_string());
+                Ok(Cmd::Clone(Clone::new(host, owner, repo)))
             } else {
-                if args.len() == 1 {
-                    let options = AppOptions::current().unwrap();
-                    let host = Host::from(options.host);
-                    let owner = Option::from(options.owner);
-                    let repo = args.get(0).map(|a| a.to_string());
-                    Ok(Cmd::Clone(Clone::new(host, owner, repo)))
-                } else {
-                    let host = Host::from(first.into());
-                    let owner = args.get(1).map(|a| a.to_string());
-                    let repo = args.get(2).map(|a| a.to_string());
-                    Ok(Cmd::Clone(Clone::new(host, owner, repo)))
-                }
+                let host = Host::from(first.into());
+                let owner = args.get(1).map(|a| a.to_string());
+                let repo = args.get(2).map(|a| a.to_string());
+                Ok(Cmd::Clone(Clone::new(host, owner, repo)))
             }
         } else if let Some(open) = matches.subcommand_matches("open") {
             Ok(Cmd::Open(Project {

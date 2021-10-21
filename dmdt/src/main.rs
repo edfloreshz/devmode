@@ -2,15 +2,15 @@ use std::io;
 
 use anyhow::Result;
 use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
+use tui::style::Style;
+use tui::text::Spans;
+use tui::widgets::{List, ListItem};
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Direction, Layout},
-    Terminal,
     widgets::{Block, Borders},
+    Terminal,
 };
-use tui::style::{Style};
-use tui::text::Spans;
-use tui::widgets::{List, ListItem};
 
 use dmdlib::models::project::get_projects;
 
@@ -29,9 +29,7 @@ fn main() -> Result<()> {
 
     let events = Events::new();
 
-    let mut list = StatefulList::with_items(
-        get_projects()?
-    );
+    let mut list = StatefulList::with_items(get_projects()?);
 
     loop {
         terminal.draw(|f| {
@@ -51,7 +49,11 @@ fn main() -> Result<()> {
                 .collect();
 
             let list_of_repos = List::new(items)
-                .block(Block::default().borders(Borders::ALL).title("Cloned repositories"))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Cloned repositories"),
+                )
                 .highlight_style(Style::default())
                 .highlight_symbol(">> ");
             f.render_stateful_widget(list_of_repos, chunks[0], &mut list.state);

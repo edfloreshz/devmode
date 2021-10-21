@@ -23,7 +23,7 @@ impl<'a> Clone<'a> {
             self.repo.as_ref().unwrap()
         )
     }
-    pub fn clone(&self) -> Result<()> {
+    pub fn clone_repo(&self) -> Result<()> {
         let path = format!(
             "{}/Developer/{}/{}/{}",
             home_dir().unwrap().display(),
