@@ -21,6 +21,6 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Build
-      run: pwd && cargo build --verbose
+      run: cd dmd && cargo build --verbose && cd ../dmdt && cargo build --verbose && cd ../dmdlib && cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cd dmd && cargo test --verbose && cd ../dmdt && cargo test --verbose && cd ../dmdlib && cargo test --verbose
