@@ -16,6 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - run: cd dmd
     - name: rust-clippy-check
       uses: actions-rs/clippy-check@v1.0.7
       with:
