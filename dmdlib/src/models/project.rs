@@ -80,3 +80,19 @@ impl<'a> Project<'a> {
         Ok(())
     }
 }
+
+pub fn get_projects() -> Result<Vec<String>> {
+    let reader = BufReader::new(File::open(
+        dirs::data_dir().unwrap().join("devmode/paths/devpaths"),
+    )?);
+    let paths = reader
+        .lines()
+        .map(|e| e.unwrap())
+        .map(|e| {
+            let parts = e.split("/").collect::<Vec<&str>>();
+            let a = &parts[0].len() + &parts[1].len() + &parts[2].len() + &parts[3].len() + 4;
+            e[a..].to_string()
+        })
+        .collect();
+    Ok(paths)
+}
