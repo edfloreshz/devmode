@@ -8,12 +8,13 @@ use tui::{
     Terminal,
     widgets::{Block, Borders},
 };
-use tui::style::{Color, Style};
-use tui::widgets::{List, ListItem};
+use tui::style::{Style};
 use tui::text::Spans;
+use tui::widgets::{List, ListItem};
 
 use dmdlib::models::project::get_projects;
 
+use crate::util::event::{Event, Events};
 use crate::util::StatefulList;
 
 mod util;
@@ -26,7 +27,9 @@ fn main() -> Result<()> {
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut repo_list = StatefulList::with_items(
+    let events = Events::new();
+
+    let mut list = StatefulList::with_items(
         get_projects()?
     );
 
@@ -38,11 +41,11 @@ fn main() -> Result<()> {
                 .constraints([Constraint::Percentage(100)].as_ref())
                 .split(f.size());
 
-            let items: Vec<ListItem> = repo_list
+            let items: Vec<ListItem> = list
                 .items
                 .iter()
                 .map(|i| {
-                    let mut lines = Spans::from(i.as_str());
+                    let lines = Spans::from(i.as_str());
                     ListItem::new(lines).style(Style::default())
                 })
                 .collect();
@@ -51,8 +54,28 @@ fn main() -> Result<()> {
                 .block(Block::default().borders(Borders::ALL).title("Cloned repositories"))
                 .highlight_style(Style::default())
                 .highlight_symbol(">> ");
-            f.render_stateful_widget(list_of_repos, chunks[0], &mut repo_list.state);
+            f.render_stateful_widget(list_of_repos, chunks[0], &mut list.state);
         })?;
+        match events.next()? {
+            Event::Input(input) => match input {
+                Key::Char('q') => {
+                    break;
+                }
+                Key::Left => {
+                    list.unselect();
+                }
+                Key::Down => {
+                    list.next();
+                }
+                Key::Up => {
+                    list.previous();
+                }
+                _ => {}
+            },
+            Event::Tick => {
+                // list.advance();
+            }
+        }
     }
     Ok(())
 }
