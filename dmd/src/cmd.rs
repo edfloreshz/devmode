@@ -1,27 +1,28 @@
-use anyhow::bail;
+use anyhow::{bail, Context};
 use anyhow::Result;
 use clap::ArgMatches;
 use regex::bytes::Regex;
 
-use dmdlib::constants::GIT_URL;
+use dmdlib::utils::constants::patterns::GIT_URL;
+use dmdlib::utils::clone::Clone;
+use dmdlib::utils::config::{AppOptions, ConfigWriter};
+use dmdlib::utils::host::Host;
+use dmdlib::utils::project::Project;
+use dmdlib::utils::constants::messages::APP_OPTIONS_NOT_FOUND;
 
 use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
-use dmdlib::models::clone::Clone;
-use dmdlib::models::config::{AppOptions, ConfigWriter};
-use dmdlib::models::host::Host;
-use dmdlib::models::project::Project;
 
-pub enum Cmd<'a> {
-    Clone(Clone<'a>),
-    Open(Project<'a>),
-    Config(Option<AppOptions>),
+pub enum Cmd {
+    Clone(Clone),
+    Open(Project),
+    Config(AppOptions),
     ShowConfig,
     MapPaths,
     None,
 }
 
-impl<'a> Cmd<'a> {
-    pub fn new(matches: &'a ArgMatches<'a>) -> Result<Cmd<'a>> {
+impl<'a> Cmd {
+    pub fn new(matches: &'a ArgMatches<'a>) -> Result<Cmd> {
         if let Some(matches) = matches.subcommand_matches("clone") {
             let args = matches
                 .values_of("args")
@@ -48,7 +49,7 @@ impl<'a> Cmd<'a> {
             }
         } else if let Some(open) = matches.subcommand_matches("open") {
             Ok(Cmd::Open(Project {
-                name: open.value_of("project"),
+                name: open.value_of("project").map(|a| a.to_string()),
             }))
         } else if let Some(config) = matches.subcommand_matches("config") {
             if config.is_present("all") {
@@ -65,7 +66,7 @@ impl<'a> Cmd<'a> {
                 } else if config.is_present("show") {
                     Ok(Cmd::ShowConfig)
                 } else {
-                    Ok(Cmd::Config(AppOptions::current()))
+                    Ok(Cmd::Config(AppOptions::current().unwrap_or_default()))
                 };
             } else {
                 config_all()
@@ -86,38 +87,26 @@ impl<'a> Cmd<'a> {
                 } else if clone.repo.is_none() {
                     bail!("Missing arguments: <repo>")
                 } else {
-                    match self.clone() {
+                    match clone.clone_repo() {
                         Ok(_) => Project::make_dev_paths(),
                         Err(e) => Err(e),
                     }
                 }
             }
             Cmd::Open(open) => {
-                if let Some(_project) = open.name {
-                    self.open()
-                } else {
+                if let None = open.name {
                     bail!("Project name was not provided")
+                } else {
+                    open.open()
                 }
             }
-            Cmd::Config(options) => options.as_ref().unwrap().write_to_config(),
+            Cmd::Config(options) => options.write_to_config(),
             Cmd::ShowConfig => {
-                AppOptions::current().unwrap().show();
+                AppOptions::current().with_context(|| APP_OPTIONS_NOT_FOUND)?.show();
                 Ok(())
             }
             Cmd::None => bail!("No argument found."),
             Cmd::MapPaths => Project::make_dev_paths(),
         }
-    }
-    fn clone(&self) -> Result<()> {
-        if let Cmd::Clone(clone) = self {
-            return clone.clone();
-        }
-        Ok(())
-    }
-    fn open(&self) -> Result<()> {
-        if let Cmd::Open(project) = self {
-            return project.open();
-        }
-        Ok(())
     }
 }

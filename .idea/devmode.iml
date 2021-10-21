@@ -3,10 +3,13 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/dmd/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/dmdlib/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/dmdt/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dmd/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dmd/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dmdlib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dmdt/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dmdlib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dmdlib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dmdt/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dmdt/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
@@ -18,6 +21,9 @@
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/dmd/target" />
       <excludeFolder url="file://$MODULE_DIR$/dmdt/target" />
+      <excludeFolder url="file://$MODULE_DIR$/dmdlib/target" />
+      <excludeFolder url="file://$MODULE_DIR$/dmdt/target" />
+      <excludeFolder url="file://$MODULE_DIR$/dmd/target" />
       <excludeFolder url="file://$MODULE_DIR$/dmdlib/target" />
       <excludeFolder url="file://$MODULE_DIR$/dmdt/target" />
       <excludeFolder url="file://$MODULE_DIR$/dmd/target" />

@@ -15,14 +15,14 @@ use crate::utils::constants::messages::*;
 use crate::utils::constants::paths::files::DEVPATHS_FILE;
 use crate::utils::constants::paths::folders::{DEVELOPER_DIR, PATHS_DIR};
 
-pub struct Project<'a> {
-    pub name: Option<&'a str>,
+pub struct Project {
+    pub name: Option<String>,
 }
 
-impl<'a> Project<'a> {
+impl Project {
     pub fn open(&self) -> Result<()> {
         let reader = make_reader()?;
-        let paths = find_paths(reader, self.name.unwrap());
+        let paths = find_paths(reader, self.name.as_ref().unwrap().to_string());
         if paths.is_empty() {
             bail!(NO_PROJECT_FOUND)
         } else if paths.len() > 1 {
@@ -31,7 +31,7 @@ impl<'a> Project<'a> {
                 println!("{}", path)
             }
         } else {
-            open_project(self.name.unwrap(), paths)?
+            open_project(self.name.as_ref().unwrap().to_string(), paths)?
         }
         Ok(())
     }
@@ -61,7 +61,7 @@ impl<'a> Project<'a> {
     }
 }
 
-pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
+pub fn open_project(name: String, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n {}", name, OPENING_WARNING);
     let path = &paths[0];
     let options = AppOptions::current().unwrap();
@@ -75,7 +75,7 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn find_paths(reader: BufReader<File>, path: &str) -> Vec<String> {
+pub fn find_paths(reader: BufReader<File>, path: String) -> Vec<String> {
     reader.lines().map(|e| e.unwrap())
         .filter(|e| {
             let split: Vec<&str> = e.split('/').collect();

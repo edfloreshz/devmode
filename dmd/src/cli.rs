@@ -1,14 +1,14 @@
 use anyhow::{Context, Result};
 use requestty::Answer;
 
-use dmdlib::models::clone::Clone;
+use dmdlib::utils::clone::Clone;
 
 use crate::cmd::*;
-use dmdlib::models::config::AppOptions;
-use dmdlib::models::editor::{Editor, EditorApp};
-use dmdlib::models::host::Host;
+use dmdlib::utils::config::AppOptions;
+use dmdlib::utils::editor::{Editor, EditorApp};
+use dmdlib::utils::host::Host;
 
-pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
+pub fn clone_setup() -> Result<Cmd> {
     let mut clone = Clone::new(None, None, None);
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
@@ -46,29 +46,29 @@ pub fn clone_setup<'a>() -> Result<Cmd<'a>> {
     Ok(Cmd::Clone(clone))
 }
 
-pub fn config_all<'a>() -> Result<Cmd<'a>> {
+pub fn config_all() -> Result<Cmd> {
     let editor = config_editor()?;
     let editor = if let Cmd::Config(options) = editor {
-        options.unwrap().editor
+        options.editor
     } else {
         Editor::default()
     };
     let owner = config_owner()?;
     let owner = if let Cmd::Config(options) = owner {
-        options.unwrap().owner
+        options.owner
     } else {
         String::new()
     };
     let host = config_host()?;
     let host = if let Cmd::Config(options) = host {
-        options.unwrap().host
+        options.host
     } else {
         String::new()
     };
-    Ok(Cmd::Config(Some(AppOptions::new(host, owner, editor))))
+    Ok(Cmd::Config(AppOptions::new(host, owner, editor)))
 }
 
-pub fn config_owner<'a>() -> Result<Cmd<'a>> {
+pub fn config_owner() -> Result<Cmd> {
     let question = requestty::Question::input("owner")
         .message("What's your Git username:")
         .validate(|owner, _previous| {
@@ -83,10 +83,10 @@ pub fn config_owner<'a>() -> Result<Cmd<'a>> {
     if let Answer::String(owner) = requestty::prompt_one(question)? {
         options.owner = owner;
     }
-    Ok(Cmd::Config(Option::from(options)))
+    Ok(Cmd::Config(options))
 }
 
-pub fn config_host<'a>() -> Result<Cmd<'a>> {
+pub fn config_host() -> Result<Cmd> {
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
@@ -97,10 +97,10 @@ pub fn config_host<'a>() -> Result<Cmd<'a>> {
             .with_context(|| "Couldn't get a host.")?
             .to_string();
     }
-    Ok(Cmd::Config(Option::from(options)))
+    Ok(Cmd::Config(options))
 }
 
-pub fn config_editor<'a>() -> Result<Cmd<'a>> {
+pub fn config_editor() -> Result<Cmd> {
     let question = requestty::Question::select("editor")
         .message("Choose your favorite editor:")
         .choices(vec!["Vim", "VSCode", "Custom"])
@@ -127,5 +127,5 @@ pub fn config_editor<'a>() -> Result<Cmd<'a>> {
             options.editor = Editor::new(EditorApp::from(&*i.text));
         }
     }
-    Ok(Cmd::Config(Option::from(options)))
+    Ok(Cmd::Config(options))
 }

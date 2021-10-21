@@ -6,20 +6,20 @@ use crate::home;
 use crate::utils::constants::messages::*;
 use crate::utils::host::Host;
 
-pub struct Clone<'a> {
-    pub host: Option<Host<'a>>,
+pub struct Clone {
+    pub host: Option<Host>,
     pub owner: Option<String>,
     pub repo: Option<String>,
 }
 
-impl<'a> Clone<'a> {
-    pub fn new(host: Option<Host<'a>>, owner: Option<String>, repo: Option<String>) -> Self {
+impl Clone {
+    pub fn new(host: Option<Host>, owner: Option<String>, repo: Option<String>) -> Self {
         Clone { host, owner, repo }
     }
     pub fn url(&self) -> String {
         format!(
             "{}/{}/{}",
-            self.host.unwrap().url(),
+            self.host.as_ref().unwrap().url(),
             self.owner.as_ref().unwrap(),
             self.repo.as_ref().unwrap()
         )
@@ -28,7 +28,7 @@ impl<'a> Clone<'a> {
         let path = format!(
             "{}/Developer/{}/{}/{}",
             home().display(),
-            self.host.unwrap(),
+            self.host.as_ref().unwrap(),
             self.owner.as_ref().unwrap(),
             self.repo.as_ref().unwrap()
         );
@@ -36,7 +36,7 @@ impl<'a> Clone<'a> {
             "Cloning {}/{} from {}...",
             self.owner.as_ref().unwrap(),
             self.repo.as_ref().unwrap(),
-            self.host.unwrap()
+            self.host.as_ref().unwrap()
         );
         Repository::clone(self.url().as_str(), &path)
             .with_context(|| FAILED_TO_CLONE_REPO)?;

@@ -106,17 +106,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colored"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
-dependencies = [
- "atty",
- "lazy_static",
- "winapi",
-]
-
-[[package]]
 name = "crossterm"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -175,16 +164,12 @@ dependencies = [
 [[package]]
 name = "dmdlib"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea00296976c2700cf7e6d37f57d99f8b9c16758392f9ee0f0a3b917763f9c182"
 dependencies = [
  "anyhow",
  "cmd_lib",
- "colored",
  "dirs",
  "git2",
  "regex",
- "requestty",
  "serde",
  "toml",
  "walkdir",

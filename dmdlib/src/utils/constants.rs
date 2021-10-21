@@ -26,6 +26,7 @@ pub mod messages {
     pub const HOME_DIR_NOT_CREATED: &str = "Home directory not yet created.";
     pub const OPENING_WARNING: &str = "If the editor does not support openning from a path, you'll have to open it yourself.";
     pub const NO_EDITOR_SET: &str = "No editor set, run devmode config -e, --editor to configure it.";
+    pub const APP_OPTIONS_NOT_FOUND: &str = "The current app options could not be found.";
 
     pub fn failed_to(action: &str, obj: &str) -> String {
         format!("Failed to {} `{}`.", action, obj)

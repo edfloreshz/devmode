@@ -1,7 +1,7 @@
 [package]
 name = "dmdlib"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 license = "GPL-2.0"
 description = "This is a library for Devmode clients."
 homepage = "https://devmode.edfloreshz.dev/"
@@ -20,7 +20,5 @@ walkdir = "2.3.2"
 git2 = "0.13.22"
 dirs = "3.0.2"
 toml = "0.5.8"
-colored = "2.0.0"
 cmd_lib = "1.1.0"
-requestty = "0.1.1"
 serde = { version = "1.0.126", features = ["derive"] }
