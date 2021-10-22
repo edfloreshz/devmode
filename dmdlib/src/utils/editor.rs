@@ -1,11 +1,11 @@
 use std::fmt::{Display, Formatter};
 
-use anyhow::Result;
-use cmd_lib::*;
-use serde::{Deserialize, Serialize};
 use crate::utils::constants::commands::{VIM_CMD, VSCODE_CMD};
 use crate::utils::constants::messages::NO_EDITOR_SET;
 use crate::utils::constants::names::{CUSTOM_NAME, VIM_NAME, VSCODE_NAME};
+use anyhow::Result;
+use cmd_lib::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Editor {

@@ -69,7 +69,7 @@ impl ConfigWriter for AppOptions {
 
     fn write(&self) -> Result<()> {
         std::fs::File::create(data().join(CONFIG_FILE))
-            .with_context(|| { failed_to("open", "config.toml") })?
+            .with_context(|| failed_to("open", "config.toml"))?
             .write_all(
                 toml::to_string(self)
                     .with_context(|| FAILED_TO_PARSE)?
@@ -82,9 +82,8 @@ impl ConfigWriter for AppOptions {
     fn initialize(&self) -> Result<()> {
         let config = data().join(CONFIG_DIR);
         fs::create_dir_all(data().join(LOGS_DIR))
-            .with_context(|| { failed_to("create", "logs directory") })?;
-        fs::create_dir_all(&config)
-            .with_context(|| { failed_to("create", "config directory") })?;
+            .with_context(|| failed_to("create", "logs directory"))?;
+        fs::create_dir_all(&config).with_context(|| failed_to("create", "config directory"))?;
         Ok(println!("Config file located at: {}", config.display()))
     }
 }

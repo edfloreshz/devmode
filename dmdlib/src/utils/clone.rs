@@ -16,30 +16,25 @@ impl Clone {
     pub fn new(host: Option<Host>, owner: Option<String>, repo: Option<String>) -> Self {
         Clone { host, owner, repo }
     }
-    pub fn url(&self) -> String {
-        format!(
-            "{}/{}/{}",
-            self.host.as_ref().unwrap().url(),
-            self.owner.as_ref().unwrap(),
-            self.repo.as_ref().unwrap()
+
+    pub fn expand(&self) -> (Host, String, String) {
+        (
+            self.host.clone().unwrap(),
+            self.owner.clone().unwrap(),
+            self.repo.clone().unwrap(),
         )
     }
+
+    pub fn url(&self) -> String {
+        let (host, owner, repo) = self.expand();
+        format!("{}/{}/{}", host.url(), owner, repo)
+    }
+
     pub fn clone_repo(&self) -> Result<()> {
-        let path = format!(
-            "{}/Developer/{}/{}/{}",
-            home().display(),
-            self.host.as_ref().unwrap(),
-            self.owner.as_ref().unwrap(),
-            self.repo.as_ref().unwrap()
-        );
-        println!(
-            "Cloning {}/{} from {}...",
-            self.owner.as_ref().unwrap(),
-            self.repo.as_ref().unwrap(),
-            self.host.as_ref().unwrap()
-        );
-        Repository::clone(self.url().as_str(), &path)
-            .with_context(|| FAILED_TO_CLONE_REPO)?;
+        let (host, owner, repo) = self.expand();
+        let path = format!("{}/Developer/{}/{}/{}", home().display(), host, owner, repo);
+        println!("Cloning {}/{} from {}...", owner, repo, host);
+        Repository::clone(self.url().as_str(), &path).with_context(|| FAILED_TO_CLONE_REPO)?;
         Ok(())
     }
     pub fn parse_url(url: &str, rx: Regex) -> Result<Clone> {

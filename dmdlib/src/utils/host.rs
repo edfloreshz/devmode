@@ -23,7 +23,7 @@ impl Host {
     pub fn get(&self) -> &str {
         match self {
             Host::GitHub => "GitHub",
-            Host::GitLab => "GitLab"
+            Host::GitLab => "GitLab",
         }
     }
 }

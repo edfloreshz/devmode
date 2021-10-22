@@ -1,19 +1,19 @@
 use std::fs::create_dir_all;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
 use std::io::Write;
+use std::io::{BufRead, BufReader};
 
-use anyhow::{bail, Context};
 use anyhow::Result;
+use anyhow::{bail, Context};
 use cmd_lib::*;
 use walkdir::WalkDir;
 
-use crate::{data, home};
-use crate::utils::{config::AppOptions, editor::EditorApp};
 use crate::utils::constants::messages::*;
 use crate::utils::constants::paths::files::DEVPATHS_FILE;
 use crate::utils::constants::paths::folders::{DEVELOPER_DIR, PATHS_DIR};
+use crate::utils::{config::AppOptions, editor::EditorApp};
+use crate::{data, home};
 
 pub struct Project {
     pub name: Option<String>,
@@ -45,7 +45,9 @@ impl Project {
         Project::write_paths()
     }
     fn write_paths() -> Result<()> {
-        let mut devpaths = OpenOptions::new().write(true).open(data().join(DEVPATHS_FILE))?;
+        let mut devpaths = OpenOptions::new()
+            .write(true)
+            .open(data().join(DEVPATHS_FILE))?;
         for entry in WalkDir::new(home().join(DEVELOPER_DIR))
             .max_depth(3)
             .min_depth(2)
@@ -76,7 +78,9 @@ pub fn open_project(name: String, paths: Vec<String>) -> Result<()> {
 }
 
 pub fn find_paths(reader: BufReader<File>, path: String) -> Vec<String> {
-    reader.lines().map(|e| e.unwrap())
+    reader
+        .lines()
+        .map(|e| e.unwrap())
         .filter(|e| {
             let split: Vec<&str> = e.split('/').collect();
             split.last().unwrap() == &path
@@ -85,11 +89,7 @@ pub fn find_paths(reader: BufReader<File>, path: String) -> Vec<String> {
 }
 
 fn make_reader() -> Result<BufReader<File>> {
-    Ok(
-        BufReader::new(
-            File::open(data().join(DEVPATHS_FILE))?
-        )
-    )
+    Ok(BufReader::new(File::open(data().join(DEVPATHS_FILE))?))
 }
 
 pub fn get_projects() -> Result<Vec<String>> {

@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::utils::constants::messages::{DATA_DIR_NOT_CREATED, HOME_DIR_NOT_CREATED};
+use std::path::PathBuf;
 
 pub mod utils;
 
