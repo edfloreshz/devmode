@@ -6,6 +6,14 @@ pub mod names {
     pub const VSCODE_NAME: &str = "Visual Studio Code";
     pub const VIM_NAME: &str = "Vim";
     pub const CUSTOM_NAME: &str = "Custom";
+    pub const GH_NAME: &str = "GitHub";
+    pub const GL_NAME: &str = "GitLab";
+    pub const NONE: &str = "None";
+}
+
+pub mod url {
+    pub const GH_URL: &str = "https://github.com";
+    pub const GL_URL: &str = "https://gitlab.com";
 }
 
 pub mod commands {
@@ -14,7 +22,8 @@ pub mod commands {
 }
 
 pub mod messages {
-    pub const NO_PROJECT_FOUND: &str = "No project was found. \nIf you know this project exists, run `devmode config -m, --map` to refresh the paths file.";
+    pub const NO_PROJECT_FOUND: &str = "No project was found. \n\
+        If you know this project exists, run `devmode config -m, --map` to refresh the paths file.";
     pub const MORE_PROJECTS_FOUND: &str = "Two or more projects found.";
     pub const NO_SETTINGS_CHANGED: &str = "No settings were changed.";
     pub const SETTINGS_UPDATED: &str = "Settings updated.";

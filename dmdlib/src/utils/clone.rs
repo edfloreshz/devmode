@@ -7,33 +7,41 @@ use crate::utils::constants::messages::*;
 use crate::utils::host::Host;
 
 pub struct Clone {
-    pub host: Option<Host>,
-    pub owner: Option<String>,
-    pub repo: Option<String>,
+    pub host: Host,
+    pub owner: String,
+    pub repo: String,
+}
+
+impl Default for Clone {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Clone {
-    pub fn new(host: Option<Host>, owner: Option<String>, repo: Option<String>) -> Self {
+    pub fn new() -> Self {
+        Clone {
+            host: Host::None,
+            owner: "".to_string(),
+            repo: "".to_string(),
+        }
+    }
+    pub fn from(host: Host, owner: String, repo: String) -> Self {
         Clone { host, owner, repo }
     }
-
-    pub fn expand(&self) -> (Host, String, String) {
-        (
-            self.host.clone().unwrap(),
-            self.owner.clone().unwrap(),
-            self.repo.clone().unwrap(),
-        )
-    }
-
     pub fn url(&self) -> String {
-        let (host, owner, repo) = self.expand();
-        format!("{}/{}/{}", host.url(), owner, repo)
+        format!("{}/{}/{}", self.host.url(), self.owner, self.repo)
     }
 
     pub fn clone_repo(&self) -> Result<()> {
-        let (host, owner, repo) = self.expand();
-        let path = format!("{}/Developer/{}/{}/{}", home().display(), host, owner, repo);
-        println!("Cloning {}/{} from {}...", owner, repo, host);
+        let path = format!(
+            "{}/Developer/{}/{}/{}",
+            home().display(),
+            self.host,
+            self.owner,
+            self.repo
+        );
+        println!("Cloning {}/{} from {}...", self.owner, self.repo, self.host);
         Repository::clone(self.url().as_str(), &path).with_context(|| FAILED_TO_CLONE_REPO)?;
         Ok(())
     }
@@ -51,10 +59,6 @@ impl Clone {
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(Clone::new(
-            Host::from(host.into()),
-            Option::from(owner),
-            Option::from(repo),
-        ))
+        Ok(Clone::from(Host::from(host.into()), owner, repo))
     }
 }

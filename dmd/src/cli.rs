@@ -1,15 +1,14 @@
-use anyhow::{Context, Result};
-use requestty::Answer;
-
+use anyhow::Result;
 use dmdlib::utils::clone::Clone;
-
-use crate::cmd::*;
 use dmdlib::utils::config::AppOptions;
 use dmdlib::utils::editor::{Editor, EditorApp};
 use dmdlib::utils::host::Host;
+use requestty::Answer;
+
+use crate::cmd::*;
 
 pub fn clone_setup() -> Result<Cmd> {
-    let mut clone = Clone::new(None, None, None);
+    let mut clone = Clone::new();
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
@@ -28,7 +27,7 @@ pub fn clone_setup() -> Result<Cmd> {
         })
         .build();
     if let Answer::String(owner) = requestty::prompt_one(question)? {
-        clone.owner = Option::from(owner);
+        clone.owner = owner;
     }
     let question = requestty::Question::input("repo")
         .message("Git repo name:")
@@ -41,7 +40,7 @@ pub fn clone_setup() -> Result<Cmd> {
         })
         .build();
     if let Answer::String(repo) = requestty::prompt_one(question)? {
-        clone.repo = Option::from(repo);
+        clone.repo = repo;
     }
     Ok(Cmd::Clone(clone))
 }
@@ -93,9 +92,7 @@ pub fn config_host() -> Result<Cmd> {
         .build();
     let mut options = AppOptions::current().unwrap_or_default();
     if let Answer::ListItem(host) = requestty::prompt_one(question)? {
-        options.host = Host::from(host.text)
-            .with_context(|| "Couldn't get a host.")?
-            .to_string();
+        options.host = Host::from(host.text).to_string();
     }
     Ok(Cmd::Config(options))
 }

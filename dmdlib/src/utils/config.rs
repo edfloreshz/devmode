@@ -63,7 +63,8 @@ impl ConfigWriter for AppOptions {
         } else if &AppOptions::current().unwrap() != self {
             self.write()
         } else {
-            Ok(println!("{}", NO_SETTINGS_CHANGED))
+            println!("{}", NO_SETTINGS_CHANGED);
+            Ok(())
         }
     }
 
@@ -76,7 +77,8 @@ impl ConfigWriter for AppOptions {
                     .as_bytes(),
             )
             .with_context(|| FAILED_TO_WRITE_CONFIG)?;
-        Ok(println!("{}", SETTINGS_UPDATED))
+        println!("{}", SETTINGS_UPDATED);
+        Ok(())
     }
 
     fn initialize(&self) -> Result<()> {
@@ -84,6 +86,7 @@ impl ConfigWriter for AppOptions {
         fs::create_dir_all(data().join(LOGS_DIR))
             .with_context(|| failed_to("create", "logs directory"))?;
         fs::create_dir_all(&config).with_context(|| failed_to("create", "config directory"))?;
-        Ok(println!("Config file located at: {}", config.display()))
+        println!("Config file located at: {}", config.display());
+        Ok(())
     }
 }

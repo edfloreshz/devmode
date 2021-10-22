@@ -2,15 +2,15 @@ use std::io;
 
 use anyhow::Result;
 use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-use tui::{
-    backend::TermionBackend,
-    layout::{Constraint, Direction, Layout},
-    Terminal,
-    widgets::{Block, Borders},
-};
 use tui::style::Style;
 use tui::text::Spans;
 use tui::widgets::{List, ListItem};
+use tui::{
+    backend::TermionBackend,
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders},
+    Terminal,
+};
 
 use dmdlib::utils::project::get_projects;
 

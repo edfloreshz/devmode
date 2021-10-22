@@ -1,14 +1,13 @@
-use anyhow::{bail, Context};
 use anyhow::Result;
+use anyhow::{bail, Context};
 use clap::ArgMatches;
-use regex::bytes::Regex;
-
-use dmdlib::utils::constants::patterns::GIT_URL;
 use dmdlib::utils::clone::Clone;
 use dmdlib::utils::config::{AppOptions, ConfigWriter};
+use dmdlib::utils::constants::messages::APP_OPTIONS_NOT_FOUND;
+use dmdlib::utils::constants::patterns::GIT_URL;
 use dmdlib::utils::host::Host;
 use dmdlib::utils::project::Project;
-use dmdlib::utils::constants::messages::APP_OPTIONS_NOT_FOUND;
+use regex::bytes::Regex;
 
 use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
 
@@ -38,14 +37,13 @@ impl<'a> Cmd {
             } else if args.len() == 1 {
                 let options = AppOptions::current().unwrap();
                 let host = Host::from(options.host);
-                let owner = Option::from(options.owner);
                 let repo = args.get(0).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::new(host, owner, repo)))
+                Ok(Cmd::Clone(Clone::from(host, options.owner, repo.unwrap())))
             } else {
                 let host = Host::from(first.into());
                 let owner = args.get(1).map(|a| a.to_string());
                 let repo = args.get(2).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::new(host, owner, repo)))
+                Ok(Cmd::Clone(Clone::from(host, owner.unwrap(), repo.unwrap())))
             }
         } else if let Some(open) = matches.subcommand_matches("open") {
             Ok(Cmd::Open(Project {
@@ -57,7 +55,7 @@ impl<'a> Cmd {
             } else if config.is_present("map") {
                 Ok(Cmd::MapPaths)
             } else if AppOptions::current().is_some() {
-                return if config.is_present("editor") {
+                if config.is_present("editor") {
                     config_editor()
                 } else if config.is_present("owner") {
                     config_owner()
@@ -67,7 +65,7 @@ impl<'a> Cmd {
                     Ok(Cmd::ShowConfig)
                 } else {
                     Ok(Cmd::Config(AppOptions::current().unwrap_or_default()))
-                };
+                }
             } else {
                 config_all()
             }
@@ -78,13 +76,13 @@ impl<'a> Cmd {
     pub fn check(&self) -> Result<()> {
         match self {
             Cmd::Clone(clone) => {
-                if clone.host.is_none() {
+                if let Host::None = clone.host {
                     bail!("You can't do this unless you set your configuration with `devmode config`\n\
                     In the meantime, you can clone by specifying <host> <owner> <repo> \n\n\
                     Host should be one of the following: \n1. GitHub \n2. GitLab")
-                } else if clone.owner.is_none() {
+                } else if clone.owner.is_empty() {
                     bail!("Missing arguments: <owner> <repo>")
-                } else if clone.repo.is_none() {
+                } else if clone.repo.is_empty() {
                     bail!("Missing arguments: <repo>")
                 } else {
                     match clone.clone_repo() {
@@ -94,7 +92,7 @@ impl<'a> Cmd {
                 }
             }
             Cmd::Open(open) => {
-                if let None = open.name {
+                if open.name.is_none() {
                     bail!("Project name was not provided")
                 } else {
                     open.open()
@@ -102,7 +100,9 @@ impl<'a> Cmd {
             }
             Cmd::Config(options) => options.write_to_config(),
             Cmd::ShowConfig => {
-                AppOptions::current().with_context(|| APP_OPTIONS_NOT_FOUND)?.show();
+                AppOptions::current()
+                    .with_context(|| APP_OPTIONS_NOT_FOUND)?
+                    .show();
                 Ok(())
             }
             Cmd::None => bail!("No argument found."),
