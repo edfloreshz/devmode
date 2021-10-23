@@ -7,7 +7,7 @@
 
 ```
 USAGE:
-    devmode [SUBCOMMAND]
+    dmd [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
@@ -22,35 +22,29 @@ SUBCOMMANDS:
 
 ## Installation
 
-#### Arch Linux
-```
-paru -S devmode-git
-```
-
 #### Cargo
 ```
-cargo install devmode
+cargo install dmd
 ```
 
 
 ## Configuration
 
-The `config` command will help you configure `devmode` to your liking.
+The `config` or `cf` command will help you configure `dmd` to your liking.
 
 ### Text Editor
 
 You can set your favorite text editor running:
 
 ```
-devmode config -e | devmode config --editor
+dmd config -e --editor
 ``` 
-
 ### Git Host
 
 You can set your Git host running:
 
 ```
-devmode config -h | devmode config --host
+dmd config -h --host
 ``` 
 
 ### Git User
@@ -58,7 +52,7 @@ devmode config -h | devmode config --host
 You can set your Git user running:
 
 ```
-devmode config -o | devmode config --owner
+dmd config -o --owner
 ``` 
 
 ### Configure everything
@@ -66,7 +60,7 @@ devmode config -o | devmode config --owner
 You can configure everything running:
 
 ```
-devmode config -a | devmode config --all
+dmd config -a --all
 ``` 
 
 ### Show config
@@ -74,7 +68,7 @@ devmode config -a | devmode config --all
 You can show your current config running:
 
 ```
-devmode config -s | devmode config --show
+dmd config -s --show
 
 Current settings:
 Host: GitHub
@@ -90,6 +84,8 @@ Editor: Visual Studio Code
 
 When you clone a repository it will be stored to your filesystem using a specific folder structure.
 
+You can also use `dmd cl`
+
 ```
 $HOME
 └── Developer
@@ -98,14 +94,14 @@ $HOME
             └── repo
 ```
 
-This makes it easier for you to find repositories and allows `devmode` to open them by just specifying the name of the
+This makes it easier for you to find repositories and allows `dmd` to open them by just specifying the name of the
 project.
 
 ### Usage
 
 ```
 USAGE:
-    devmode clone <args>...
+    dmd clone <args>...
 
 FLAGS:
     -h, --help       Prints help information
@@ -118,21 +114,21 @@ ARGS:
 #### Clone by URL
 
 ```bash
-devmode clone https://github.com/edfloreshz/devmode
+dmd clone https://github.com/edfloreshz/devmode
 ```
 
 #### Clone without URL
 
 ```bash
-devmode clone <host> <owner> <repository>
+dmd clone <host> <owner> <repository>
 ```
 
 #### Clone with `config.toml`
 
-Running `devmode config` asks you to specify your Git `host` and `user`, now just type one of your repos.
+Running `dmd config` asks you to specify your Git `host` and `user`, now just type one of your repos.
 
 ```bash
-devmode clone <repo>
+dmd clone <repo>
 ```
 
 #### Just clone
@@ -140,13 +136,13 @@ devmode clone <repo>
 You can clone without specifying the arguments.
 
 ```bash
-devmode clone
+dmd clone
 ```
 
 You will be presented with the following setup:
 
 ```
-ᐅ  devmode clone
+ᐅ  dmd clone
 
 ? Choose your Git host: ›
 ❯ GitHub
@@ -159,11 +155,13 @@ Cloning edfloreshz/blog from GitHub...
 
 ## Open a project
 
-Opens a project with your selected text editor.
+Opens a project with your selected text editor. 
+
+You can also use `dmd o`
 
 ```
 USAGE:
-    devmode open <project>
+    dmd open <project>
 
 FLAGS:
     -h, --help       Prints help information
@@ -176,7 +174,7 @@ ARGS:
 You can open a project with the following command:
 
 ```bash
-devmode open <project>
+dmd open <project>
 ```
 
 If two or more projects with the same name are found, you will have to choose which one to open.
