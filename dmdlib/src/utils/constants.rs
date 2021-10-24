@@ -31,6 +31,7 @@ pub mod messages {
     pub const FAILED_TO_PARSE: &str = "Failed to parse app options.";
     pub const UNABLE_TO_MAP_URL: &str = "Could not map url.";
     pub const FAILED_TO_CLONE_REPO: &str = "Failed to clone repository.";
+    pub const FAILED_TO_SET_REMOTE: &str = "Failed to set remote.";
     pub const DATA_DIR_NOT_CREATED: &str = "Data directory not yet created.";
     pub const HOME_DIR_NOT_CREATED: &str = "Home directory not yet created.";
     pub const OPENING_WARNING: &str =

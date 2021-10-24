@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use git2::Repository;
 use regex::bytes::Regex;
+use std::path::Path;
 
 use crate::home;
 use crate::utils::constants::messages::*;
@@ -52,9 +53,13 @@ impl Fork {
         Repository::clone(self.url().as_str(), &path).with_context(|| FAILED_TO_CLONE_REPO)?;
         Ok(())
     }
-    pub fn parse_url(url: &str, rx: Regex) -> Result<Clone> {
+    pub fn parse_url(url: &str, rx: Regex) -> Result<Self> {
         let captures = rx.captures(url.as_ref()).unwrap();
         let host = captures
+            .get(4)
+            .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
+            .with_context(|| UNABLE_TO_MAP_URL)?;
+        let upstream = captures
             .get(4)
             .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
@@ -66,11 +71,19 @@ impl Fork {
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(Clone::from(Host::from(host.into()), owner, repo))
+        Ok(Self::from(
+            Host::from(host.into()),
+            Host::from(upstream.into()),
+            owner,
+            repo,
+        ))
     }
-    pub fn set_upstream(&self) -> Result<()> {
+
+    pub fn set_upstream(&self, path_project: String) -> Result<()> {
         println!("Setting {} how upstream...", self.upstream);
-        Repository::remote("upstream", self.upstream.as_str())
+        let project = Repository::open(Path::new(&path_project)).expect(NO_PROJECT_FOUND);
+        project
+            .remote("upstream", self.upstream.url())
             .with_context(|| FAILED_TO_SET_REMOTE)?;
         Ok(())
     }
