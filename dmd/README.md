@@ -131,6 +131,12 @@ Running `dmd config` asks you to specify your Git `host` and `user`, now just ty
 dmd clone <repo>
 ```
 
+You can also clone multiple of your own repositories while using this option.
+
+```bash
+dmd clone <repo1> <repo2>
+```
+
 #### Just clone
 
 You can clone without specifying the arguments.
