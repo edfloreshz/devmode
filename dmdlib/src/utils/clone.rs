@@ -9,7 +9,7 @@ use crate::utils::host::Host;
 pub struct Clone {
     pub host: Host,
     pub owner: String,
-    pub repo: String,
+    pub repos: Vec<String>,
 }
 
 impl Default for Clone {
@@ -22,27 +22,29 @@ impl Clone {
     pub fn new() -> Self {
         Clone {
             host: Host::None,
-            owner: "".to_string(),
-            repo: "".to_string(),
+            owner: String::new(),
+            repos: Vec::new(),
         }
     }
-    pub fn from(host: Host, owner: String, repo: String) -> Self {
-        Clone { host, owner, repo }
+    pub fn from(host: Host, owner: String, repos: Vec<String>) -> Self {
+        Clone { host, owner, repos }
     }
-    pub fn url(&self) -> String {
-        format!("{}/{}/{}", self.host.url(), self.owner, self.repo)
+    pub fn url(&self, index: usize) -> String {
+        format!("{}/{}/{}", self.host.url(), self.owner, self.repos.get(index).unwrap())
     }
 
     pub fn clone_repo(&self) -> Result<()> {
-        let path = format!(
-            "{}/Developer/{}/{}/{}",
-            home().display(),
-            self.host,
-            self.owner,
-            self.repo
-        );
-        println!("Cloning {}/{} from {}...", self.owner, self.repo, self.host);
-        Repository::clone(self.url().as_str(), &path).with_context(|| FAILED_TO_CLONE_REPO)?;
+        for (ix, repo) in self.repos.iter().enumerate() {
+            let path = format!(
+                "{}/Developer/{}/{}/{}",
+                home().display(),
+                self.host,
+                self.owner,
+                repo
+            );
+            println!("Cloning {}/{} from {}...", self.owner, repo, self.host);
+            Repository::clone(self.url(ix).as_str(), &path).with_context(|| FAILED_TO_CLONE_REPO)?;
+        }
         Ok(())
     }
     pub fn parse_url(url: &str, rx: Regex) -> Result<Clone> {
@@ -59,6 +61,6 @@ impl Clone {
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(Clone::from(Host::from(host.into()), owner, repo))
+        Ok(Clone::from(Host::from(host.into()), owner, vec![repo]))
     }
 }

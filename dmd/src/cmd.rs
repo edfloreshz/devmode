@@ -1,11 +1,11 @@
-use anyhow::Result;
 use anyhow::{bail, Context};
+use anyhow::Result;
 use clap::ArgMatches;
 use dmdlib::utils::clone::Clone;
 use dmdlib::utils::config::{AppOptions, ConfigWriter};
 use dmdlib::utils::constants::messages::APP_OPTIONS_NOT_FOUND;
 use dmdlib::utils::constants::patterns::GIT_URL;
-use dmdlib::utils::host::Host;
+use dmdlib::utils::host::{Host, is_host};
 use dmdlib::utils::project::Project;
 use regex::bytes::Regex;
 
@@ -34,16 +34,16 @@ impl<'a> Cmd {
             } else if rx.is_match(first.as_ref()) {
                 let clone = Clone::parse_url(first, rx)?;
                 Ok(Cmd::Clone(clone))
-            } else if args.len() == 1 {
-                let options = AppOptions::current().unwrap();
-                let host = Host::from(options.host);
-                let repo = args.get(0).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::from(host, options.owner, repo.unwrap())))
-            } else {
+            } else if is_host(&args) {
                 let host = Host::from(first.into());
                 let owner = args.get(1).map(|a| a.to_string());
                 let repo = args.get(2).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::from(host, owner.unwrap(), repo.unwrap())))
+                Ok(Cmd::Clone(Clone::from(host, owner.unwrap(), vec![repo.unwrap()])))
+            } else {
+                let options = AppOptions::current().unwrap();
+                let host = Host::from(options.host);
+                let repos = args.iter().map(|a| a.to_string()).collect::<Vec<String>>();
+                Ok(Cmd::Clone(Clone::from(host, options.owner, repos)))
             }
         } else if let Some(open) = matches.subcommand_matches("open") {
             Ok(Cmd::Open(Project {
@@ -82,7 +82,7 @@ impl<'a> Cmd {
                     Host should be one of the following: \n1. GitHub \n2. GitLab")
                 } else if clone.owner.is_empty() {
                     bail!("Missing arguments: <owner> <repo>")
-                } else if clone.repo.is_empty() {
+                } else if clone.repos.is_empty() {
                     bail!("Missing arguments: <repo>")
                 } else {
                     match clone.clone_repo() {

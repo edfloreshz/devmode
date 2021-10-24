@@ -1,6 +1,7 @@
+use std::fmt::{Display, Formatter};
+
 use crate::utils::constants::names::{GH_NAME, GL_NAME, NONE};
 use crate::utils::constants::url::{GH_URL, GL_URL};
-use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
 pub enum Host {
@@ -31,6 +32,18 @@ impl Host {
             Host::None => NONE,
         }
     }
+}
+
+pub fn is_host(args: &Vec<&str>) -> bool {
+    let mut contains = false;
+    for arg in args {
+        if arg.contains("gh") || arg.contains("gl") || arg.contains("github") || arg.contains("gitlab") || arg.contains("github.com") || arg.contains("gitlab.com") {
+            contains = true;
+            break;
+        }
+    }
+    println!("{}", contains);
+    contains
 }
 
 impl Display for Host {

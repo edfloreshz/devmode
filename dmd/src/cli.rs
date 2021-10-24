@@ -40,7 +40,7 @@ pub fn clone_setup() -> Result<Cmd> {
         })
         .build();
     if let Answer::String(repo) = requestty::prompt_one(question)? {
-        clone.repo = repo;
+        clone.repos.push(repo);
     }
     Ok(Cmd::Clone(clone))
 }
