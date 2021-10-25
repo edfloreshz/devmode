@@ -6,13 +6,15 @@ use dmdlib::utils::config::{AppOptions, ConfigWriter};
 use dmdlib::utils::constants::messages::APP_OPTIONS_NOT_FOUND;
 use dmdlib::utils::constants::patterns::GIT_URL;
 use dmdlib::utils::host::{Host, is_host};
+use dmdlib::utils::fork::Fork;
 use dmdlib::utils::project::Project;
 use regex::bytes::Regex;
 
-use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner};
+use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner, fork_setup};
 
 pub enum Cmd {
     Clone(Clone),
+    Fork(Fork),
     Open(Project),
     Config(AppOptions),
     ShowConfig,
@@ -44,6 +46,44 @@ impl<'a> Cmd {
                 let host = Host::from(options.host);
                 let repos = args.iter().map(|a| a.to_string()).collect::<Vec<String>>();
                 Ok(Cmd::Clone(Clone::from(host, options.owner, repos)))
+            }
+        } else if let Some(matches) = matches.subcommand_matches("fork") {
+            let clone_arg = matches
+                .values_of("args")
+                .unwrap_or_default()
+                .collect::<Vec<_>>();
+            let upstream_arg = matches
+                .values_of("upstream")
+                .unwrap_or_default()
+                .collect::<Vec<_>>();
+            let upstream_url = upstream_arg[0]; //upstream_url exist for is deleted on future
+            let first = clone_arg.get(0).copied().unwrap_or_default();
+            let rx = Regex::new(GIT_URL).unwrap();
+            if clone_arg.is_empty() {
+                fork_setup()
+            } else if rx.is_match(first.as_ref()) {
+                let fork = Fork::parse_url(first, rx, upstream_url.to_string())?;
+                Ok(Cmd::Fork(fork))
+            } else if clone_arg.len() == 1 {
+                let options = AppOptions::current().unwrap();
+                let host = Host::from(options.host);
+                let repo = clone_arg.get(0).map(|a| a.to_string());
+                Ok(Cmd::Fork(Fork::from(
+                    host,
+                    upstream_url.to_string(),
+                    options.owner,
+                    repo.unwrap(),
+                )))
+            } else {
+                let host = Host::from(first.into());
+                let owner = clone_arg.get(1).map(|a| a.to_string());
+                let repo = clone_arg.get(2).map(|a| a.to_string());
+                Ok(Cmd::Fork(Fork::from(
+                    host,
+                    upstream_url.to_string(),
+                    owner.unwrap(),
+                    repo.unwrap(),
+                )))
             }
         } else if let Some(open) = matches.subcommand_matches("open") {
             Ok(Cmd::Open(Project {
@@ -104,6 +144,30 @@ impl<'a> Cmd {
                     .with_context(|| APP_OPTIONS_NOT_FOUND)?
                     .show();
                 Ok(())
+            }
+            Cmd::Fork(fork) => {
+                if let Host::None = fork.host {
+                    bail!("You can't do this unless you set your configuration with `devmode config`\n\
+                    In the meantime, you can clone by specifying <host> <owner> <repo> \n\n\
+                    Host should be one of the following: \n1. GitHub \n2. GitLab")
+                } else if fork.owner.is_empty() {
+                    bail!("Missing arguments: <owner> <repo>")
+                } else if fork.repo.is_empty() {
+                    bail!("Missing arguments: <repo>")
+                } else if fork.upstream.is_empty() {
+                    bail!(
+                        "Missing arguments: <upstream>. 
+                        For example ... -u https://git.host.pro/user/repo-upstream"
+                    )
+                } else {
+                    match &mut fork.clone_repo() {
+                        Ok(_) => match Project::make_dev_paths() {
+                            Ok(_) => fork.set_upstream(),
+                            Err(e) => Err(e),
+                        },
+                        Err(e) => Err(e),
+                    }
+                }
             }
             Cmd::None => bail!("No argument found."),
             Cmd::MapPaths => Project::make_dev_paths(),

@@ -2,6 +2,7 @@ use anyhow::Result;
 use dmdlib::utils::clone::Clone;
 use dmdlib::utils::config::AppOptions;
 use dmdlib::utils::editor::{Editor, EditorApp};
+use dmdlib::utils::fork::Fork;
 use dmdlib::utils::host::Host;
 use requestty::Answer;
 
@@ -43,6 +44,58 @@ pub fn clone_setup() -> Result<Cmd> {
         clone.repos.push(repo);
     }
     Ok(Cmd::Clone(clone))
+}
+
+pub fn fork_setup() -> Result<Cmd> {
+    let mut fork = Fork::new();
+    let question = requestty::Question::select("host")
+        .message("Choose your Git host:")
+        .choices(vec!["GitHub", "GitLab"])
+        .build();
+    if let Answer::ListItem(host) = requestty::prompt_one(question)? {
+        fork.host = Host::from(host.text);
+    }
+    let question = requestty::Question::input("owner")
+        .message("Git username:")
+        .validate(|owner, _previous| {
+            if owner.is_empty() {
+                Err("Please enter a Git username.".to_owned())
+            } else {
+                Ok(())
+            }
+        })
+        .build();
+    if let Answer::String(owner) = requestty::prompt_one(question)? {
+        fork.owner = owner;
+    }
+    let question = requestty::Question::input("repo")
+        .message("Git repo name:")
+        .validate(|owner, _previous| {
+            if owner.is_empty() {
+                Err("Please enter a Git repo name.".to_owned())
+            } else {
+                Ok(())
+            }
+        })
+        .build();
+    if let Answer::String(repo) = requestty::prompt_one(question)? {
+        fork.repo = repo;
+    }
+
+    let question = requestty::Question::input("upstream")
+        .message("Git URL (upstream):")
+        .validate(|owner, _previous| {
+            if owner.is_empty() {
+                Err("Please enter a Git URL.".to_owned())
+            } else {
+                Ok(())
+            }
+        })
+        .build();
+    if let Answer::String(repo) = requestty::prompt_one(question)? {
+        fork.upstream = repo;
+    }
+    Ok(Cmd::Fork(fork))
 }
 
 pub fn config_all() -> Result<Cmd> {
