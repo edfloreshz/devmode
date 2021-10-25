@@ -44,7 +44,7 @@ impl Fork {
         format!("{}/{}/{}", self.host.url(), self.owner, self.repo)
     }
 
-    pub unsafe fn clone_repo(&mut self) -> Result<()> {
+    pub fn clone_repo(&mut self) -> Result<()> {
         let path = format!(
             "{}/Developer/{}/{}/{}",
             home().display(),

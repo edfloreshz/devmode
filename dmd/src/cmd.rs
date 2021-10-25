@@ -160,11 +160,11 @@ impl<'a> Cmd {
                         For example ... -u https://git.host.pro/user/repo-upstream"
                     )
                 } else {
-                    match &mut fork.clone_repo() {
-                        Ok(_) => match Project::make_dev_paths() {
-                            Ok(_) => fork.set_upstream(),
-                            Err(e) => Err(e),
-                        },
+                    match fork.clone_repo() {
+                        Ok(_) => {
+                            Project::make_dev_paths()?;
+                            fork.set_upstream()
+                        }
                         Err(e) => Err(e),
                     }
                 }
