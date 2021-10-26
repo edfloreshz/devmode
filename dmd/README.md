@@ -16,6 +16,7 @@ FLAGS:
 SUBCOMMANDS:
     clone     Clones a utils repository in a specific folder structure.
     config    Sets options for configuration.
+    fork      Clone repo and set upstream of your fork
     help      Prints this message or the help of the given subcommand(s)
     open      Opens a project on your selected text editor.
 ```
@@ -157,6 +158,51 @@ You will be presented with the following setup:
 ? Git repo name: › repo
 
 Cloning edfloreshz/blog from GitHub...
+```
+## Clone and set upstream (fork)
+
+Clone a repo and set upstream, ideal for forks, when you clone a repository it will be stored to your 
+filesystem using a specific folder structure. Yes equal how `dmd cl`
+
+### Usage
+```
+    dmd fork --upstream <upstream> [args]...
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -u, --upstream <upstream>    Set the upstream to your fork <url>
+
+ARGS:
+    <args>...    Provide either a Git <url> or a Git <host> <owner> <repo>.
+
+```
+### Clone with url
+You must place two arguments, one will be your repository and the second the upstream.
+
+```
+dmd fork --upstream https://github.com/user/repo https://github.com/your-user/your-repo-fork
+```
+
+### Clone with url (upstream) and hots user repo
+```
+dmd fk github your-user your-repo-fork -u https://github.com/user/repo
+```
+### Just clone and url (upstream)
+
+This will launch a clone stup
+```
+dmd fork -u https://github.com/user/repo
+? Choose your Git host: ›
+❯ GitHub
+  GitLab
+? Git username: › your-user
+? Git repo name: › your-repo-fork
+
+Cloning your-user/your-repo-fork from GitHub...
+Setting https://github.com/user/repo how upstream
 ```
 
 ## Open a project
