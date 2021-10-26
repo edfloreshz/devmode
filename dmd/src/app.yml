@@ -20,7 +20,7 @@ subcommands:
             takes_value: true
             required: true
   - fork:
-      about: Clone repo and set upstream of your fork
+      about: Clone repo and set upstream to your fork
       alias: "fk"
       args:
         - args:
