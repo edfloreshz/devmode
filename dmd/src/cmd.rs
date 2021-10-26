@@ -105,30 +105,6 @@ impl<'a> Cmd {
                     .show();
                 Ok(())
             }
-            Cmd::Fork(fork) => {
-                if let Host::None = fork.host {
-                    bail!("You can't do this unless you set your configuration with `devmode config`\n\
-                    In the meantime, you can clone by specifying <host> <owner> <repo> \n\n\
-                    Host should be one of the following: \n1. GitHub \n2. GitLab")
-                } else if fork.owner.is_empty() {
-                    bail!("Missing arguments: <owner> <repo>")
-                } else if fork.repo.is_empty() {
-                    bail!("Missing arguments: <repo>")
-                } else if fork.upstream.is_empty() {
-                    bail!(
-                        "Missing arguments: <upstream>. 
-                        For example ... -u https://git.host.pro/user/repo-upstream"
-                    )
-                } else {
-                    match fork.clone_repo() {
-                        Ok(path) => {
-                            Project::make_dev_paths()?;
-                            fork.set_upstream(path)
-                        }
-                        Err(e) => Err(e),
-                    }
-                }
-            }
             Cmd::None => bail!("No argument found."),
             Cmd::MapPaths => Project::make_dev_paths(),
         }
