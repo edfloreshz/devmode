@@ -4,6 +4,7 @@
 </div>
 
 **Dev(mode)** is a project management utility for developers.
+
 [![Arch package](https://img.shields.io/aur/version/devmode-git)](https://aur.archlinux.org/packages/devmode-git) [![GitHub Action Rust](https://img.shields.io/github/workflow/status/edfloreshz/devmode/Rust)](https://github.com/edfloreshz/devmode/actions)
 
 ## Installation
