@@ -44,7 +44,7 @@ impl Fork {
         format!("{}/{}/{}", self.host.url(), self.owner, self.repo)
     }
 
-    pub fn clone_repo(&mut self) -> Result<()> {
+    pub fn clone_repo(&self) -> Result<String> {
         let path = format!(
             "{}/Developer/{}/{}/{}",
             home().display(),
@@ -54,8 +54,7 @@ impl Fork {
         );
         println!("Cloning {}/{} from {}...", self.owner, self.repo, self.host);
         Repository::clone(self.url().as_str(), &path).with_context(|| FAILED_TO_CLONE_REPO)?;
-        self.repo_path = path;
-        Ok(())
+        Ok(path)
     }
     pub fn parse_url(url: &str, rx: Regex, upstream: String) -> Result<Self> {
         let captures = rx.captures(url.as_ref()).unwrap();
@@ -74,12 +73,12 @@ impl Fork {
         Ok(Self::from(Host::from(host.into()), upstream, owner, repo))
     }
 
-    pub fn set_upstream(&self) -> Result<()> {
+    pub fn set_upstream(&self, path: String) -> Result<()> {
         println!("Setting {} how upstream...", self.upstream);
-        if self.repo_path.is_empty() {
+        if path.is_empty() {
             println!("It seems that you do not have cloned the repository locally");
         }
-        let project = Repository::open(Path::new(&self.repo_path)).expect(NO_PROJECT_FOUND);
+        let project = Repository::open(Path::new(&path)).expect(NO_PROJECT_FOUND);
         project
             .remote("upstream", &self.upstream)
             .with_context(|| FAILED_TO_SET_REMOTE)?;

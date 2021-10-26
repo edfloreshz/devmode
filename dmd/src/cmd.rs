@@ -161,9 +161,9 @@ impl<'a> Cmd {
                     )
                 } else {
                     match fork.clone_repo() {
-                        Ok(_) => {
+                        Ok(path) => {
                             Project::make_dev_paths()?;
-                            fork.set_upstream()
+                            fork.set_upstream(path)
                         }
                         Err(e) => Err(e),
                     }
