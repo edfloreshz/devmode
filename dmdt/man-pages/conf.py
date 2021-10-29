@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'devmode'
+project = 'dmdt'
 copyright = '2021, Eduardo Flores <edfloreshz@gmail.com>, kedap <kedap.dev@protonmail.com>'
 author = 'Eduardo Flores <edfloreshz@gmail.com>, kedap <kedap.dev@protonmail.com>'
 
