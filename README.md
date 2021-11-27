@@ -1,5 +1,5 @@
 <div align="center">
-    <img width=200 src="../assets/logo.png"/>
+    <img width=200 src="https://github.com/edfloreshz/devmode/blob/main/assets/img/logo.png?raw=true"/>
     <h1>Dev(mode)</h1>
 </div>
 
