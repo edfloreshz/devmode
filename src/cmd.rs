@@ -1,22 +1,25 @@
-use anyhow::{bail, Context};
+use crate::config::clone::CloneAction;
+use crate::config::fork::Fork;
+use crate::config::host::{is_host, Host};
+use crate::config::project::Project;
+use crate::config::settings::Settings;
+use crate::constants::constants::messages::{APP_OPTIONS_NOT_FOUND, FAILED_TO_PARSE, FAILED_TO_WRITE_CONFIG, NO_SETTINGS_CHANGED, SETTINGS_UPDATED};
+use crate::constants::constants::patterns::GIT_URL;
 use anyhow::Result;
+use anyhow::{bail, Context};
 use clap::ArgMatches;
-use libdmd::utils::clone::Clone;
-use libdmd::utils::config::{AppOptions, ConfigWriter};
-use libdmd::utils::constants::messages::APP_OPTIONS_NOT_FOUND;
-use libdmd::utils::constants::patterns::GIT_URL;
-use libdmd::utils::fork::Fork;
-use libdmd::utils::host::{Host, is_host};
-use libdmd::utils::project::Project;
+use libdmd::utils::config::config::Config;
+use libdmd::utils::config::format::FileFormat::TOML;
 use regex::bytes::Regex;
+use std::clone::Clone;
 
 use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner, fork_setup};
 
 pub enum Cmd {
-    Clone(Clone),
+    Clone(CloneAction),
     Fork(Fork),
     Open(Project),
-    Config(AppOptions),
+    Config(Settings),
     ShowConfig,
     MapPaths,
     None,
@@ -34,18 +37,23 @@ impl<'a> Cmd {
             if args.is_empty() {
                 clone_setup()
             } else if rx.is_match(first.as_ref()) {
-                let clone = Clone::parse_url(first, rx)?;
+                let clone = CloneAction::parse_url(first, rx)?;
                 Ok(Cmd::Clone(clone))
             } else if is_host(&args) {
                 let host = Host::from(first.into());
                 let owner = args.get(1).map(|a| a.to_string());
                 let repo = args.get(2).map(|a| a.to_string());
-                Ok(Cmd::Clone(Clone::from(host, owner.unwrap(), vec![repo.unwrap()])))
+                Ok(Cmd::Clone(CloneAction::from(
+                    host,
+                    owner.unwrap(),
+                    vec![repo.unwrap()],
+                )))
             } else {
-                let options = AppOptions::current().unwrap();
+                let options = Config::get::<Settings>("devmode/config/config.toml", TOML)
+                    .with_context(|| APP_OPTIONS_NOT_FOUND)?;
                 let host = Host::from(options.host);
                 let repos = args.iter().map(|a| a.to_string()).collect::<Vec<String>>();
-                Ok(Cmd::Clone(Clone::from(host, options.owner, repos)))
+                Ok(Cmd::Clone(CloneAction::from(host, options.owner, repos)))
             }
         } else if let Some(matches) = matches.subcommand_matches("fork") {
             let clone_arg = matches
@@ -65,7 +73,8 @@ impl<'a> Cmd {
                 let fork = Fork::parse_url(first, rx, upstream_url.to_string())?;
                 Ok(Cmd::Fork(fork))
             } else if clone_arg.len() == 1 {
-                let options = AppOptions::current().unwrap();
+                let options = Config::get::<Settings>("devmode/config/config.toml", TOML)
+                    .with_context(|| APP_OPTIONS_NOT_FOUND)?;
                 let host = Host::from(options.host);
                 let repo = clone_arg.get(0).map(|a| a.to_string());
                 Ok(Cmd::Fork(Fork::from(
@@ -91,23 +100,42 @@ impl<'a> Cmd {
             }))
         } else if let Some(config) = matches.subcommand_matches("config") {
             if config.is_present("all") {
-                config_all()
+                match config_all() {
+                    None => bail!("Failed to configure."),
+                    Some(cmd) => Ok(cmd),
+                }
             } else if config.is_present("map") {
                 Ok(Cmd::MapPaths)
-            } else if AppOptions::current().is_some() {
+            } else if Config::get::<Settings>("devmode/config/config.toml", TOML).is_some() {
                 if config.is_present("editor") {
-                    config_editor()
+                    match config_editor() {
+                        None => bail!("Failed to set editor."),
+                        Some(cmd) => Ok(cmd),
+                    }
                 } else if config.is_present("owner") {
-                    config_owner()
+                    match config_owner() {
+                        None => bail!("Failed to set owner."),
+                        Some(cmd) => Ok(cmd),
+                    }
                 } else if config.is_present("host") {
-                    config_host()
+                    match config_host() {
+                        None => bail!("Failed to set host."),
+                        Some(cmd) => Ok(cmd),
+                    }
                 } else if config.is_present("show") {
                     Ok(Cmd::ShowConfig)
                 } else {
-                    Ok(Cmd::Config(AppOptions::current().unwrap_or_default()))
+                    Ok(Cmd::Config(
+                        Config::get::<Settings>("devmode/config/config.toml", TOML)
+                            .with_context(|| APP_OPTIONS_NOT_FOUND)?,
+                    ))
                 }
             } else {
-                config_all()
+                let cmd = config_all().unwrap();
+                if let Cmd::Config(settings) = &cmd {
+                    settings.init()?;
+                }
+                Ok(cmd)
             }
         } else {
             Ok(Cmd::None)
@@ -137,9 +165,17 @@ impl<'a> Cmd {
                     open.open()
                 }
             }
-            Cmd::Config(options) => options.write_to_config(),
+            Cmd::Config(options) => { // Verificar si las opciones nuevas son iguales a las opciones actuales.
+                if options != &Config::get::<Settings>("devmode/config/config.toml", TOML).with_context(|| FAILED_TO_PARSE)? {
+                    Config::set::<Settings>("devmode/config/config.toml", options.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
+                    println!("{}", SETTINGS_UPDATED);
+                } else {
+                    println!("{}", NO_SETTINGS_CHANGED);
+                }
+                Ok(())
+            }
             Cmd::ShowConfig => {
-                AppOptions::current()
+                Config::get::<Settings>("devmode/config/config.toml", TOML)
                     .with_context(|| APP_OPTIONS_NOT_FOUND)?
                     .show();
                 Ok(())

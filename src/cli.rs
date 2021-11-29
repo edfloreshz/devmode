@@ -1,15 +1,18 @@
+use crate::config::clone::CloneAction;
+use crate::config::editor::Editor;
+use crate::config::editor_app::EditorApp;
+use crate::config::fork::Fork;
+use crate::config::host::Host;
+use crate::config::settings::Settings;
 use anyhow::Result;
-use libdmd::utils::clone::Clone;
-use libdmd::utils::config::AppOptions;
-use libdmd::utils::editor::{Editor, EditorApp};
-use libdmd::utils::fork::Fork;
-use libdmd::utils::host::Host;
+use libdmd::utils::config::config::Config;
+use libdmd::utils::config::format::FileFormat::TOML;
 use requestty::Answer;
 
 use crate::cmd::*;
 
 pub fn clone_setup() -> Result<Cmd> {
-    let mut clone = Clone::new();
+    let mut clone = CloneAction::new();
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
@@ -98,29 +101,29 @@ pub fn fork_setup() -> Result<Cmd> {
     Ok(Cmd::Fork(fork))
 }
 
-pub fn config_all() -> Result<Cmd> {
-    let editor = config_editor()?;
-    let editor = if let Cmd::Config(options) = editor {
+pub fn config_all() -> Option<Cmd> {
+    let editor = config_editor();
+    let editor = if let Some(Cmd::Config(options)) = editor {
         options.editor
     } else {
         Editor::default()
     };
-    let owner = config_owner()?;
-    let owner = if let Cmd::Config(options) = owner {
+    let owner = config_owner();
+    let owner = if let Some(Cmd::Config(options)) = owner {
         options.owner
     } else {
         String::new()
     };
-    let host = config_host()?;
-    let host = if let Cmd::Config(options) = host {
+    let host = config_host();
+    let host = if let Some(Cmd::Config(options)) = host {
         options.host
     } else {
         String::new()
     };
-    Ok(Cmd::Config(AppOptions::new(host, owner, editor)))
+    Some(Cmd::Config(Settings::new(host, owner, editor)))
 }
 
-pub fn config_owner() -> Result<Cmd> {
+pub fn config_owner() -> Option<Cmd> {
     let question = requestty::Question::input("owner")
         .message("What's your Git username:")
         .validate(|owner, _previous| {
@@ -131,34 +134,54 @@ pub fn config_owner() -> Result<Cmd> {
             }
         })
         .build();
-    let mut options = AppOptions::current().unwrap_or_default();
-    if let Answer::String(owner) = requestty::prompt_one(question)? {
+    let owner = if let Answer::String(owner) = requestty::prompt_one(question).ok()? {
+        owner
+    } else {
+        String::new()
+    };
+    if Config::get::<Settings>("devmode/config/config.toml", TOML).is_some() {
+        let mut options = Config::get::<Settings>("devmode/config/config.toml", TOML).unwrap();
         options.owner = owner;
+        Some(Cmd::Config(options))
+    } else {
+        Some(Cmd::Config(Settings::new(
+            String::new(),
+            owner,
+            Default::default(),
+        )))
     }
-    Ok(Cmd::Config(options))
 }
 
-pub fn config_host() -> Result<Cmd> {
+pub fn config_host() -> Option<Cmd> {
     let question = requestty::Question::select("host")
         .message("Choose your Git host:")
         .choices(vec!["GitHub", "GitLab"])
         .build();
-    let mut options = AppOptions::current().unwrap_or_default();
-    if let Answer::ListItem(host) = requestty::prompt_one(question)? {
-        options.host = Host::from(host.text).to_string();
+    let host = if let Answer::ListItem(host) = requestty::prompt_one(question).ok()? {
+        Host::from(host.text).to_string()
+    } else {
+        Host::None.to_string()
+    };
+    if Config::get::<Settings>("devmode/config/config.toml", TOML).is_some() {
+        let mut options = Config::get::<Settings>("devmode/config/config.toml", TOML).unwrap();
+        options.host = host;
+        Some(Cmd::Config(options))
+    } else {
+        Some(Cmd::Config(Settings::new(
+            host,
+            String::new(),
+            Default::default(),
+        )))
     }
-    Ok(Cmd::Config(options))
 }
 
-pub fn config_editor() -> Result<Cmd> {
+pub fn config_editor() -> Option<Cmd> {
     let question = requestty::Question::select("editor")
         .message("Choose your favorite editor:")
         .choices(vec!["Vim", "VSCode", "Custom"])
         .build();
-    let mut options = AppOptions::current().unwrap_or_default();
-    if let Answer::ListItem(i) = requestty::prompt_one(question)? {
+    let editor = if let Answer::ListItem(i) = requestty::prompt_one(question).ok()? {
         if i.text.to_lowercase() == "custom" {
-            let mut command: Option<String> = None;
             let question = requestty::Question::input("command")
                 .message("Editor command:")
                 .validate(|owner, _previous| {
@@ -169,13 +192,31 @@ pub fn config_editor() -> Result<Cmd> {
                     }
                 })
                 .build();
-            if let Answer::String(cmd) = requestty::prompt_one(question).unwrap() {
-                command = Option::from(cmd);
+            if let Answer::String(cmd) = requestty::prompt_one(question).ok()? {
+                let command = Option::from(cmd);
+                Some(Editor::custom(command.unwrap()))
+            } else {
+                None
             }
-            options.editor = Editor::custom(command.unwrap());
         } else {
-            options.editor = Editor::new(EditorApp::from(&*i.text));
+            Some(Editor::new(EditorApp::from(&*i.text)))
+        }
+    } else {
+        None
+    };
+    if Config::get::<Settings>("devmode/config/config.toml", TOML).is_some() && editor.is_some() {
+        let mut options = Config::get::<Settings>("devmode/config/config.toml", TOML).unwrap();
+        options.editor = editor?;
+        Some(Cmd::Config(options))
+    } else {
+        if editor.is_some() {
+            Some(Cmd::Config(Settings::new(
+                "".to_string(),
+                "".to_string(),
+                editor?,
+            )))
+        } else {
+            None
         }
     }
-    Ok(Cmd::Config(options))
 }

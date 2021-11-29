@@ -4,6 +4,8 @@ use clap::{load_yaml, App};
 
 mod cli;
 mod cmd;
+mod config;
+mod constants;
 
 fn main() -> Result<()> {
     let yaml = load_yaml!("app.yml");
