@@ -1,6 +1,6 @@
 [package]
 name = "devmode"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 license = "GPL-2.0"
 description = "Devmode is a project management utility for developers."
@@ -20,7 +20,7 @@ path = "src/main.rs"
 #libdmd = { path = "../libdmd", version = "0.1.2"}
 
 [dependencies]
-libdmd = "0.1.3"
+libdmd = "0.1.4"
 clap = { version = "2.33.3", features = ["yaml"] }
 anyhow = "1.0.44"
 requestty = "0.1.1"
