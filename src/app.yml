@@ -1,11 +1,11 @@
 name: (Dev)mode
-version: "0.2.0"
+version: "0.2.1"
 author: "Eduardo F. <edfloreshz@gmail.com>"
 about: "Dev(mode) is a project management utility for developers."
 settings: [ArgRequiredElseHelp, ColoredHelp]
 subcommands:
   - clone:
-      about: Clones a utils repository in a specific folder structure
+      about: Clones a repository in a specific folder structure.
       alias: "cl"
       args:
         - args:
@@ -20,7 +20,7 @@ subcommands:
             takes_value: true
             required: true
   - fork:
-      about: Clone repo and set upstream to your fork
+      about: Clones a repo and sets the upstream to your fork.
       alias: "fk"
       args:
         - args:
@@ -33,7 +33,7 @@ subcommands:
             takes_value: true
             required: true
   - config:
-      about: Sets options for configuration.
+      about: Writes changes your configuration.
       alias: "cf"
       args:
         - map:

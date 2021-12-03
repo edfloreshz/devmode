@@ -26,7 +26,11 @@ SUBCOMMANDS:
 #### Cargo
 
 ```
-cargo install dm
+cargo install devmode
+```
+#### Arch Linux
+```
+paru -S devmode-git
 ```
 
 ## Configuration
