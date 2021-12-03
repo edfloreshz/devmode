@@ -95,8 +95,7 @@ pub fn find_paths(reader: BufReader<File>, path: String) -> Vec<String> {
 }
 
 fn make_reader() -> Result<BufReader<File>> {
-    todo!()
-    // Ok(BufReader::new(File::open(data().join(DEVPATHS_FILE))?))
+    Ok(BufReader::new(File::open(data().join("devmode/paths/devpaths"))?))
 }
 
 pub fn _get_projects() -> Result<Vec<String>> {

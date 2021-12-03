@@ -94,9 +94,9 @@ impl Fork {
     }
 
     pub fn set_upstream(&self, path: String) -> Result<()> {
-        println!("Setting {} how upstream...", self.upstream);
+        println!("Setting {} as upstream...", self.upstream);
         if path.is_empty() {
-            println!("It seems that you do not have cloned the repository locally");
+            println!("Seems that you haven't cloned the repository locally.");
         }
         let project = Repository::open(Path::new(&path)).expect(NO_PROJECT_FOUND);
         project
