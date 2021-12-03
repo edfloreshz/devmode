@@ -1,5 +1,5 @@
-use crate::constants::constants::names::*;
-use crate::constants::constants::url::{GH_URL, GL_URL};
+use crate::constants::names::*;
+use crate::constants::url::{GH_URL, GL_URL};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
@@ -33,7 +33,7 @@ impl Host {
     }
 }
 
-pub fn is_host(args: &Vec<&str>) -> bool {
+pub fn is_host(args: &[&str]) -> bool {
     let mut contains = false;
     for arg in args {
         if arg.contains("gh")
@@ -47,7 +47,6 @@ pub fn is_host(args: &Vec<&str>) -> bool {
             break;
         }
     }
-    println!("{}", contains);
     contains
 }
 

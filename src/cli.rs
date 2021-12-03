@@ -5,7 +5,7 @@ use crate::config::fork::Fork;
 use crate::config::host::Host;
 use crate::config::settings::Settings;
 use anyhow::Result;
-use libdmd::utils::config::config::Config;
+use libdmd::utils::config::Config;
 use libdmd::utils::config::format::FileFormat::TOML;
 use requestty::Answer;
 
@@ -208,15 +208,13 @@ pub fn config_editor() -> Option<Cmd> {
         let mut options = Config::get::<Settings>("devmode/config/config.toml", TOML).unwrap();
         options.editor = editor?;
         Some(Cmd::Config(options))
-    } else {
-        if editor.is_some() {
+    } else if editor.is_some() {
             Some(Cmd::Config(Settings::new(
                 "".to_string(),
                 "".to_string(),
                 editor?,
             )))
-        } else {
-            None
-        }
+    } else {
+        None
     }
 }

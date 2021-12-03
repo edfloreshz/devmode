@@ -1,7 +1,9 @@
 use crate::config::editor::Editor;
-use anyhow::Result;
-use libdmd::utils::config::config::{Config, Element, Format};
+use anyhow::{Context, Result};
+use libdmd::utils::config::{Config, Element, Format};
+use libdmd::utils::config::format::FileFormat::TOML;
 use serde::{Deserialize, Serialize};
+use crate::constants::messages::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Settings {
@@ -28,6 +30,15 @@ impl Settings {
             .add(Element::new("logs"))
             .add(Element::new("paths").child(Element::new("devpaths").format(Format::File)))
             .write()
+    }
+    pub fn run(&self) -> Result<()> {
+        if self != &Config::get::<Settings>("devmode/config/config.toml", TOML).with_context(|| FAILED_TO_PARSE)? {
+            Config::set::<Settings>("devmode/config/config.toml", self.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
+            println!("{}", SETTINGS_UPDATED);
+        } else {
+            println!("{}", NO_SETTINGS_CHANGED);
+        }
+        Ok(())
     }
     pub fn show(&self) {
         println!(

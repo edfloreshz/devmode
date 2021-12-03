@@ -21,8 +21,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
-      - run: cd dmd
       - name: Build
-        run: cd dmd && cargo build --verbose && cargo clippy
+        run: cargo build --verbose && cargo clippy
       - name: Run tests
-        run: cd dmd && cargo test --verbose
+        run: cargo test --verbose

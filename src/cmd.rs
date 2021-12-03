@@ -3,17 +3,16 @@ use crate::config::fork::Fork;
 use crate::config::host::{is_host, Host};
 use crate::config::project::Project;
 use crate::config::settings::Settings;
-use crate::constants::constants::messages::{APP_OPTIONS_NOT_FOUND, FAILED_TO_PARSE, FAILED_TO_WRITE_CONFIG, NO_SETTINGS_CHANGED, SETTINGS_UPDATED};
-use crate::constants::constants::patterns::GIT_URL;
+use crate::constants::patterns::GIT_URL;
 use anyhow::Result;
 use anyhow::{bail, Context};
 use clap::ArgMatches;
-use libdmd::utils::config::config::Config;
+use libdmd::utils::config::Config;
 use libdmd::utils::config::format::FileFormat::TOML;
 use regex::bytes::Regex;
-use std::clone::Clone;
 
 use crate::cli::{clone_setup, config_all, config_editor, config_host, config_owner, fork_setup};
+use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
 
 pub enum Cmd {
     Clone(CloneAction),
@@ -143,66 +142,16 @@ impl<'a> Cmd {
     }
     pub fn check(&self) -> Result<()> {
         match self {
-            Cmd::Clone(clone) => {
-                if let Host::None = clone.host {
-                    bail!("You can't do this unless you set your configuration with `dmd config -a`\n\
-                    In the meantime, you can clone by specifying <host> <owner> <repo>")
-                } else if clone.owner.is_empty() {
-                    bail!("Missing arguments: <owner> <repo>")
-                } else if clone.repos.is_empty() {
-                    bail!("Missing arguments: <repo>")
-                } else {
-                    match clone.clone_repo() {
-                        Ok(_) => Project::make_dev_paths(),
-                        Err(e) => Err(e),
-                    }
-                }
-            }
-            Cmd::Open(open) => {
-                if open.name.is_none() {
-                    bail!("Project name was not provided")
-                } else {
-                    open.open()
-                }
-            }
-            Cmd::Config(options) => { // Verificar si las opciones nuevas son iguales a las opciones actuales.
-                if options != &Config::get::<Settings>("devmode/config/config.toml", TOML).with_context(|| FAILED_TO_PARSE)? {
-                    Config::set::<Settings>("devmode/config/config.toml", options.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
-                    println!("{}", SETTINGS_UPDATED);
-                } else {
-                    println!("{}", NO_SETTINGS_CHANGED);
-                }
-                Ok(())
-            }
+            Cmd::Clone(clone) => clone.run(),
+            Cmd::Open(project) => project.run(),
+            Cmd::Config(settings) => settings.run(),
             Cmd::ShowConfig => {
                 Config::get::<Settings>("devmode/config/config.toml", TOML)
                     .with_context(|| APP_OPTIONS_NOT_FOUND)?
                     .show();
                 Ok(())
             }
-            Cmd::Fork(fork) => {
-                if let Host::None = fork.host {
-                    bail!("You can't do this unless you set your configuration with `dmd config -a`\n\
-                    In the meantime, you can clone by specifying <host> <owner> <repo>")
-                } else if fork.owner.is_empty() {
-                    bail!("Missing arguments: <owner> <repo>")
-                } else if fork.repo.is_empty() {
-                    bail!("Missing arguments: <repo>")
-                } else if fork.upstream.is_empty() {
-                    bail!(
-                        "Missing arguments: <upstream>. 
-                        For example ... -u https://github.com/user/upstream"
-                    )
-                } else {
-                    match fork.clone_repo() {
-                        Ok(path) => {
-                            Project::make_dev_paths()?;
-                            fork.set_upstream(path)
-                        }
-                        Err(e) => Err(e),
-                    }
-                }
-            }
+            Cmd::Fork(fork) => fork.run(),
             Cmd::None => bail!("No argument found."),
             Cmd::MapPaths => Project::make_dev_paths(),
         }

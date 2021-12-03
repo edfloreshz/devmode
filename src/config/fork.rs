@@ -1,10 +1,11 @@
 use crate::config::host::Host;
-use crate::constants::constants::messages::*;
-use anyhow::{Context, Result};
+use crate::constants::messages::*;
+use anyhow::{bail, Context, Result};
 use git2::Repository;
 use libdmd::home;
 use regex::bytes::Regex;
 use std::path::Path;
+use crate::config::project::Project;
 
 pub struct Fork {
     pub host: Host,
@@ -42,7 +43,27 @@ impl Fork {
     pub fn url(&self) -> String {
         format!("{}/{}/{}", self.host.url(), self.owner, self.repo)
     }
-
+    pub fn run(&self) -> Result<()> {
+        if let Host::None = self.host {
+            bail!("You can't do this unless you set your configuration with `dmd config -a`\n\
+                    In the meantime, you can clone by specifying <host> <owner> <repo>")
+        } else if self.owner.is_empty() {
+            bail!("Missing arguments: <owner> <repo>")
+        } else if self.repo.is_empty() {
+            bail!("Missing arguments: <repo>")
+        } else if self.upstream.is_empty() {
+            bail!("Missing arguments: <upstream>. \
+            For example ... -u https://github.com/user/upstream")
+        } else {
+            match self.clone_repo() {
+                Ok(path) => {
+                    Project::make_dev_paths()?;
+                    self.set_upstream(path)
+                }
+                Err(e) => Err(e),
+            }
+        }
+    }
     pub fn clone_repo(&self) -> Result<String> {
         let path = format!(
             "{}/Developer/{}/{}/{}",

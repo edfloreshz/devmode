@@ -1,15 +1,17 @@
-use std::fs::File;
+use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::{BufRead, BufReader};
 
 use anyhow::Result;
 use anyhow::{bail, Context};
 use cmd_lib::*;
-use libdmd::utils::config::config::Config;
+use libdmd::{data, home};
+use libdmd::utils::config::Config;
 use libdmd::utils::config::format::FileFormat::TOML;
-
+use walkdir::WalkDir;
+use std::io::Write;
 use crate::config::editor_app::EditorApp;
 use crate::config::settings::Settings;
-use crate::constants::constants::messages::*;
+use crate::constants::messages::*;
 
 pub struct Project {
     pub name: Option<String>,
@@ -31,35 +33,38 @@ impl Project {
         }
         Ok(())
     }
-
+    pub fn run(&self) -> Result<()> {
+        if self.name.is_none() {
+            bail!("Project name was not provided")
+        } else {
+            self.open()
+        }
+    }
     pub fn make_dev_paths() -> Result<()> {
-        todo!()
-        // let paths_dir = data().join(PATHS_DIR);
-        // if !paths_dir.exists() {
-        //     create_dir_all(paths_dir).with_context(|| failed_to("crate", "paths directory"))?;
-        //     File::create(data().join(DEVPATHS_FILE))?;
-        // }
-        // Project::write_paths()
+        let paths_dir = data().join("devmode/paths/devpaths");
+        if !paths_dir.exists() {
+            create_dir_all(&paths_dir).with_context(|| "Failed to create directory.")?;
+            File::create(paths_dir.join("devpaths"))?;
+        }
+        Project::write_paths()
     }
-    fn _write_paths() -> Result<()> {
-        todo!()
+    fn write_paths() -> Result<()> {
+        let mut devpaths = OpenOptions::new()
+            .write(true)
+            .open(data().join("devmode/paths/devpaths"))?;
+        for entry in WalkDir::new(home().join("Developer"))
+            .max_depth(3)
+            .min_depth(2)
+        {
+            let entry = entry.unwrap();
+            if entry.depth() == 3 && entry.path().is_dir() {
+                if let Err(e) = writeln!(devpaths, "{}", entry.path().display().to_string()) {
+                    eprintln!("Couldn't write to file: {}", e);
+                }
+            }
+        }
+        Ok(())
     }
-    //     let mut devpaths = OpenOptions::new()
-    //         .write(true)
-    //         .open(data().join(DEVPATHS_FILE))?;
-    //     for entry in WalkDir::new(home().join(DEVELOPER_DIR))
-    //         .max_depth(3)
-    //         .min_depth(2)
-    //     {
-    //         let entry = entry.unwrap();
-    //         if entry.depth() == 3 && entry.path().is_dir() {
-    //             if let Err(e) = writeln!(devpaths, "{}", entry.path().display().to_string()) {
-    //                 eprintln!("Couldn't write to file: {}", e);
-    //             }
-    //         }
-    //     }
-    //     Ok(())
-    // }
 }
 
 pub fn open_project(name: String, paths: Vec<String>) -> Result<()> {

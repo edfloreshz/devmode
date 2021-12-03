@@ -1,7 +1,8 @@
+use std::path::PathBuf;
 use crate::config::host::Host;
-use crate::constants::constants::messages::*;
-use anyhow::{Context, Result};
-use git2::Repository;
+use crate::constants::messages::*;
+use anyhow::{bail, Context, Result};
+use git2_credentials::CredentialHandler;
 use libdmd::home;
 use regex::bytes::Regex;
 
@@ -36,7 +37,18 @@ impl CloneAction {
             self.repos.get(index).unwrap()
         )
     }
-
+    pub fn run(&self) -> Result<()> {
+        if let Host::None = self.host {
+            bail!("You can't do this unless you set your configuration with `dmd config -a`\n\
+                    In the meantime, you can clone by specifying <host> <owner> <repo>")
+        } else if self.owner.is_empty() {
+            bail!("Missing arguments: <owner> <repo>")
+        } else if self.repos.is_empty() {
+            bail!("Missing arguments: <repo>")
+        } else {
+            self.clone_repo()
+        }
+    }
     pub fn clone_repo(&self) -> Result<()> {
         for (ix, repo) in self.repos.iter().enumerate() {
             let path = format!(
@@ -47,8 +59,26 @@ impl CloneAction {
                 repo
             );
             println!("Cloning {}/{} from {}...", self.owner, repo, self.host);
-            Repository::clone(self.url(ix).as_str(), &path)
-                .with_context(|| FAILED_TO_CLONE_REPO)?;
+            {
+                let mut cb = git2::RemoteCallbacks::new();
+                let git_config = git2::Config::open_default()?;
+                let mut ch = CredentialHandler::new(git_config);
+                cb.credentials(move |url, username, allowed| ch.try_next_credential(url, username, allowed));
+
+                let mut fo = git2::FetchOptions::new();
+                fo.remote_callbacks(cb)
+                    .download_tags(git2::AutotagOption::All)
+                    .update_fetchhead(true);
+                std::fs::create_dir_all(PathBuf::from(&path))?;
+                git2::build::RepoBuilder::new()
+                    .branch(match self.host {
+                        Host::GitHub => "main",
+                        Host::GitLab => "master",
+                        Host::None => "master"
+                    })
+                    .fetch_options(fo)
+                    .clone(self.url(ix).as_str(), &*PathBuf::from(&path)).with_context(|| FAILED_TO_CLONE_REPO)?;
+            }
         }
         Ok(())
     }

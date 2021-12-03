@@ -1,6 +1,6 @@
-use crate::constants::constants::commands::*;
-use crate::constants::constants::messages::NO_EDITOR_SET;
-use crate::constants::constants::names::*;
+use crate::constants::commands::*;
+use crate::constants::messages::NO_EDITOR_SET;
+use crate::constants::names::*;
 use anyhow::Result;
 use cmd_lib::run_cmd;
 use serde::{Deserialize, Serialize};
