@@ -7,7 +7,7 @@
 
 ```
 USAGE:
-    dmd [SUBCOMMAND]
+   dm [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
@@ -26,19 +26,19 @@ SUBCOMMANDS:
 #### Cargo
 
 ```
-cargo install dmd
+cargo install dm
 ```
 
 ## Configuration
 
-The `config` or `cf` command will help you configure `dmd` to your liking.
+The `config` or `cf` command will help you configure `dm` to your liking.
 
 ### Text Editor
 
 You can set your favorite text editor running:
 
 ```
-dmd config -e --editor
+ dm config -e --editor
 ```
 
 ### Git Host
@@ -46,7 +46,7 @@ dmd config -e --editor
 You can set your Git host running:
 
 ```
-dmd config -h --host
+ dm config -h --host
 ```
 
 ### Git User
@@ -54,7 +54,7 @@ dmd config -h --host
 You can set your Git user running:
 
 ```
-dmd config -o --owner
+ dm config -o --owner
 ```
 
 ### Configure everything
@@ -62,7 +62,7 @@ dmd config -o --owner
 You can configure everything running:
 
 ```
-dmd config -a --all
+ dm config -a --all
 ```
 
 ### Show config
@@ -70,7 +70,7 @@ dmd config -a --all
 You can show your current config running:
 
 ```
-dmd config -s --show
+ dm config -s --show
 
 Current settings:
 Host: GitHub
@@ -86,7 +86,7 @@ Editor: Visual Studio Code
 
 When you clone a repository it will be stored to your filesystem using a specific folder structure.
 
-You can also use `dmd cl`
+You can also use ` dm cl`
 
 ```
 $HOME
@@ -96,14 +96,14 @@ $HOME
             └── repo
 ```
 
-This makes it easier for you to find repositories and allows `dmd` to open them by just specifying the name of the
+This makes it easier for you to find repositories and allows `dm` to open them by just specifying the name of the
 project.
 
 ### Usage
 
 ```
 USAGE:
-    dmd clone <args>...
+    dm clone <args>...
 
 FLAGS:
     -h, --help       Prints help information
@@ -116,27 +116,27 @@ ARGS:
 #### Clone by URL
 
 ```bash
-dmd clone https://github.com/edfloreshz/devmode
+ dm clone https://github.com/edfloreshz/devmode
 ```
 
 #### Clone without URL
 
 ```bash
-dmd clone <host> <owner> <repository>
+ dm clone <host> <owner> <repository>
 ```
 
 #### Clone with `config.toml`
 
-Running `dmd config` asks you to specify your Git `host` and `user`, now just type one of your repos.
+Running ` dm config` asks you to specify your Git `host` and `user`, now just type one of your repos.
 
 ```bash
-dmd clone <repo>
+ dm clone <repo>
 ```
 
 You can also clone multiple of your own repositories while using this option.
 
 ```bash
-dmd clone <repo1> <repo2>
+ dm clone <repo1> <repo2>
 ```
 
 #### Just clone
@@ -144,13 +144,13 @@ dmd clone <repo1> <repo2>
 You can clone without specifying the arguments.
 
 ```bash
-dmd clone
+ dm clone
 ```
 
 You will be presented with the following setup:
 
 ```
-ᐅ  dmd clone
+ᐅ  dm clone
 
 ? Choose your Git host: ›
 ❯ GitHub
@@ -164,12 +164,12 @@ Cloning edfloreshz/blog from GitHub...
 ## Clone and set upstream (fork)
 
 Clone a repo and set upstream, ideal for forks, when you clone a repository it will be stored to your filesystem using a
-specific folder structure. Similar to how `dmd cl` works.
+specific folder structure. Similar to how ` dm cl` works.
 
 ### Usage
 
 ```
-    dmd fork --upstream <upstream> [args]...
+    dm fork --upstream <upstream> [args]...
 
 FLAGS:
     -h, --help       Prints help information
@@ -188,13 +188,13 @@ ARGS:
 Use the `--upstream` or `-u` to set the upstream repository, then specify the repository that you wish to modify.
 
 ```
-dmd fork --upstream https://github.com/user/repo https://github.com/your-user/your-repo-fork
+ dm fork --upstream https://github.com/user/repo https://github.com/your-user/your-repo-fork
 ```
 
 ### Clone with upstream URL and remaining parameters.
 
 ```
-dmd fk github <provider> <user> <forked-repo> -u <url>
+ dm fk github <provider> <user> <forked-repo> -u <url>
 ```
 
 ### Just clone with the upstream URL
@@ -202,7 +202,7 @@ dmd fk github <provider> <user> <forked-repo> -u <url>
 This will launch a clone setup and guide you throught the cloning process.
 
 ```
-dmd fork -u https://github.com/user/repo
+ dm fork -u https://github.com/user/repo
 ? Choose your Git host: ›
 ❯ GitHub
   GitLab
@@ -217,11 +217,11 @@ Setting https://github.com/user/repo how upstream
 
 Opens a project with your selected text editor.
 
-You can also use `dmd o`
+You can also use ` dm o`
 
 ```
 USAGE:
-    dmd open <project>
+    dm open <project>
 
 FLAGS:
     -h, --help       Prints help information
@@ -234,7 +234,7 @@ ARGS:
 You can open a project with the following command:
 
 ```bash
-dmd open <project>
+ dm open <project>
 ```
 
 If two or more projects with the same name are found, you will have to choose which one to open.

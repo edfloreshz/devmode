@@ -3,12 +3,12 @@
 if [ ! -d ".out" ]; then
   mkdir .out
 fi
-if [ ! -f "dmd.out" ]; then
-  cd .out && touch dmd.out && cd ..
+if [ ! -f "dm.out" ]; then
+  cd .out && touch dm.out && cd ..
 fi
-cd dmd || exit
-echo "Compiling dmd..."
-date >> ../.out/dmd.out
+cddm|| exit
+echo "Compiling dm..."
+date >> ../.out/ dm.out
 cargo fmt
 cargo clippy
-cargo build &> ../.out/dmd.out
+cargo build &> ../.out/dm.out

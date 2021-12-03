@@ -45,7 +45,7 @@ impl Fork {
     }
     pub fn run(&self) -> Result<()> {
         if let Host::None = self.host {
-            bail!("You can't do this unless you set your configuration with `dmd config -a`\n\
+            bail!("You can't do this unless you set your configuration with ` dm config -a`\n\
                     In the meantime, you can clone by specifying <host> <owner> <repo>")
         } else if self.owner.is_empty() {
             bail!("Missing arguments: <owner> <repo>")
