@@ -33,6 +33,7 @@ impl Project {
         }
         Ok(())
     }
+
     pub fn run(&self) -> Result<()> {
         if self.name.is_none() {
             bail!("Project name was not provided")
