@@ -1,9 +1,12 @@
 use crate::config::editor::Editor;
-use anyhow::{Context, Result};
-use libdmd::utils::config::{Config, Element, Format};
-use libdmd::utils::config::format::FileFormat::TOML;
-use serde::{Deserialize, Serialize};
 use crate::constants::messages::*;
+use anyhow::{Context, Result};
+use libdmd::{
+    config::Config,
+    element::Element,
+    format::{ElementFormat, FileType},
+};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Settings {
@@ -20,27 +23,32 @@ impl Settings {
             editor,
         }
     }
-    pub fn init(&self) -> Result<Config> {
-        Config::new()
-            .name("devmode")
+    pub fn init(&self) -> Result<()> {
+        Config::new("devmode")
             .author("Eduardo Flores")
             .about("Development management app.")
             .version("0.1.1")
-            .add(Element::new("config").child(Element::new("config.toml").format(Format::File)))
+            .add(
+                Element::new("config")
+                    .child(Element::new("config.toml").format(ElementFormat::File)),
+            )
             .add(Element::new("logs"))
-            .add(Element::new("paths").child(Element::new("devpaths").format(Format::File)))
-            .write()
+            .add(Element::new("paths").child(Element::new("devpaths").format(ElementFormat::File)))
+            .write()?;
+        Ok(())
     }
     pub fn run(&self) -> Result<()> {
-        let current_settings = Config::get::<Settings>("devmode/config/config.toml", TOML);
+        let current_settings =
+            Config::get::<Settings>("devmode/config/config.toml", FileType::TOML);
         if current_settings.is_none() {
-            Config::set::<Settings>("devmode/config/config.toml", self.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
+            Config::set::<Settings>("devmode/config/config.toml", self.clone(), FileType::TOML)
+                .with_context(|| FAILED_TO_WRITE_CONFIG)?;
             println!("Settings set correctly.");
         } else if self != &current_settings.with_context(|| FAILED_TO_PARSE)? {
-            Config::set::<Settings>("devmode/config/config.toml", self.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
+            Config::set::<Settings>("devmode/config/config.toml", self.clone(), FileType::TOML)
+                .with_context(|| FAILED_TO_WRITE_CONFIG)?;
             println!("{}", SETTINGS_UPDATED);
-        }
-        else {
+        } else {
             println!("{}", NO_SETTINGS_CHANGED);
         }
         Ok(())

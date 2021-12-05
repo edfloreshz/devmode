@@ -1,11 +1,11 @@
 use crate::config::host::Host;
+use crate::config::project::Project;
 use crate::constants::messages::*;
 use anyhow::{bail, Context, Result};
 use git2::Repository;
-use libdmd::home;
+use libdmd::routes::home;
 use regex::bytes::Regex;
 use std::path::Path;
-use crate::config::project::Project;
 
 pub struct Fork {
     pub host: Host,
@@ -45,15 +45,19 @@ impl Fork {
     }
     pub fn run(&self) -> Result<()> {
         if let Host::None = self.host {
-            bail!("You can't do this unless you set your configuration with ` dm config -a`\n\
-                    In the meantime, you can clone by specifying <host> <owner> <repo>")
+            bail!(
+                "You can't do this unless you set your configuration with ` dm config -a`\n\
+                    In the meantime, you can clone by specifying <host> <owner> <repo>"
+            )
         } else if self.owner.is_empty() {
             bail!("Missing arguments: <owner> <repo>")
         } else if self.repo.is_empty() {
             bail!("Missing arguments: <repo>")
         } else if self.upstream.is_empty() {
-            bail!("Missing arguments: <upstream>. \
-            For example ... -u https://github.com/user/upstream")
+            bail!(
+                "Missing arguments: <upstream>. \
+            For example ... -u https://github.com/user/upstream"
+            )
         } else {
             match self.clone_repo() {
                 Ok(path) => {
@@ -77,7 +81,9 @@ impl Fork {
         Ok(path)
     }
     pub fn parse_url(url: &str, rx: Regex, upstream: String) -> Result<Self> {
-        let captures = rx.captures(url.as_ref()).unwrap();
+        let captures = rx
+            .captures(url.as_ref())
+            .with_context(|| "Failed to get url captures.")?;
         let host = captures
             .get(4)
             .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
@@ -90,7 +96,12 @@ impl Fork {
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(Self::from(Host::from(host.into()), upstream, owner, repo))
+        Ok(Self::from(
+            Host::from(&host.to_string()),
+            upstream,
+            owner,
+            repo,
+        ))
     }
 
     pub fn set_upstream(&self, path: String) -> Result<()> {

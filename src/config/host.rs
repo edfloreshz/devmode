@@ -17,7 +17,7 @@ impl Host {
             Host::None => "",
         }
     }
-    pub fn from(text: String) -> Self {
+    pub fn from(text: &String) -> Self {
         match text.to_lowercase().as_str() {
             "github.com" | "github" | "gh" => Host::GitHub,
             "gitlab.com" | "gitlab" | "gl" => Host::GitLab,
@@ -33,7 +33,7 @@ impl Host {
     }
 }
 
-pub fn is_host(args: &[&str]) -> bool {
+pub fn is_host(args: &Vec<String>) -> bool {
     let mut contains = false;
     for arg in args {
         if arg.contains("gh")

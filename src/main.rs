@@ -1,24 +1,18 @@
-use crate::cmd::Cmd;
 use anyhow::Result;
-use clap::{load_yaml, App};
+use clap::StructOpt;
+use cli::Cli;
 use colored::Colorize;
-
 mod cli;
-mod cmd;
 mod config;
 mod constants;
 
 fn main() -> Result<()> {
-    let yaml = load_yaml!("app.yml");
-    let matches = App::from_yaml(yaml).get_matches();
-    let cmd = Cmd::new(&matches)?;
-    if let Err(e) = cmd.check() {
+    let cli = Cli::parse();
+    if let Err(e) = cli.run() {
         eprintln!("{} {}", Colorize::red("\nError:"), e);
-        let error = match e.downcast_ref::<git2::Error>() {
-            None => "Unknown cause.",
-            Some(error) => error.message()
-        };
-        eprintln!("{} {}", Colorize::yellow("Caused by:"), error);
+        if let Some(error) = e.downcast_ref::<git2::Error>() {
+            eprintln!("{} {}", Colorize::yellow("Caused by:"), error.message())
+        }
     }
     Ok(())
 }

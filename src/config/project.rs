@@ -1,26 +1,29 @@
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::{BufRead, BufReader};
 
-use anyhow::Result;
-use anyhow::{bail, Context};
-use cmd_lib::*;
-use libdmd::{data, home};
-use libdmd::utils::config::Config;
-use libdmd::utils::config::format::FileFormat::TOML;
-use walkdir::WalkDir;
-use std::io::Write;
 use crate::config::editor_app::EditorApp;
 use crate::config::settings::Settings;
 use crate::constants::messages::*;
+use anyhow::Result;
+use anyhow::{bail, Context};
+use cmd_lib::*;
+use libdmd::config::Config;
+use libdmd::format::FileType;
+use libdmd::routes::{data, home};
+use std::io::Write;
+use walkdir::WalkDir;
 
 pub struct Project {
-    pub name: Option<String>,
+    pub name: String,
 }
 
 impl Project {
+    pub fn new(name: &String) -> Self {
+        Self { name: name.clone() }
+    }
     pub fn open(&self) -> Result<()> {
         let reader = make_reader()?;
-        let paths = find_paths(reader, self.name.as_ref().unwrap().to_string());
+        let paths = find_paths(reader, &self.name)?;
         if paths.is_empty() {
             bail!(NO_PROJECT_FOUND)
         } else if paths.len() > 1 {
@@ -29,17 +32,13 @@ impl Project {
                 println!("{}", path)
             }
         } else {
-            open_project(self.name.as_ref().unwrap().to_string(), paths)?
+            open_project(&self.name, paths)?
         }
         Ok(())
     }
 
     pub fn run(&self) -> Result<()> {
-        if self.name.is_none() {
-            bail!("Project name was not provided")
-        } else {
-            self.open()
-        }
+        self.open()
     }
     pub fn make_dev_paths() -> Result<()> {
         let paths_dir = data().join("devmode/paths/devpaths");
@@ -57,7 +56,7 @@ impl Project {
             .max_depth(3)
             .min_depth(2)
         {
-            let entry = entry.unwrap();
+            let entry = entry?;
             if entry.depth() == 3 && entry.path().is_dir() {
                 if let Err(e) = writeln!(devpaths, "{}", entry.path().display().to_string()) {
                     eprintln!("Couldn't write to file: {}", e);
@@ -68,10 +67,10 @@ impl Project {
     }
 }
 
-pub fn open_project(name: String, paths: Vec<String>) -> Result<()> {
+pub fn open_project(name: &String, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n {}", name, OPENING_WARNING);
     let path = &paths[0];
-    let options = Config::get::<Settings>("devmode/config/config.toml", TOML)
+    let options = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let EditorApp::Custom = options.editor.app {
         let command_editor = options.editor.command;
@@ -83,19 +82,22 @@ pub fn open_project(name: String, paths: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn find_paths(reader: BufReader<File>, path: String) -> Vec<String> {
-    reader
+pub fn find_paths(reader: BufReader<File>, path: &String) -> Result<Vec<String>> {
+    let paths = reader
         .lines()
-        .map(|e| e.unwrap())
+        .map(|e| e.unwrap_or_default())
         .filter(|e| {
             let split: Vec<&str> = e.split('/').collect();
             split.last().unwrap() == &path
         })
-        .collect::<Vec<String>>()
+        .collect::<Vec<String>>();
+    Ok(paths)
 }
 
 fn make_reader() -> Result<BufReader<File>> {
-    Ok(BufReader::new(File::open(data().join("devmode/paths/devpaths"))?))
+    Ok(BufReader::new(File::open(
+        data().join("devmode/paths/devpaths"),
+    )?))
 }
 
 pub fn _get_projects() -> Result<Vec<String>> {
