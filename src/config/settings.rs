@@ -32,10 +32,15 @@ impl Settings {
             .write()
     }
     pub fn run(&self) -> Result<()> {
-        if self != &Config::get::<Settings>("devmode/config/config.toml", TOML).with_context(|| FAILED_TO_PARSE)? {
+        let current_settings = Config::get::<Settings>("devmode/config/config.toml", TOML);
+        if current_settings.is_none() {
+            Config::set::<Settings>("devmode/config/config.toml", self.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
+            println!("Settings set correctly.");
+        } else if self != &current_settings.with_context(|| FAILED_TO_PARSE)? {
             Config::set::<Settings>("devmode/config/config.toml", self.clone(), TOML).with_context(|| FAILED_TO_WRITE_CONFIG)?;
             println!("{}", SETTINGS_UPDATED);
-        } else {
+        }
+        else {
             println!("{}", NO_SETTINGS_CHANGED);
         }
         Ok(())

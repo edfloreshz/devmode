@@ -1,6 +1,6 @@
 [package]
 name = "devmode"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 license = "GPL-2.0"
 description = "Devmode is a project management utility for developers."
@@ -17,10 +17,10 @@ name = "dm"
 path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-#libdmd = { path = "../libdmd", version = "0.1.2"}
 
 [dependencies]
-libdmd = "0.1.5"
+libdmd = { path = "../libdmd", version = "0.1.5"}
+#libdmd = "0.1.5"
 clap = { version = "2.33.3", features = ["yaml"] }
 anyhow = "1.0.44"
 requestty = "0.1.1"

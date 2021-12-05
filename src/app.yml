@@ -1,5 +1,5 @@
 name: (Dev)mode
-version: "0.2.3"
+version: "0.2.4"
 author: "Eduardo F. <edfloreshz@gmail.com>"
 about: "Dev(mode) is a project management utility for developers."
 settings: [ArgRequiredElseHelp, ColoredHelp]
