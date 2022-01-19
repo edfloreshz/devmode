@@ -1,6 +1,7 @@
+use std::fmt::{Display, Formatter};
+
 use crate::constants::names::*;
 use crate::constants::url::{GH_URL, GL_URL};
-use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
 pub enum Host {
@@ -17,7 +18,7 @@ impl Host {
             Host::None => "",
         }
     }
-    pub fn from(text: &String) -> Self {
+    pub fn from(text: &str) -> Self {
         match text.to_lowercase().as_str() {
             "github.com" | "github" | "gh" => Host::GitHub,
             "gitlab.com" | "gitlab" | "gl" => Host::GitLab,
@@ -33,7 +34,7 @@ impl Host {
     }
 }
 
-pub fn is_host(args: &Vec<String>) -> bool {
+pub fn is_host(args: &[String]) -> bool {
     let mut contains = false;
     for arg in args {
         if arg.contains("gh")

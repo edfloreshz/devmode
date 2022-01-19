@@ -1,12 +1,14 @@
-use crate::config::editor::Editor;
-use crate::constants::messages::*;
 use anyhow::{Context, Result};
+use colored::Colorize;
 use libdmd::{
     config::Config,
     element::Element,
     format::{ElementFormat, FileType},
 };
 use serde::{Deserialize, Serialize};
+
+use crate::config::editor::Editor;
+use crate::constants::messages::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Settings {
@@ -37,7 +39,8 @@ impl Settings {
             .write()?;
         Ok(())
     }
-    pub fn run(&self) -> Result<()> {
+    pub fn write(&self) -> Result<()> {
+        println!();
         let current_settings =
             Config::get::<Settings>("devmode/config/config.toml", FileType::TOML);
         if current_settings.is_none() {
@@ -51,15 +54,19 @@ impl Settings {
         } else {
             println!("{}", NO_SETTINGS_CHANGED);
         }
+        println!();
         Ok(())
     }
     pub fn show(&self) {
         println!(
-            "Current settings: \n\
-        Host: {}\n\
-        Owner: {}\n\
-        Editor: {}",
-            self.host, self.owner, self.editor.app
-        )
+            "{}\n{}{}\n{}{}\n{}{}",
+            Colorize::yellow("Current settings:"),
+            Colorize::green("Host: "),
+            self.host,
+            Colorize::red("Owner: "),
+            self.owner,
+            Colorize::blue("Editor: "),
+            self.editor.app
+        );
     }
 }

@@ -13,3 +13,4 @@ Cargo.lock
 /.out/
 /.idea
 *.DS_Store
+.vscode

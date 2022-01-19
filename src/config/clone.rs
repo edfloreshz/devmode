@@ -1,10 +1,12 @@
-use crate::config::host::Host;
-use crate::constants::messages::*;
+use std::path::PathBuf;
+
 use anyhow::{anyhow, bail, Context, Result};
 use git2_credentials::CredentialHandler;
 use libdmd::routes::home;
 use regex::bytes::Regex;
-use std::path::PathBuf;
+
+use crate::config::host::Host;
+use crate::constants::messages::*;
 
 pub struct CloneAction {
     pub host: Host,
@@ -26,7 +28,7 @@ impl CloneAction {
             repos: Vec::new(),
         }
     }
-    pub fn from(host: Host, owner: &String, repos: Vec<String>) -> Self {
+    pub fn from(host: Host, owner: &str, repos: Vec<String>) -> Self {
         let owner = owner.to_string();
         let repos = repos.iter().map(|r| r.to_string()).collect();
         CloneAction { host, owner, repos }
@@ -67,33 +69,27 @@ impl CloneAction {
                 repo
             );
             println!("Cloning {}/{} from {}...", self.owner, repo, self.host);
+            let mut cb = git2::RemoteCallbacks::new();
+            let git_config = git2::Config::open_default()?;
+            let mut ch = CredentialHandler::new(git_config);
+            cb.credentials(move |url, username, allowed| {
+                ch.try_next_credential(url, username, allowed)
+            });
+
+            let mut fo = git2::FetchOptions::new();
+            fo.remote_callbacks(cb)
+                .download_tags(git2::AutotagOption::All)
+                .update_fetchhead(true);
+            std::fs::create_dir_all(PathBuf::from(&path))?;
+
+            if let Err(e) = git2::build::RepoBuilder::new()
+                .fetch_options(fo)
+                .clone(self.url(ix)?.as_str(), &*PathBuf::from(&path))
+                .with_context(|| FAILED_TO_CLONE_REPO)
             {
-                let branches = ["master", "main"];
-                for branch in branches {
-                    let mut cb = git2::RemoteCallbacks::new();
-                    let git_config = git2::Config::open_default()?;
-                    let mut ch = CredentialHandler::new(git_config);
-                    cb.credentials(move |url, username, allowed| {
-                        ch.try_next_credential(url, username, allowed)
-                    });
-
-                    let mut fo = git2::FetchOptions::new();
-                    fo.remote_callbacks(cb)
-                        .download_tags(git2::AutotagOption::All)
-                        .update_fetchhead(true);
-                    std::fs::create_dir_all(PathBuf::from(&path))?;
-
-                    if let Err(e) = git2::build::RepoBuilder::new()
-                        .branch(branch)
-                        .fetch_options(fo)
-                        .clone(self.url(ix)?.as_str(), &*PathBuf::from(&path))
-                        .with_context(|| FAILED_TO_CLONE_REPO)
-                    {
-                        error = e;
-                    } else {
-                        return Ok(());
-                    }
-                }
+                error = e;
+            } else {
+                return Ok(());
             }
         }
         Err(error)
@@ -114,10 +110,6 @@ impl CloneAction {
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(CloneAction::from(
-            Host::from(&host.to_string()),
-            &owner,
-            vec![repo],
-        ))
+        Ok(CloneAction::from(Host::from(host), &owner, vec![repo]))
     }
 }

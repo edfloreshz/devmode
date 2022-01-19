@@ -1,11 +1,13 @@
-use crate::config::host::Host;
-use crate::config::project::Project;
-use crate::constants::messages::*;
+use std::path::Path;
+
 use anyhow::{bail, Context, Result};
 use git2::Repository;
 use libdmd::routes::home;
 use regex::bytes::Regex;
-use std::path::Path;
+
+use crate::config::host::Host;
+use crate::config::project::Project;
+use crate::constants::messages::*;
 
 pub struct Fork {
     pub host: Host,
@@ -96,12 +98,7 @@ impl Fork {
             .get(7)
             .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
             .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(Self::from(
-            Host::from(&host.to_string()),
-            upstream,
-            owner,
-            repo,
-        ))
+        Ok(Self::from(Host::from(host), upstream, owner, repo))
     }
 
     pub fn set_upstream(&self, path: String) -> Result<()> {

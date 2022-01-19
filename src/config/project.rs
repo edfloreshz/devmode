@@ -1,25 +1,28 @@
 use std::fs::{create_dir_all, File, OpenOptions};
+use std::io::Write;
 use std::io::{BufRead, BufReader};
 
-use crate::config::editor_app::EditorApp;
-use crate::config::settings::Settings;
-use crate::constants::messages::*;
 use anyhow::Result;
 use anyhow::{bail, Context};
 use cmd_lib::*;
 use libdmd::config::Config;
 use libdmd::format::FileType;
 use libdmd::routes::{data, home};
-use std::io::Write;
 use walkdir::WalkDir;
+
+use crate::config::application::Application;
+use crate::config::settings::Settings;
+use crate::constants::messages::*;
 
 pub struct Project {
     pub name: String,
 }
 
 impl Project {
-    pub fn new(name: &String) -> Self {
-        Self { name: name.clone() }
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+        }
     }
     pub fn open(&self) -> Result<()> {
         let reader = make_reader()?;
@@ -58,7 +61,7 @@ impl Project {
         {
             let entry = entry?;
             if entry.depth() == 3 && entry.path().is_dir() {
-                if let Err(e) = writeln!(devpaths, "{}", entry.path().display().to_string()) {
+                if let Err(e) = writeln!(devpaths, "{}", entry.path().display()) {
                     eprintln!("Couldn't write to file: {}", e);
                 }
             }
@@ -67,12 +70,12 @@ impl Project {
     }
 }
 
-pub fn open_project(name: &String, paths: Vec<String>) -> Result<()> {
+pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n {}", name, OPENING_WARNING);
     let path = &paths[0];
     let options = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
-    if let EditorApp::Custom = options.editor.app {
+    if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
         let route = path.clone();
         run_cmd!($command_editor $route)?;
@@ -82,7 +85,7 @@ pub fn open_project(name: &String, paths: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn find_paths(reader: BufReader<File>, path: &String) -> Result<Vec<String>> {
+pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
     let paths = reader
         .lines()
         .map(|e| e.unwrap_or_default())
