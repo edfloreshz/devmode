@@ -15,7 +15,7 @@ use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
 use crate::{config::clone::CloneAction, constants::patterns::GIT_URL};
 
 #[derive(Parser, Debug)]
-#[clap(name = "(Dev)mode", version = "0.2.6")]
+#[clap(name = "(Dev)mode", version = "0.2.7")]
 #[clap(author = "Eduardo F. <edfloreshz@gmail.com>")]
 #[clap(about = "Dev(mode) is a project management utility for developers.")]
 #[clap(setting(AppSettings::ArgRequiredElseHelp))]
