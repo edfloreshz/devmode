@@ -5,9 +5,9 @@ use std::io::{BufRead, BufReader};
 use anyhow::Result;
 use anyhow::{bail, Context};
 use cmd_lib::*;
-use libdmd::config::Config;
-use libdmd::format::FileType;
-use libdmd::routes::{data, home};
+use libset::config::Config;
+use libset::format::FileFormat;
+use libset::routes::{data, home};
 use walkdir::WalkDir;
 
 use crate::config::application::Application;
@@ -73,7 +73,7 @@ impl Project {
 pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n {}", name, OPENING_WARNING);
     let path = &paths[0];
-    let options = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML)
+    let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;

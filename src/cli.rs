@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::{AppSettings, Parser, Subcommand};
-use libdmd::config::Config;
-use libdmd::format::FileType;
+use libset::config::Config;
+use libset::format::FileFormat;
 use regex::bytes::Regex;
 use requestty::{Answer, Question};
 
@@ -115,7 +115,7 @@ impl Cli {
             let clone = CloneAction::from(host, owner, vec![repo.to_string()]);
             clone.run()
         } else {
-            let options = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML)
+            let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             let clone = CloneAction::from(Host::from(&options.host), &options.owner, args.to_vec());
             clone.run()
@@ -132,7 +132,7 @@ impl Cli {
             let fork = Fork::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?;
             fork.run()
         } else if args.len() == 1 {
-            let options = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML)
+            let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             let host = Host::from(&options.host);
             let repo = args.get(0).map(|a| a.to_string());
@@ -204,7 +204,7 @@ impl Cli {
 }
 
 fn get_settings() -> Result<Settings> {
-    Config::get::<Settings>("devmode/config/config.toml", FileType::TOML)
+    Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)
 }
 
@@ -258,7 +258,7 @@ pub fn config_owner() -> anyhow::Result<Settings> {
         Answer::String(owner) => owner,
         _ => bail!("Owner is required."),
     };
-    let current = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML);
+    let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
     let settings = match current {
         None => Settings {
             owner,
@@ -280,7 +280,7 @@ pub fn config_host() -> anyhow::Result<Settings> {
         },
         _ => bail!("Host is required."),
     };
-    let current = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML);
+    let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
     let settings = match current {
         None => Settings {
             host,
@@ -319,7 +319,7 @@ pub fn config_editor() -> anyhow::Result<Settings> {
         }
         _ => bail!("Editor must be picked."),
     };
-    let current = Config::get::<Settings>("devmode/config/config.toml", FileType::TOML);
+    let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
     let settings = match current {
         None => Settings {
             editor,

@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use colored::Colorize;
-use libdmd::{
+use libset::{
     config::Config,
-    element::Element,
-    format::{ElementFormat, FileType},
+    element::{Element, ElementType},
+    format::FileFormat,
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,23 +32,23 @@ impl Settings {
             .version("0.1.1")
             .add(
                 Element::new("config")
-                    .child(Element::new("config.toml").format(ElementFormat::File)),
+                    .add_child(Element::new("config.toml").set_type(ElementType::File)),
             )
             .add(Element::new("logs"))
-            .add(Element::new("paths").child(Element::new("devpaths").format(ElementFormat::File)))
+            .add(Element::new("paths").add_child(Element::new("devpaths").set_type(ElementType::File)))
             .write()?;
         Ok(())
     }
     pub fn write(&self) -> Result<()> {
         println!();
         let current_settings =
-            Config::get::<Settings>("devmode/config/config.toml", FileType::TOML);
+            Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
         if current_settings.is_none() {
-            Config::set::<Settings>("devmode/config/config.toml", self.clone(), FileType::TOML)
+            Config::set::<Settings>("devmode/config/config.toml", self.clone(), FileFormat::TOML)
                 .with_context(|| FAILED_TO_WRITE_CONFIG)?;
             println!("Settings set correctly.");
         } else if self != &current_settings.with_context(|| FAILED_TO_PARSE)? {
-            Config::set::<Settings>("devmode/config/config.toml", self.clone(), FileType::TOML)
+            Config::set::<Settings>("devmode/config/config.toml", self.clone(), FileFormat::TOML)
                 .with_context(|| FAILED_TO_WRITE_CONFIG)?;
             println!("{}", SETTINGS_UPDATED);
         } else {
