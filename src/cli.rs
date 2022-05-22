@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use clap::{AppSettings, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use libset::config::Config;
 use libset::format::FileFormat;
 use regex::bytes::Regex;
@@ -18,7 +18,7 @@ use crate::{config::clone::CloneAction, constants::patterns::GIT_URL};
 #[clap(name = "(Dev)mode", version = "0.2.7")]
 #[clap(author = "Eduardo F. <edfloreshz@gmail.com>")]
 #[clap(about = "Dev(mode) is a project management utility for developers.")]
-#[clap(setting(AppSettings::ArgRequiredElseHelp))]
+#[clap(arg_required_else_help = true)]
 pub struct Cli {
     #[clap(subcommand)]
     pub commands: Commands,
@@ -275,9 +275,7 @@ pub fn config_owner() -> anyhow::Result<Settings> {
 pub fn config_host() -> anyhow::Result<Settings> {
     let answer = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
     let host = match answer {
-        Answer::ListItem(item) => {
-            Host::from(&item.text).to_string()
-        },
+        Answer::ListItem(item) => Host::from(&item.text).to_string(),
         _ => bail!("Host is required."),
     };
     let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
