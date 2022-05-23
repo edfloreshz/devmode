@@ -108,7 +108,7 @@ impl Cli {
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             let clone = CloneAction::parse_url(args.get(0).unwrap(), rx)?;
             clone.run()
-        } else if is_host(args) {
+        } else if is_host(args.get(0).unwrap().to_string()) {
             let host = Host::from(args.get(0).unwrap());
             let owner = args.get(1).with_context(|| "Failed to get owner.")?;
             let repo = args.get(2).with_context(|| "Failed to get repository.")?;
