@@ -88,7 +88,7 @@ impl CloneAction {
                 .with_context(|| FAILED_TO_CLONE_REPO)
             {
                 error = e;
-            } else {
+            } else if self.repos.len() == ix + 1 {
                 return Ok(());
             }
         }
