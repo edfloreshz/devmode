@@ -7,9 +7,9 @@ use requestty::{Answer, Question};
 
 use crate::config::application::Application;
 use crate::config::editor::Editor;
-use crate::config::fork::Fork;
-use crate::config::host::{Host};
-use crate::config::project::Project;
+use crate::config::fork::ForkAction;
+use crate::config::host::Host;
+use crate::config::project::OpenAction;
 use crate::config::settings::Settings;
 use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
 use crate::{config::clone::CloneAction, constants::patterns::GIT_URL};
@@ -65,7 +65,7 @@ pub enum Commands {
         map: bool,
         #[clap(help = "Show the current configuration.", short = 's', long = "show")]
         show: bool,
-        #[clap(help = "Reconfigure everything.", short = 'a', long = "all")]
+        #[clap(help = "Configure everything.", short = 'a', long = "all")]
         all: bool,
         #[clap(
             help = "Sets the favorite editor to open projects.",
@@ -82,6 +82,15 @@ pub enum Commands {
         #[clap(help = "Sets the favorite host to clone projects.", long = "host")]
         host: bool,
     },
+    #[clap(about = "Create workspaces to store your projects.", alias = "ws")]
+    Workspace {
+        #[clap(help = "Delete a workspace", short = 'd', long = "delete")]
+        delete: bool,
+        #[clap(help = "Rename a workspace", short = 'r', long = "rename")]
+        rename: bool,
+        #[clap(help = "List all workspaces", short = 'l', long = "list")]
+        list: bool
+    }
 }
 
 impl Cli {
@@ -98,7 +107,10 @@ impl Cli {
                 editor,
                 owner,
                 host,
-            } => Cli::config(map, show, all, editor, owner, host),
+            } => Cli::config(*map, *show, *all, *editor, *owner, *host),
+            Commands::Workspace { delete, rename, list } => {
+                Cli::workspace(*delete, *rename, *list)
+            },
         }
     }
     fn clone(args: &[String]) -> Result<()> {
@@ -119,82 +131,81 @@ impl Cli {
         clone.run()
     }
     fn open(project: &str) -> Result<()> {
-        Project::new(project).run()
+        OpenAction::new(project).open()
     }
     fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<()> {
-        if args.is_empty() {
-            let fork = fork_setup()?;
-            fork.run()
+        let action = if args.is_empty() {
+            fork_setup()?
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
-            let fork = Fork::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?;
-            fork.run()
+            ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
             let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             let host = Host::from(&options.host);
             let repo = args.get(0).map(|a| a.to_string());
-            let fork = Fork::from(
+            ForkAction::from(
                 host,
                 upstream.to_string(),
                 options.owner,
                 repo.with_context(|| "Failed to get repo name.")?,
-            );
-            fork.run()
+            )
         } else {
             let host = Host::from(args.get(0).unwrap());
             let owner = args.get(1).map(|a| a.to_string());
             let repo = args.get(2).map(|a| a.to_string());
-            let fork = Fork::from(
+            ForkAction::from(
                 host,
                 upstream.to_string(),
                 owner.with_context(|| "Failed to get owner name.")?,
                 repo.with_context(|| "Failed to get repo name")?,
-            );
-            fork.run()
-        }
+            )
+        };
+        action.run()
     }
     fn config(
-        map: &bool,
-        show: &bool,
-        all: &bool,
-        editor: &bool,
-        owner: &bool,
-        host: &bool,
+        map: bool,
+        show: bool,
+        all: bool,
+        editor: bool,
+        owner: bool,
+        host: bool,
     ) -> Result<()> {
-        let settings = get_settings();
-        if settings.is_err() {
-            println!("First time setup! 🥳\n");
+        if all {
+            if get_settings().is_err() {
+                println!("First time setup! 🥳\n");
+                Settings::init()?;
+            }
             let settings = config_all()?;
-            settings.init()?;
             settings.write()?;
-        } else {
-            if *all {
-                let settings = config_all()?;
-                settings.write()?;
-            }
-            if !(*editor || *owner || *host || *show || *all) {
-                let settings = get_settings()?;
-                settings.write()?
-            }
         }
-        if *map {
-            Project::make_dev_paths()?
+        if map {
+            OpenAction::make_dev_paths()?
         }
-        if *editor {
-            let editor = config_editor().with_context(|| "Failed to set editor.")?;
-            editor.write()?
+        if editor {
+            let settings = config_editor().with_context(|| "Failed to set editor.")?;
+            settings.write()?
         }
-        if *owner {
-            let owner = config_owner().with_context(|| "Failed to set owner.")?;
-            owner.write()?
+        if owner {
+            let settings = config_owner().with_context(|| "Failed to set owner.")?;
+            settings.write()?
         }
-        if *host {
-            let host = config_host().with_context(|| "Failed to set host.")?;
-            host.write()?
+        if host {
+            let settings = config_host().with_context(|| "Failed to set host.")?;
+            settings.write()?
         }
-        if *show {
+        if show {
             let settings = get_settings()?;
             settings.show();
+        }
+        Ok(())
+    }
+    fn workspace(delete: bool, rename: bool, list: bool) -> Result<()> {
+        if delete {
+            todo!("Move repositories from workspace to user folder and delete the folder.")
+        } else if rename {
+            todo!("Rename the workspace folder and update the paths.")
+        } else if list {
+            todo!("List all the repositories from that workspace.")
         }
         Ok(())
     }
@@ -220,8 +231,8 @@ pub fn clone_setup() -> Result<CloneAction> {
     Ok(clone)
 }
 
-pub fn fork_setup() -> Result<Fork> {
-    let mut fork = Fork::new();
+pub fn fork_setup() -> Result<ForkAction> {
+    let mut fork = ForkAction::new();
     if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
     {
         fork.host = Host::from(&host.text);
@@ -337,16 +348,14 @@ pub fn select_repo(paths: Vec<&str>) -> anyhow::Result<String> {
     Ok(repo)
 }
 
-fn ask(key: &str, message: &str, err: &str) -> anyhow::Result<Answer> {
+fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
     requestty::prompt_one(
         Question::input(key)
             .message(message)
-            .validate(|owner, _previous| {
-                if owner.is_empty() {
-                    Err(err.into())
-                } else {
-                    Ok(())
-                }
+            .validate(|owner, _previous| if owner.is_empty() {
+                Err(err.into())
+            } else {
+                Ok(())
             })
             .build(),
     )
@@ -360,5 +369,5 @@ fn pick(key: &str, message: &str, options: Vec<&str>) -> anyhow::Result<Answer> 
             .choices(options)
             .build(),
     )
-    .with_context(|| "Failed to present prompt.")
+    .with_context(|| "Failed to get input.")
 }

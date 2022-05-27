@@ -1,12 +1,14 @@
+use std::fs::remove_dir_all;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result, Ok, anyhow};
 use git2_credentials::CredentialHandler;
 use libset::routes::home;
 use regex::bytes::Regex;
 
 use crate::config::host::Host;
+use crate::config::project::OpenAction;
 use crate::constants::messages::*;
 use crate::constants::patterns::{ORG_GIT_URL, REGULAR_GIT_URL};
 
@@ -96,7 +98,6 @@ impl CloneAction {
         }
     }
     pub fn clone_repo(&self) -> Result<()> {
-        let mut error = anyhow!("");
         for (ix, repo) in self.repos.iter().enumerate() {
             let path = format!(
                 "{}/Developer/{}/{}/{}",
@@ -119,18 +120,16 @@ impl CloneAction {
                 .update_fetchhead(true);
             std::fs::create_dir_all(PathBuf::from(&path))?;
 
-            if let Err(e) = git2::build::RepoBuilder::new()
+            if let Err(err) = git2::build::RepoBuilder::new()
                 .fetch_options(fo)
-                .clone( self.url(ix)?.as_str(), &*PathBuf::from(&path))
-                .with_context(|| FAILED_TO_CLONE_REPO)
+                .clone(self.url(ix)?.as_str(), &*PathBuf::from(&path))
             {
-                std::fs::remove_dir_all(PathBuf::from(&path))?;
-                error = e;
-            } else if self.repos.len() == ix + 1 {
-                return Ok(());
+                remove_dir_all(path)?;
+                return Err(err.into());
             }
+            OpenAction::make_dev_paths()?;
         }
-        Err(error)
+        Ok(())
     }
     pub fn clone_repo_url(&self) -> Result<()> {
         let path = format!(

@@ -1,6 +1,7 @@
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::process::Command;
 
 use anyhow::Result;
 use anyhow::{bail, Context};
@@ -15,18 +16,18 @@ use crate::config::application::Application;
 use crate::config::settings::Settings;
 use crate::constants::messages::*;
 
-pub struct Project {
+pub struct OpenAction {
     pub name: String,
 }
 
-impl Project {
+impl OpenAction {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
         }
     }
     pub fn open(&self) -> Result<()> {
-        let reader = make_reader()?;
+        let reader = create_paths_reader()?;
         let paths = find_paths(reader, &self.name)?;
         if paths.is_empty() {
             bail!(NO_PROJECT_FOUND)
@@ -40,17 +41,13 @@ impl Project {
         }
         Ok(())
     }
-
-    pub fn run(&self) -> Result<()> {
-        self.open()
-    }
     pub fn make_dev_paths() -> Result<()> {
         let paths_dir = data().join("devmode/paths/devpaths");
         if !paths_dir.exists() {
             create_dir_all(&paths_dir).with_context(|| "Failed to create directory.")?;
             File::create(paths_dir.join("devpaths"))?;
         }
-        Project::write_paths()
+        OpenAction::write_paths()
     }
     fn write_paths() -> Result<()> {
         let mut devpaths = OpenOptions::new()
@@ -67,6 +64,7 @@ impl Project {
                 }
             }
         }
+        println!("Developer paths updated!");
         Ok(())
     }
 }
@@ -78,8 +76,14 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
-        let route = path.clone();
-        run_cmd!($command_editor $route)?;
+        let route = path.replace("\\", "/").clone();
+        if cfg!(target_os = "windows") {
+            Command::new("cmd")
+            .args(["/C", format!("{command_editor} {route}").as_str()])
+            .output()?;
+        } else {
+            run_cmd!($command_editor $route)?;
+        }
     } else {
         options.editor.app.run(path.clone())?;
     }
@@ -87,26 +91,31 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
 }
 
 pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
-    let path = path.replace("\\", "/");
     let paths = reader
         .lines()
         .map(|e| e.unwrap_or_default())
         .filter(|e| {
-            let split: Vec<&str> = e.split('/').collect();
+            let split: Vec<&str> = e.split(
+                if cfg!(target_os = "windows") {
+                    "\\"
+                } else {
+                    "/"
+                }
+            ).collect();
             split.last().unwrap() == &path
         })
         .collect::<Vec<String>>();
     Ok(paths)
 }
 
-fn make_reader() -> Result<BufReader<File>> {
+fn create_paths_reader() -> Result<BufReader<File>> {
     Ok(BufReader::new(File::open(
         data().join("devmode/paths/devpaths"),
     )?))
 }
 
 pub fn _get_projects() -> Result<Vec<String>> {
-    let reader = make_reader()?;
+    let reader = create_paths_reader()?;
     let paths = reader
         .lines()
         .map(|e| e.unwrap())

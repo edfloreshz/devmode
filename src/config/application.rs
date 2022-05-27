@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::process::Command;
 
 use anyhow::Result;
 use cmd_lib::run_cmd;
@@ -26,8 +27,24 @@ impl Application {
     }
     pub fn run(&self, arg: String) -> Result<()> {
         match self {
-            Application::VSCode => run_cmd!(code $arg)?,
-            Application::Vim => run_cmd!(vim $arg)?,
+            Application::VSCode => {
+                if cfg!(target_os = "windows") {
+                    Command::new("cmd")
+                    .args(["/C", format!("code {arg}").as_str()])
+                    .output()?;
+                } else {
+                    run_cmd!(code $arg)?;
+                }
+            },
+            Application::Vim => {
+                if cfg!(target_os = "windows") {
+                    Command::new("cmd")
+                    .args(["/C", format!("vim {arg}").as_str()])
+                    .output()?;
+                } else {
+                    run_cmd!(vim $arg)?;
+                }
+            },
             _ => {}
         }
         Ok(())

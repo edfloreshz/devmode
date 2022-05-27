@@ -6,10 +6,10 @@ use libset::routes::home;
 use regex::bytes::Regex;
 
 use crate::config::host::Host;
-use crate::config::project::Project;
+use crate::config::project::OpenAction;
 use crate::constants::messages::*;
 
-pub struct Fork {
+pub struct ForkAction {
     pub host: Host,
     pub upstream: String,
     pub owner: String,
@@ -17,13 +17,13 @@ pub struct Fork {
     pub repo_path: String,
 }
 
-impl Default for Fork {
+impl Default for ForkAction {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Fork {
+impl ForkAction {
     pub fn new() -> Self {
         Self {
             host: Host::None,
@@ -63,7 +63,7 @@ impl Fork {
         } else {
             match self.clone_repo() {
                 Ok(path) => {
-                    Project::make_dev_paths()?;
+                    OpenAction::make_dev_paths()?;
                     self.set_upstream(path)
                 }
                 Err(e) => Err(e),

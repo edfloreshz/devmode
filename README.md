@@ -57,7 +57,7 @@ After that, you can:
 
 | Syntax | Description |
 | --------------------- | ----------------------------------------------------------|
-| `dm config --all`     | Prompt the first-time setup to reconfigure everything.    |
+| `dm config --all`     | Prompt the first-time setup to configure everything.    |
 | `dm config --editor`  | Save your prefered text editor to the open projects with. |
 | `dm config --host`    | Save your Git provider to clone projects from.            |
 | `dm config --owner`   | Save your Git username to identify yourself.              |

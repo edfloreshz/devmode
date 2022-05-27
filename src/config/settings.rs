@@ -25,7 +25,7 @@ impl Settings {
             editor,
         }
     }
-    pub fn init(&self) -> Result<()> {
+    pub fn init() -> Result<()> {
         Config::new("devmode")
             .author("Eduardo Flores")
             .about("Development management app.")
@@ -35,7 +35,10 @@ impl Settings {
                     .add_child(Element::new("config.toml").set_type(ElementType::File)),
             )
             .add(Element::new("logs"))
-            .add(Element::new("paths").add_child(Element::new("devpaths").set_type(ElementType::File)))
+            .add(
+                Element::new("paths")
+                    .add_child(Element::new("devpaths").set_type(ElementType::File)),
+            )
             .write()?;
         Ok(())
     }
