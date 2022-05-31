@@ -14,3 +14,5 @@ Cargo.lock
 /.idea
 *.DS_Store
 .vscode
+.tasks
+.vimspector.json

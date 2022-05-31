@@ -328,6 +328,15 @@ pub fn config_editor() -> anyhow::Result<Settings> {
     Ok(settings)
 }
 
+pub fn select_repo(paths: Vec<&str>) -> anyhow::Result<String> {
+    let answer = pick("repo", "Select the repository you want to open:", paths)?;
+    let repo = match answer {
+        Answer::ListItem(item) => item.text,
+        _ => bail!("Repository must be picked."),
+    };
+    Ok(repo)
+}
+
 fn ask(key: &str, message: &str, err: &str) -> anyhow::Result<Answer> {
     requestty::prompt_one(
         Question::input(key)

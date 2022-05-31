@@ -10,6 +10,7 @@ use libset::format::FileFormat;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
+use crate::cli::select_repo;
 use crate::config::application::Application;
 use crate::config::settings::Settings;
 use crate::constants::messages::*;
@@ -31,9 +32,9 @@ impl Project {
             bail!(NO_PROJECT_FOUND)
         } else if paths.len() > 1 {
             eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
-            for path in paths {
-                println!("{}", path)
-            }
+            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
+            open_project(&self.name, vec![path])?
         } else {
             open_project(&self.name, paths)?
         }
@@ -71,7 +72,7 @@ impl Project {
 }
 
 pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
-    println!("Opening {}... \n\n {}", name, OPENING_WARNING);
+    println!("Opening {}... \n\n{}", name, OPENING_WARNING);
     let path = &paths[0];
     let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
