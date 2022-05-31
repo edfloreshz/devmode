@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
 use git2_credentials::CredentialHandler;
@@ -7,11 +8,13 @@ use regex::bytes::Regex;
 
 use crate::config::host::Host;
 use crate::constants::messages::*;
+use crate::constants::patterns::{ORG_GIT_URL, REGULAR_GIT_URL};
 
 pub struct CloneAction {
     pub host: Host,
     pub owner: String,
     pub repos: Vec<String>,
+    pub url: Option<String>
 }
 
 impl Default for CloneAction {
@@ -26,12 +29,43 @@ impl CloneAction {
             host: Host::None,
             owner: String::new(),
             repos: Vec::new(),
+            url: None
         }
     }
     pub fn from(host: Host, owner: &str, repos: Vec<String>) -> Self {
         let owner = owner.to_string();
         let repos = repos.iter().map(|r| r.to_string()).collect();
-        CloneAction { host, owner, repos }
+        CloneAction { host, owner, repos, url: None }
+    }
+    pub fn from_url(url: &str) -> Result<Self> {
+        let regular = Regex::from_str(REGULAR_GIT_URL).with_context(|| "Failed to parse regex.")?;
+        let organization = Regex::from_str(ORG_GIT_URL).with_context(|| "Failed to parse regex.")?;
+        let captures = if regular.is_match(url.as_ref()) {
+            Some(regular.captures(url.as_ref()).with_context(|| "Failed to parse URL.")?)
+        } else if organization.is_match(url.as_ref()) {
+            Some(organization.captures(url.as_ref()).with_context(|| "Failed to parse URL.")?)
+        } else {
+            None
+        };
+        let action = if captures.is_none() {
+            return Err(anyhow!("Failed to parse URL."))
+        } else {
+            let captures = captures.unwrap();
+            let host = captures
+                .name("host")
+                .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
+                .with_context(|| UNABLE_TO_MAP_URL)?;
+            let owner = captures
+                .name("owner")
+                .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
+                .with_context(|| UNABLE_TO_MAP_URL)?;
+            let repo = captures
+                .name("repo")
+                .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
+                .with_context(|| UNABLE_TO_MAP_URL)?;
+            CloneAction { host: Host::from(host), owner: owner.to_string(), repos: vec![repo.to_string()], url: Some(url.to_string()) }
+        };
+        Ok(action)
     }
     pub fn url(&self, index: usize) -> Result<String> {
         let url = format!(
@@ -45,7 +79,10 @@ impl CloneAction {
         Ok(url)
     }
     pub fn run(&self) -> Result<()> {
-        if let Host::None = self.host {
+        if self.url.is_some() {
+            self.clone_repo_url()
+        }
+        else if let Host::None = self.host {
             bail!(
                 "You can't do this unless you set your configuration with ` dm config -a`\n\
                     In the meantime, you can clone by specifying <host> <owner> <repo>"
@@ -84,9 +121,10 @@ impl CloneAction {
 
             if let Err(e) = git2::build::RepoBuilder::new()
                 .fetch_options(fo)
-                .clone(self.url(ix)?.as_str(), &*PathBuf::from(&path))
+                .clone( self.url(ix)?.as_str(), &*PathBuf::from(&path))
                 .with_context(|| FAILED_TO_CLONE_REPO)
             {
+                std::fs::remove_dir_all(PathBuf::from(&path))?;
                 error = e;
             } else if self.repos.len() == ix + 1 {
                 return Ok(());
@@ -94,22 +132,37 @@ impl CloneAction {
         }
         Err(error)
     }
-    pub fn parse_url(url: &str, rx: Regex) -> Result<CloneAction> {
-        let captures = rx
-            .captures(url.as_ref())
-            .with_context(|| "Failed to get captures from url.")?;
-        let host = captures
-            .get(4)
-            .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
-            .with_context(|| UNABLE_TO_MAP_URL)?;
-        let owner = captures
-            .get(6)
-            .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
-            .with_context(|| UNABLE_TO_MAP_URL)?;
-        let repo = captures
-            .get(7)
-            .map(|m| String::from_utf8(Vec::from(m.as_bytes())).unwrap())
-            .with_context(|| UNABLE_TO_MAP_URL)?;
-        Ok(CloneAction::from(Host::from(host), &owner, vec![repo]))
+    pub fn clone_repo_url(&self) -> Result<()> {
+        let path = format!(
+            "{}/Developer/{}/{}/{}",
+            home().display(),
+            self.host,
+            self.owner,
+            self.repos[0]
+        );
+        println!("Cloning {}/{} from {}...", self.owner, self.repos[0], self.host);
+        let mut cb = git2::RemoteCallbacks::new();
+        let git_config = git2::Config::open_default()?;
+        let mut ch = CredentialHandler::new(git_config);
+        cb.credentials(move |url, username, allowed| {
+            ch.try_next_credential(url, username, allowed)
+        });
+
+        let mut fo = git2::FetchOptions::new();
+        fo.remote_callbacks(cb)
+            .download_tags(git2::AutotagOption::All)
+            .update_fetchhead(true);
+        std::fs::create_dir_all(PathBuf::from(&path))?;
+
+        if let Err(e) = git2::build::RepoBuilder::new()
+            .fetch_options(fo)
+            .clone( self.url.as_ref().unwrap().as_str(), &*PathBuf::from(&path))
+            .with_context(|| FAILED_TO_CLONE_REPO)
+        {
+            std::fs::remove_dir_all(PathBuf::from(&path))?;
+            Err(e)
+        } else {
+            Ok(())
+        }
     }
 }

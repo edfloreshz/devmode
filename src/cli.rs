@@ -8,7 +8,7 @@ use requestty::{Answer, Question};
 use crate::config::application::Application;
 use crate::config::editor::Editor;
 use crate::config::fork::Fork;
-use crate::config::host::{is_host, Host};
+use crate::config::host::{Host};
 use crate::config::project::Project;
 use crate::config::settings::Settings;
 use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
@@ -88,7 +88,7 @@ impl Cli {
     pub fn run(&self) -> anyhow::Result<()> {
         let rx = Regex::new(GIT_URL).with_context(|| "Unable to parse Regex.")?;
         match &self.commands {
-            Commands::Clone { args } => Cli::clone(args, rx),
+            Commands::Clone { args } => Cli::clone(args),
             Commands::Open { project } => Cli::open(project),
             Commands::Fork { args, upstream } => Cli::fork(args, upstream, rx),
             Commands::Config {
@@ -101,25 +101,22 @@ impl Cli {
             } => Cli::config(map, show, all, editor, owner, host),
         }
     }
-    fn clone(args: &[String], rx: Regex) -> Result<()> {
-        if args.is_empty() {
-            let clone = clone_setup()?;
-            clone.run()
-        } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
-            let clone = CloneAction::parse_url(args.get(0).unwrap(), rx)?;
-            clone.run()
-        } else if is_host(args.get(0).unwrap().to_string()) {
+    fn clone(args: &[String]) -> Result<()> {
+        let clone = if args.is_empty() {
+            clone_setup()?
+        } else if args.len() == 1 {
+            CloneAction::from_url(args.get(0).unwrap())?
+        } else if args.len() == 3 {
             let host = Host::from(args.get(0).unwrap());
-            let owner = args.get(1).with_context(|| "Failed to get owner.")?;
-            let repo = args.get(2).with_context(|| "Failed to get repository.")?;
-            let clone = CloneAction::from(host, owner, vec![repo.to_string()]);
-            clone.run()
+            let owner = args.get(1).unwrap();
+            let repo = args.get(2).unwrap();
+            CloneAction::from(host, owner, vec![repo.to_string()])
         } else {
             let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
-            let clone = CloneAction::from(Host::from(&options.host), &options.owner, args.to_vec());
-            clone.run()
-        }
+            CloneAction::from(Host::from(&options.host), &options.owner, args.to_vec())
+        };
+        clone.run()
     }
     fn open(project: &str) -> Result<()> {
         Project::new(project).run()

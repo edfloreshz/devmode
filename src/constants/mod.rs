@@ -1,5 +1,7 @@
 pub mod patterns {
     pub const GIT_URL: &str = r#"((utils@|http(s)?://)(?P<host>[\w.@]+)([/:]))(?P<owner>[\w,\-_]+)/(?P<repo>[\w,\-_]+)(.utils)?((/)?)"#;
+    pub const REGULAR_GIT_URL: &str = r#"(?:git@|https://)(?P<host>:?github|gitlab)[.]com[:/](?P<owner>[^\s,]+)[/](?P<repo>[^\s,.]+)([.]git)?"#;
+    pub const ORG_GIT_URL: &str = r#"(?:git@|https://)(?P<host>gitlab[.][^\s]+[.][^\s]+)[:/](?P<owner>[^\s]+)[/](?P<repo>[^\s,.]+)([.]git)?"#;
 }
 
 pub mod names {
