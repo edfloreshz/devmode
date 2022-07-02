@@ -91,7 +91,13 @@ pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
         .lines()
         .map(|e| e.unwrap_or_default())
         .filter(|e| {
-            let split: Vec<&str> = e.split('/').collect();
+            let split: Vec<&str> = e.split(
+                if cfg!(target_os = "windows") {
+                    '\\'
+                } else {
+                    '/'
+                }
+            ).collect();
             split.last().unwrap() == &path
         })
         .collect::<Vec<String>>();
