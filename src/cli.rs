@@ -15,7 +15,7 @@ use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
 use crate::{config::clone::CloneAction, constants::patterns::GIT_URL};
 
 #[derive(Parser, Debug)]
-#[clap(name = "(Dev)mode", version = "0.2.8")]
+#[clap(name = "(Dev)mode", version = "0.2.9")]
 #[clap(author = "Eduardo F. <edfloreshz@gmail.com>")]
 #[clap(about = "Dev(mode) is a project management utility for developers.")]
 #[clap(arg_required_else_help = true)]
@@ -116,7 +116,7 @@ impl Cli {
     fn clone(args: &[String]) -> Result<()> {
         let clone = if args.is_empty() {
             clone_setup()?
-        } else if args.len() == 1 {
+        } else if args.len() == 1 && args.get(0).unwrap().contains("http") {
             CloneAction::from_url(args.get(0).unwrap())?
         } else if args.len() == 3 {
             let host = Host::from(args.get(0).unwrap());
