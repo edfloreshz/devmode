@@ -87,17 +87,12 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
 }
 
 pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
+    let path = path.replace("\\", "/");
     let paths = reader
         .lines()
         .map(|e| e.unwrap_or_default())
         .filter(|e| {
-            let split: Vec<&str> = e.split(
-                if cfg!(target_os = "windows") {
-                    '\\'
-                } else {
-                    '/'
-                }
-            ).collect();
+            let split: Vec<&str> = e.split('/').collect();
             split.last().unwrap() == &path
         })
         .collect::<Vec<String>>();
