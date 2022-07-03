@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use anyhow::{bail, Context, Result, Ok, anyhow};
+use git2::ErrorCode;
 use git2_credentials::CredentialHandler;
 use libset::routes::home;
 use regex::bytes::Regex;
@@ -124,7 +125,9 @@ impl CloneAction {
                 .fetch_options(fo)
                 .clone(self.url(ix)?.as_str(), &*PathBuf::from(&path))
             {
-                remove_dir_all(path)?;
+                if err.code() == ErrorCode::NotFound {
+                    remove_dir_all(path)?;
+                }
                 return Err(err.into());
             }
             OpenAction::make_dev_paths()?;
@@ -153,13 +156,14 @@ impl CloneAction {
             .update_fetchhead(true);
         std::fs::create_dir_all(PathBuf::from(&path))?;
 
-        if let Err(e) = git2::build::RepoBuilder::new()
+        if let Err(err) = git2::build::RepoBuilder::new()
             .fetch_options(fo)
             .clone( self.url.as_ref().unwrap().as_str(), &*PathBuf::from(&path))
-            .with_context(|| FAILED_TO_CLONE_REPO)
         {
-            std::fs::remove_dir_all(PathBuf::from(&path))?;
-            Err(e)
+            if err.code() == ErrorCode::NotFound {
+                remove_dir_all(path)?;
+            }
+            return Err(err.into());
         } else {
             Ok(())
         }
