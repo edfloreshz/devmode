@@ -23,7 +23,7 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libset = "0.1.1"
+libset = { git = "https://github.com/edfloreshz/libset", rev = "f49b34ea57ce74da61ccc4eefb7762304dce7dea" }
 clap = { version = "3.0.10", features = ["derive"] }
 anyhow = "1.0.44"
 requestty = "0.3.0"
@@ -34,3 +34,4 @@ git2_credentials = "0.7.3"
 cmd_lib = "1.1.0"
 walkdir = "2.3.2"
 serde = { version = "1.0.126", features = ["derive"] }
+once_cell = "1.12.0"

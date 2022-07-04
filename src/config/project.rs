@@ -42,7 +42,7 @@ impl OpenAction {
         Ok(())
     }
     pub fn make_dev_paths() -> Result<()> {
-        let paths_dir = data().join("devmode/paths/devpaths");
+        let paths_dir = data().join("devmode/devpaths");
         if !paths_dir.exists() {
             create_dir_all(&paths_dir).with_context(|| "Failed to create directory.")?;
             File::create(paths_dir.join("devpaths"))?;
@@ -52,7 +52,7 @@ impl OpenAction {
     fn write_paths() -> Result<()> {
         let mut devpaths = OpenOptions::new()
             .write(true)
-            .open(data().join("devmode/paths/devpaths"))?;
+            .open(data().join("devmode/devpaths"))?;
         for entry in WalkDir::new(home().join("Developer"))
             .max_depth(3)
             .min_depth(2)
@@ -72,15 +72,15 @@ impl OpenAction {
 pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n{}", name, OPENING_WARNING);
     let path = &paths[0];
-    let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
+    let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
         let route = path.replace("\\", "/").clone();
         if cfg!(target_os = "windows") {
             Command::new("cmd")
-            .args(["/C", format!("{command_editor} {route}").as_str()])
-            .output()?;
+                .args(["/C", format!("{command_editor} {route}").as_str()])
+                .output()?;
         } else {
             run_cmd!($command_editor $route)?;
         }
@@ -95,13 +95,13 @@ pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
         .lines()
         .map(|e| e.unwrap_or_default())
         .filter(|e| {
-            let split: Vec<&str> = e.split(
-                if cfg!(target_os = "windows") {
+            let split: Vec<&str> = e
+                .split(if cfg!(target_os = "windows") {
                     "\\"
                 } else {
                     "/"
-                }
-            ).collect();
+                })
+                .collect();
             split.last().unwrap() == &path
         })
         .collect::<Vec<String>>();
@@ -109,9 +109,7 @@ pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
 }
 
 fn create_paths_reader() -> Result<BufReader<File>> {
-    Ok(BufReader::new(File::open(
-        data().join("devmode/paths/devpaths"),
-    )?))
+    Ok(BufReader::new(File::open(data().join("devmode/devpaths"))?))
 }
 
 pub fn _get_projects() -> Result<Vec<String>> {

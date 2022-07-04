@@ -84,13 +84,25 @@ pub enum Commands {
     },
     #[clap(about = "Create workspaces to store your projects.", alias = "ws")]
     Workspace {
-        #[clap(help = "Delete a workspace", short = 'd', long = "delete")]
+        #[clap(help = "Name for the workspace.")]
+        name: Option<String>,
+        #[clap(
+            help = "Delete a workspace",
+            short = 'd',
+            long = "delete",
+            takes_value = true
+        )]
         delete: bool,
-        #[clap(help = "Rename a workspace", short = 'r', long = "rename")]
+        #[clap(
+            help = "Rename a workspace",
+            short = 'r',
+            long = "rename",
+            takes_value = true
+        )]
         rename: bool,
         #[clap(help = "List all workspaces", short = 'l', long = "list")]
-        list: bool
-    }
+        list: bool,
+    },
 }
 
 impl Cli {
@@ -107,10 +119,21 @@ impl Cli {
                 editor,
                 owner,
                 host,
-            } => Cli::config(*map, *show, *all, *editor, *owner, *host),
-            Commands::Workspace { delete, rename, list } => {
-                Cli::workspace(*delete, *rename, *list)
-            },
+            } => Cli::config(
+                *map,
+                *show,
+                *all,
+                *editor,
+                *owner,
+                *host,
+                !map && !show && !*all && !*editor && !*owner && !*host,
+            ),
+            Commands::Workspace {
+                name,
+                delete,
+                rename,
+                list,
+            } => Cli::workspace(name.to_owned(), *delete, *rename, *list),
         }
     }
     fn clone(args: &[String]) -> Result<()> {
@@ -124,7 +147,7 @@ impl Cli {
             let repo = args.get(2).unwrap();
             CloneAction::from(host, owner, vec![repo.to_string()])
         } else {
-            let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
+            let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             CloneAction::from(Host::from(&options.host), &options.owner, args.to_vec())
         };
@@ -139,7 +162,7 @@ impl Cli {
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
-            let options = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
+            let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             let host = Host::from(&options.host);
             let repo = args.get(0).map(|a| a.to_string());
@@ -169,8 +192,9 @@ impl Cli {
         editor: bool,
         owner: bool,
         host: bool,
+        none: bool,
     ) -> Result<()> {
-        if all {
+        if all || none {
             if get_settings().is_err() {
                 println!("First time setup! 🥳\n");
                 Settings::init()?;
@@ -199,20 +223,42 @@ impl Cli {
         }
         Ok(())
     }
-    fn workspace(delete: bool, rename: bool, list: bool) -> Result<()> {
-        if delete {
-            todo!("Move repositories from workspace to user folder and delete the folder.")
-        } else if rename {
-            todo!("Rename the workspace folder and update the paths.")
+    fn workspace(name: Option<String>, delete: bool, rename: bool, list: bool) -> Result<()> {
+        let mut settings = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
+            .with_context(|| "Failed to get configuration")?;
+        if let Some(name) = name {
+            let index = settings
+                .workspaces
+                .names
+                .iter()
+                .position(|ws| *ws == name)
+                .with_context(|| "Couldn't find that workspace")?;
+            if delete {
+                settings.workspaces.names.remove(index);
+                settings.write()?;
+                todo!("Move repositories from workspace to user folder and delete the folder.");
+            } else if rename {
+                *settings.workspaces.names.get_mut(index).unwrap() = name;
+                settings.write()?;
+                todo!("Rename the workspace folder and update the paths.")
+            } else if settings.workspaces.names.contains(&name) {
+                println!("Found workspace {name}")
+            } else {
+                settings.workspaces.names.push(name.clone());
+                settings.write()?;
+                println!("Workspace \"{name}\" was added.")
+            }
         } else if list {
-            todo!("List all the repositories from that workspace.")
+            for ws in settings.workspaces.names {
+                println!("{ws}\n")
+            }
         }
         Ok(())
     }
 }
 
 fn get_settings() -> Result<Settings> {
-    Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML)
+    Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
         .with_context(|| APP_OPTIONS_NOT_FOUND)
 }
 
@@ -266,7 +312,7 @@ pub fn config_owner() -> anyhow::Result<Settings> {
         Answer::String(owner) => owner,
         _ => bail!("Owner is required."),
     };
-    let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
+    let current = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
     let settings = match current {
         None => Settings {
             owner,
@@ -286,7 +332,7 @@ pub fn config_host() -> anyhow::Result<Settings> {
         Answer::ListItem(item) => Host::from(&item.text).to_string(),
         _ => bail!("Host is required."),
     };
-    let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
+    let current = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
     let settings = match current {
         None => Settings {
             host,
@@ -325,7 +371,7 @@ pub fn config_editor() -> anyhow::Result<Settings> {
         }
         _ => bail!("Editor must be picked."),
     };
-    let current = Config::get::<Settings>("devmode/config/config.toml", FileFormat::TOML);
+    let current = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
     let settings = match current {
         None => Settings {
             editor,
@@ -352,10 +398,12 @@ fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
     requestty::prompt_one(
         Question::input(key)
             .message(message)
-            .validate(|owner, _previous| if owner.is_empty() {
-                Err(err.into())
-            } else {
-                Ok(())
+            .validate(|owner, _previous| {
+                if owner.is_empty() {
+                    Err(err.into())
+                } else {
+                    Ok(())
+                }
             })
             .build(),
     )

@@ -29,7 +29,7 @@ pub mod messages {
     pub const MORE_PROJECTS_FOUND: &str = "Two or more projects found.";
     pub const NO_SETTINGS_CHANGED: &str = "No settings were changed.";
     pub const SETTINGS_UPDATED: &str = "Settings updated.";
-    pub const FAILED_TO_WRITE_CONFIG: &str = "Failed to write changes to `config.toml`.";
+    pub const FAILED_TO_WRITE_CONFIG: &str = "Failed to write changes to `settings.toml`.";
     pub const FAILED_TO_PARSE: &str = "Failed to parse app options.";
     pub const UNABLE_TO_MAP_URL: &str = "Could not map url.";
     pub const FAILED_TO_CLONE_REPO: &str = "Failed to clone repository.";
@@ -37,7 +37,8 @@ pub mod messages {
     pub const OPENING_WARNING: &str =
         "If the editor does not support openning from a path, you'll have to open it yourself.";
     pub const NO_EDITOR_SET: &str = "No editor set, run `dm config -e` to configure it.";
-    pub const APP_OPTIONS_NOT_FOUND: &str = "The current app options could not be found.";
+    pub const APP_OPTIONS_NOT_FOUND: &str =
+        "The current app options could not be found.\nRun `dm cf --all` to reconfigure them.";
 
     pub fn _failed_to(action: &str, obj: &str) -> String {
         format!("Failed to {} `{}`.", action, obj)

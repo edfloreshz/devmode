@@ -30,21 +30,21 @@ impl Application {
             Application::VSCode => {
                 if cfg!(target_os = "windows") {
                     Command::new("cmd")
-                    .args(["/C", format!("code {arg}").as_str()])
-                    .output()?;
+                        .args(["/C", format!("code {arg}").as_str()])
+                        .output()?;
                 } else {
                     run_cmd!(code $arg)?;
                 }
-            },
+            }
             Application::Vim => {
                 if cfg!(target_os = "windows") {
                     Command::new("cmd")
-                    .args(["/C", format!("vim {arg}").as_str()])
-                    .output()?;
+                        .args(["/C", format!("vim {arg}").as_str()])
+                        .output()?;
                 } else {
                     run_cmd!(vim $arg)?;
                 }
-            },
+            }
             _ => {}
         }
         Ok(())
