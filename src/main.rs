@@ -2,15 +2,15 @@ use anyhow::Result;
 use clap::StructOpt;
 use colored::Colorize;
 
-use crate::config::settings::Settings;
+// use crate::config::settings::Settings;
 use cli::Cli;
-use once_cell::sync::OnceCell;
+// use once_cell::sync::OnceCell;
 
 mod cli;
 mod config;
 mod constants;
 
-static SETTINGS: OnceCell<Settings> = OnceCell::new();
+// static SETTINGS: OnceCell<Settings> = OnceCell::new();
 
 fn main() -> Result<()> {
     let cli = Cli::parse();

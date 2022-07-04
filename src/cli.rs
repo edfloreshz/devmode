@@ -2,8 +2,10 @@ use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use libset::config::Config;
 use libset::format::FileFormat;
+use libset::routes::home;
 use regex::bytes::Regex;
 use requestty::{Answer, Question};
+use std::fs;
 
 use crate::config::application::Application;
 use crate::config::editor::Editor;
@@ -35,7 +37,11 @@ pub enum Commands {
         #[clap(min_values = 1)]
         args: Vec<String>,
     },
-    #[clap(about = "Opens a project on your selected text editor.", alias = "o")]
+    #[clap(
+        about = "Opens a project on your selected text editor.",
+        alias = "o",
+        arg_required_else_help = true
+    )]
     Open {
         #[clap(help = "Provide a project name")]
         #[clap(takes_value = true, required = true)]
@@ -59,7 +65,11 @@ pub enum Commands {
         #[clap(takes_value = true, required = true)]
         upstream: String,
     },
-    #[clap(about = "Write changes to your configuration.", alias = "cf")]
+    #[clap(
+        about = "Write changes to your configuration.",
+        alias = "cf",
+        arg_required_else_help = true
+    )]
     Config {
         #[clap(help = "Map your project paths.", short = 'm', long = "map")]
         map: bool,
@@ -82,16 +92,15 @@ pub enum Commands {
         #[clap(help = "Sets the favorite host to clone projects.", long = "host")]
         host: bool,
     },
-    #[clap(about = "Create workspaces to store your projects.", alias = "ws")]
+    #[clap(
+        about = "Create workspaces to store your projects.",
+        alias = "ws",
+        arg_required_else_help = true
+    )]
     Workspace {
         #[clap(help = "Name for the workspace.")]
         name: Option<String>,
-        #[clap(
-            help = "Delete a workspace",
-            short = 'd',
-            long = "delete",
-            takes_value = true
-        )]
+        #[clap(help = "Delete a workspace", short = 'd', long = "delete")]
         delete: bool,
         #[clap(
             help = "Rename a workspace",
@@ -99,7 +108,7 @@ pub enum Commands {
             long = "rename",
             takes_value = true
         )]
-        rename: bool,
+        rename: Option<String>,
         #[clap(help = "List all workspaces", short = 'l', long = "list")]
         list: bool,
     },
@@ -133,7 +142,7 @@ impl Cli {
                 delete,
                 rename,
                 list,
-            } => Cli::workspace(name.to_owned(), *delete, *rename, *list),
+            } => Cli::workspace(name.to_owned(), *delete, rename.clone(), *list),
         }
     }
     fn clone(args: &[String]) -> Result<()> {
@@ -223,35 +232,66 @@ impl Cli {
         }
         Ok(())
     }
-    fn workspace(name: Option<String>, delete: bool, rename: bool, list: bool) -> Result<()> {
+    fn workspace(
+        name: Option<String>,
+        delete: bool,
+        rename: Option<String>,
+        list: bool,
+    ) -> Result<()> {
         let mut settings = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
             .with_context(|| "Failed to get configuration")?;
         if let Some(name) = name {
-            let index = settings
-                .workspaces
-                .names
-                .iter()
-                .position(|ws| *ws == name)
-                .with_context(|| "Couldn't find that workspace")?;
-            if delete {
-                settings.workspaces.names.remove(index);
-                settings.write()?;
-                todo!("Move repositories from workspace to user folder and delete the folder.");
-            } else if rename {
-                *settings.workspaces.names.get_mut(index).unwrap() = name;
-                settings.write()?;
-                todo!("Rename the workspace folder and update the paths.")
-            } else if settings.workspaces.names.contains(&name) {
-                println!("Found workspace {name}")
+            if settings.workspaces.names.contains(&name) {
+                let index = settings
+                    .workspaces
+                    .names
+                    .iter()
+                    .position(|ws| *ws == name)
+                    .unwrap();
+                if delete {
+                    let dev = home().join("Developer");
+                    for provider in fs::read_dir(dev)? {
+                        for user in fs::read_dir(provider?.path())? {
+                            let user = user?;
+                            for repo_or_workspace in fs::read_dir(&user.path())? {
+                                let repo_or_workspace = repo_or_workspace?;
+                                let name =
+                                    repo_or_workspace.file_name().to_str().unwrap().to_string();
+                                if settings.workspaces.names.contains(&name) {
+                                    for repo in fs::read_dir(repo_or_workspace.path())? {
+                                        let repo = repo?;
+                                        fs_extra::dir::move_dir(
+                                            repo.path(),
+                                            &user.path(),
+                                            &Default::default(),
+                                        )?;
+                                    }
+                                    fs::remove_dir_all(repo_or_workspace.path())?;
+                                }
+                            }
+                        }
+                    }
+                    settings.workspaces.names.remove(index);
+                    settings.write()?;
+                    todo!("Move repositories from workspace to user folder and delete the folder.");
+                } else if rename.is_some() {
+                    *settings.workspaces.names.get_mut(index).unwrap() = rename.clone().unwrap();
+                    settings.write()?;
+                    println!("Workspace renamed to {}.", rename.unwrap());
+                    todo!("Rename the workspace folder and update the paths.")
+                } else {
+                    println!("Workspace `{name}` found.");
+                }
+            } else if delete || rename.is_some() {
+                bail!("Couldn't find a workspace that matches {name}.")
             } else {
                 settings.workspaces.names.push(name.clone());
                 settings.write()?;
                 println!("Workspace \"{name}\" was added.")
             }
         } else if list {
-            for ws in settings.workspaces.names {
-                println!("{ws}\n")
-            }
+            let workspaces = settings.workspaces.names;
+            println!("Currently available workspaces: {:?}", workspaces);
         }
         Ok(())
     }
