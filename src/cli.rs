@@ -273,12 +273,31 @@ impl Cli {
                     }
                     settings.workspaces.names.remove(index);
                     settings.write()?;
-                    todo!("Move repositories from workspace to user folder and delete the folder.");
                 } else if rename.is_some() {
+                    let dev = home().join("Developer");
+                    for provider in fs::read_dir(dev)? {
+                        for user in fs::read_dir(provider?.path())? {
+                            let user = user?;
+                            for repo_or_workspace in fs::read_dir(&user.path())? {
+                                let repo_or_workspace = repo_or_workspace?;
+                                let name =
+                                    repo_or_workspace.file_name().to_str().unwrap().to_string();
+                                if settings.workspaces.names.contains(&name) {
+                                    fs::rename(
+                                        repo_or_workspace.path(),
+                                        repo_or_workspace
+                                            .path()
+                                            .parent()
+                                            .unwrap()
+                                            .join(rename.clone().unwrap()),
+                                    )?;
+                                }
+                            }
+                        }
+                    }
                     *settings.workspaces.names.get_mut(index).unwrap() = rename.clone().unwrap();
                     settings.write()?;
                     println!("Workspace renamed to {}.", rename.unwrap());
-                    todo!("Rename the workspace folder and update the paths.")
                 } else {
                     println!("Workspace `{name}` found.");
                 }
