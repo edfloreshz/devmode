@@ -18,6 +18,7 @@ pub struct CloneAction {
     pub owner: String,
     pub repos: Vec<String>,
     pub url: Option<String>,
+    pub workspace: Option<String>,
 }
 
 impl Default for CloneAction {
@@ -33,9 +34,10 @@ impl CloneAction {
             owner: String::new(),
             repos: Vec::new(),
             url: None,
+            workspace: None,
         }
     }
-    pub fn from(host: Host, owner: &str, repos: Vec<String>) -> Self {
+    pub fn from(host: Host, owner: &str, repos: Vec<String>, workspace: Option<String>) -> Self {
         let owner = owner.to_string();
         let repos = repos.iter().map(|r| r.to_string()).collect();
         CloneAction {
@@ -43,9 +45,10 @@ impl CloneAction {
             owner,
             repos,
             url: None,
+            workspace,
         }
     }
-    pub fn from_url(url: &str) -> Result<Self> {
+    pub fn from_url(url: &str, workspace: Option<String>) -> Result<Self> {
         let regular = Regex::from_str(REGULAR_GIT_URL).with_context(|| "Failed to parse regex.")?;
         let organization =
             Regex::from_str(ORG_GIT_URL).with_context(|| "Failed to parse regex.")?;
@@ -85,6 +88,7 @@ impl CloneAction {
                 owner: owner.to_string(),
                 repos: vec![repo.to_string()],
                 url: Some(url.to_string()),
+                workspace,
             }
         };
         Ok(action)
@@ -118,13 +122,24 @@ impl CloneAction {
     }
     pub fn clone_repo(&self) -> Result<()> {
         for (ix, repo) in self.repos.iter().enumerate() {
-            let path = format!(
-                "{}/Developer/{}/{}/{}",
-                home().display(),
-                self.host,
-                self.owner,
-                repo
-            );
+            let path = if self.workspace.is_some() {
+                format!(
+                    "{}/Developer/{}/{}/{}/{}",
+                    home().display(),
+                    self.host,
+                    self.owner,
+                    self.workspace.as_ref().unwrap(),
+                    repo
+                )
+            } else {
+                format!(
+                    "{}/Developer/{}/{}/{}",
+                    home().display(),
+                    self.host,
+                    self.owner,
+                    repo
+                )
+            };
             println!("Cloning {}/{} from {}...", self.owner, repo, self.host);
             let mut cb = git2::RemoteCallbacks::new();
             let git_config = git2::Config::open_default()?;

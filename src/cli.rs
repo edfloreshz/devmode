@@ -35,7 +35,15 @@ pub enum Commands {
     Clone {
         #[clap(help = "Provide either a Git <url> or a Git <host> <owner> <repo>.")]
         #[clap(min_values = 1)]
+        #[clap(max_values = 3)]
         args: Vec<String>,
+        #[clap(
+            help = "Select a workspace to store the repo in.",
+            short = 'w',
+            long = "workspace",
+            takes_value = true
+        )]
+        workspace: Option<String>,
     },
     #[clap(
         about = "Opens a project on your selected text editor.",
@@ -118,7 +126,7 @@ impl Cli {
     pub fn run(&self) -> anyhow::Result<()> {
         let rx = Regex::new(GIT_URL).with_context(|| "Unable to parse Regex.")?;
         match &self.commands {
-            Commands::Clone { args } => Cli::clone(args),
+            Commands::Clone { args, workspace } => Cli::clone(args, workspace.to_owned()),
             Commands::Open { project } => Cli::open(project),
             Commands::Fork { args, upstream } => Cli::fork(args, upstream, rx),
             Commands::Config {
@@ -145,20 +153,25 @@ impl Cli {
             } => Cli::workspace(name.to_owned(), *delete, rename.clone(), *list),
         }
     }
-    fn clone(args: &[String]) -> Result<()> {
+    fn clone(args: &[String], workspace: Option<String>) -> Result<()> {
         let clone = if args.is_empty() {
             clone_setup()?
         } else if args.len() == 1 && args.get(0).unwrap().contains("http") {
-            CloneAction::from_url(args.get(0).unwrap())?
+            CloneAction::from_url(args.get(0).unwrap(), workspace.to_owned())?
         } else if args.len() == 3 {
             let host = Host::from(args.get(0).unwrap());
             let owner = args.get(1).unwrap();
             let repo = args.get(2).unwrap();
-            CloneAction::from(host, owner, vec![repo.to_string()])
+            CloneAction::from(host, owner, vec![repo.to_string()], workspace.to_owned())
         } else {
             let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
-            CloneAction::from(Host::from(&options.host), &options.owner, args.to_vec())
+            CloneAction::from(
+                Host::from(&options.host),
+                &options.owner,
+                args.to_vec(),
+                workspace.to_owned(),
+            )
         };
         clone.run()
     }
