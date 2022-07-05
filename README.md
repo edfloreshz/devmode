@@ -29,11 +29,12 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    clone     Clones a utils repository in a specific folder structure.
-    config    Sets options for configuration.
-    fork      Clone repo and set upstream to your fork
-    help      Prints this message or the help of the given subcommand(s)
-    open      Opens a project on your selected text editor.
+    clone        Clones a repository in a specific folder structure.
+    config       Write changes to your configuration.
+    fork         Clones a repo and sets the upstream to your fork.
+    help         Print this message or the help of the given subcommand(s)
+    open         Opens a project on your selected text editor.
+    workspace    Create workspaces to store your projects.
 ```
 
 ## Installation
@@ -64,6 +65,43 @@ After that, you can:
 | `dm config --show`    | Print the current settings.                               |
 | `dm config --map`     | Save your currently cloned project paths.                 |
 
+
+## Workspaces
+Think of workspaces as containers for your repositories, you can classify and manipulate them in different ways.
+
+To create a new workspace use:
+
+`dm workspace <workspace>`
+
+When you create a workspace, you can use it to clone a repository to that workspace.
+
+`dm clone <repo> --workspace <workspace>` 
+
+You can `add` and `remove` existing repositories to a workspace.
+
+`dm workspace <workspace> --add | --remove <repo>`
+
+If you no longer need a workspace, you can either move the repositories to another workspace manually or delete the workspace and all repositories inside it will return to the owner's folder.
+
+`dm workspace <workspace> --delete`
+
+You can also rename workspaces, the folders will be updated accordingly.
+
+`dm workspace <name> --rename <name>`
+
+You can list your existing workspaces.
+
+`dm workspace --list`
+
+| Syntax  | Description | Example |
+| ------- | ----------- | ------- |
+| `dm workspace <name>`                   | Create a new workspace.           | `dm workspace office`                             |
+| `dm workspace <name> --add <repo>`      | Add repository to workspace.      | `dm workspace office --add devmode`               |
+| `dm workspace <name> --remove <repo>`   | Remove repository from workspace. | `dm workspace office --remove devmode`            |
+| `dm workspace <name> --delete`          | Delete a workspace.               | `dm workspace office --delete`                    |
+| `dm workspace <name> --rename <name>`   | Rename a workspace.               | `dm workspace office --rename work`               |
+| `dm workspace --list`                   | List all workspaces.              | `dm workspace --list`                             |
+
 ## Cloning
 
 **Dev(mode)** facilitates repository storage and organization in your filesystem.
@@ -86,12 +124,13 @@ This makes it easier for you to find repositories and allows `dm` to open them b
 project.
 
 | Syntax | Description | Example |
-| --------------------------------------------- | --------------------------------- | ------------------------------------------------- |
-| `dm clone`                                    | Clone a repository.               | `dm clone`                                        |
-| `dm clone <url>`                              | Clone by providing a URL.         | `dm clone https://github.com/edfloreshz/devmode`  |
-| `dm clone <provider> <owner> <repository>`    | Clone by providing parameters.    | `dm clone github edfloreshz devmode`              |
+| --------------------------------------------- | ----------------------------------- | ------------------------------------------------- |
+| `dm clone`                                    | Clone a repository using the setup. | `dm clone`                                        |
+| `dm clone <url>`                              | Clone by providing a URL.           | `dm clone https://github.com/edfloreshz/devmode`  |
+| `dm clone <provider> <owner> <repository>`    | Clone by providing parameters.      | `dm clone github edfloreshz devmode`              |
+| `dm clone <args> --workspace <workspace>`     | Clone into a specified workspace.   | `dm clone gh edfloreshz devmode -w office`        |
 
-The following commands only work when you've specified a `provider` and `username`.
+The following commands only work when you run `dm config`.
 
 | Syntax | Description | Example |
 | ----------- | ------ | ------- |
