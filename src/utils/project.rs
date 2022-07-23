@@ -11,7 +11,7 @@ use libset::format::FileFormat;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
-use crate::cli::select_repo;
+use crate::utils::input::select_repo;
 use crate::constants::messages::*;
 use crate::utils::application::Application;
 use crate::utils::settings::Settings;
