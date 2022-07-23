@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::config::application::Application;
+use crate::utils::application::Application;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Editor {

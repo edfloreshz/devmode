@@ -24,13 +24,13 @@ path = "src/main.rs"
 
 [dependencies]
 libset = { git = "https://github.com/edfloreshz/libset", rev = "f49b34ea57ce74da61ccc4eefb7762304dce7dea" }
-clap = { version = "3.0.10", features = ["derive"] }
+clap = { version = "3.2.14", features = ["derive"] }
 anyhow = "1.0.44"
-requestty = "0.3.0"
+requestty = "0.4.1"
 colored = "2.0.0"
 regex = "1.5.4"
-git2 = "0.13.22"
-git2_credentials = "0.7.3"
+git2 = "0.14.4"
+git2_credentials = "0.8.0"
 cmd_lib = "1.1.0"
 walkdir = "2.3.2"
 serde = { version = "1.0.126", features = ["derive"] }

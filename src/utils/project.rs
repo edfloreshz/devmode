@@ -12,9 +12,9 @@ use libset::routes::{data, home};
 use walkdir::WalkDir;
 
 use crate::cli::select_repo;
-use crate::config::application::Application;
-use crate::config::settings::Settings;
 use crate::constants::messages::*;
+use crate::utils::application::Application;
+use crate::utils::settings::Settings;
 
 pub struct OpenAction {
     pub name: String,
@@ -76,7 +76,7 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
-        let route = path.replace("\\", "/").clone();
+        let route = path.replace('\\', "/");
         if cfg!(target_os = "windows") {
             Command::new("cmd")
                 .args(["/C", format!("{command_editor} {route}").as_str()])

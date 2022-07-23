@@ -5,9 +5,9 @@ use git2::Repository;
 use libset::routes::home;
 use regex::bytes::Regex;
 
-use crate::config::host::Host;
-use crate::config::project::OpenAction;
 use crate::constants::messages::*;
+use crate::utils::host::Host;
+use crate::utils::project::OpenAction;
 
 pub struct ForkAction {
     pub host: Host,

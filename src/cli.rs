@@ -7,14 +7,14 @@ use regex::bytes::Regex;
 use requestty::{Answer, Question};
 use std::fs;
 
-use crate::config::application::Application;
-use crate::config::editor::Editor;
-use crate::config::fork::ForkAction;
-use crate::config::host::Host;
-use crate::config::project::OpenAction;
-use crate::config::settings::Settings;
 use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
-use crate::{config::clone::CloneAction, constants::patterns::GIT_URL};
+use crate::utils::application::Application;
+use crate::utils::editor::Editor;
+use crate::utils::fork::ForkAction;
+use crate::utils::host::Host;
+use crate::utils::project::OpenAction;
+use crate::utils::settings::Settings;
+use crate::{constants::patterns::GIT_URL, utils::clone::CloneAction};
 
 #[derive(Parser, Debug)]
 #[clap(name = "(Dev)mode", version = "0.2.9")]
@@ -157,12 +157,12 @@ impl Cli {
         let clone = if args.is_empty() {
             clone_setup()?
         } else if args.len() == 1 && args.get(0).unwrap().contains("http") {
-            CloneAction::from_url(args.get(0).unwrap(), workspace.to_owned())?
+            CloneAction::from_url(args.get(0).unwrap(), workspace)?
         } else if args.len() == 3 {
             let host = Host::from(args.get(0).unwrap());
             let owner = args.get(1).unwrap();
             let repo = args.get(2).unwrap();
-            CloneAction::from(host, owner, vec![repo.to_string()], workspace.to_owned())
+            CloneAction::from(host, owner, vec![repo.to_string()], workspace)
         } else {
             let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
@@ -170,7 +170,7 @@ impl Cli {
                 Host::from(&options.host),
                 &options.owner,
                 args.to_vec(),
-                workspace.to_owned(),
+                workspace,
             )
         };
         clone.run()
@@ -466,7 +466,7 @@ pub fn select_repo(paths: Vec<&str>) -> anyhow::Result<String> {
     Ok(repo)
 }
 
-fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
+pub fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
     requestty::prompt_one(
         Question::input(key)
             .message(message)
@@ -482,7 +482,7 @@ fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
     .with_context(|| "Failed to present prompt.")
 }
 
-fn pick(key: &str, message: &str, options: Vec<&str>) -> anyhow::Result<Answer> {
+pub fn pick(key: &str, message: &str, options: Vec<&str>) -> anyhow::Result<Answer> {
     requestty::prompt_one(
         Question::select(key)
             .message(message)
