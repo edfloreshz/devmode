@@ -6,8 +6,6 @@ use std::process::Command;
 use anyhow::Result;
 use anyhow::{bail, Context};
 use cmd_lib::*;
-use libset::config::Config;
-use libset::format::FileFormat;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
@@ -72,7 +70,7 @@ impl OpenAction {
 pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n{}", name, OPENING_WARNING);
     let path = &paths[0];
-    let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
+    let options = Settings::current()
         .with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;

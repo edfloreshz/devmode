@@ -47,7 +47,7 @@ impl Settings {
     }
     pub fn write(&self) -> Result<()> {
         println!();
-        let current_settings = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
+        let current_settings = Settings::current();
         if current_settings.is_none() {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
                 .with_context(|| FAILED_TO_WRITE_CONFIG)?;
@@ -73,7 +73,10 @@ impl Settings {
             Colorize::blue("Editor: "),
             self.editor.app,
             Colorize::purple("Workspaces: "),
-            self.workspaces
+            self.workspaces.names
         );
+    }
+    pub fn current() -> Option<Settings> {
+        Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
     }
 }

@@ -1,7 +1,5 @@
 use crate::utils::application::Application;
 use crate::utils::editor::Editor;
-use libset::config::Config;
-use libset::format::FileFormat;
 use requestty::{Answer, Question};
 use anyhow::{bail, Context, Result};
 use crate::utils::clone::CloneAction;
@@ -59,7 +57,7 @@ pub fn config_owner() -> anyhow::Result<Settings> {
         Answer::String(owner) => owner,
         _ => bail!("Owner is required."),
     };
-    let current = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
+    let current = Settings::current();
     let settings = match current {
         None => Settings {
             owner,
@@ -79,7 +77,7 @@ pub fn config_host() -> anyhow::Result<Settings> {
         Answer::ListItem(item) => Host::from(&item.text).to_string(),
         _ => bail!("Host is required."),
     };
-    let current = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
+    let current = Settings::current();
     let settings = match current {
         None => Settings {
             host,
@@ -118,7 +116,7 @@ pub fn config_editor() -> anyhow::Result<Settings> {
         }
         _ => bail!("Editor must be picked."),
     };
-    let current = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML);
+    let current = Settings::current();
     let settings = match current {
         None => Settings {
             editor,

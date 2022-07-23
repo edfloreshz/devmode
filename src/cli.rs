@@ -1,7 +1,5 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
-use libset::config::Config;
-use libset::format::FileFormat;
 use libset::routes::home;
 use regex::bytes::Regex;
 use std::fs;
@@ -163,7 +161,7 @@ impl Cli {
             let repo = args.get(2).unwrap();
             CloneAction::from(host, owner, vec![repo.to_string()], workspace)
         } else {
-            let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
+            let options = Settings::current()
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             CloneAction::from(
                 Host::from(&options.host),
@@ -183,7 +181,7 @@ impl Cli {
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
-            let options = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
+            let options = Settings::current()
                 .with_context(|| APP_OPTIONS_NOT_FOUND)?;
             let host = Host::from(&options.host);
             let repo = args.get(0).map(|a| a.to_string());
@@ -250,7 +248,7 @@ impl Cli {
         rename: Option<String>,
         list: bool,
     ) -> Result<()> {
-        let mut settings = Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
+        let mut settings = Settings::current()
             .with_context(|| "Failed to get configuration")?;
         if let Some(name) = name {
             if settings.workspaces.names.contains(&name) {
@@ -329,6 +327,6 @@ impl Cli {
 }
 
 fn get_settings() -> Result<Settings> {
-    Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
+    Settings::current()
         .with_context(|| APP_OPTIONS_NOT_FOUND)
 }
