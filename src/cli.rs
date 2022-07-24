@@ -113,14 +113,14 @@ pub enum Commands {
         )]
         rename: Option<String>,
         #[clap(
-            help = "Add repo to a workspace",
+            help = "Add a repo to a workspace",
             short = 'a',
             long = "add",
             takes_value = true
         )]
         add: Option<String>,
         #[clap(
-            help = "Remove repo from a workspace",
+            help = "Remove a repo from a workspace",
             short = 'm',
             long = "remove",
             takes_value = true
@@ -338,16 +338,17 @@ impl Cli {
                         Colorize::blue(&*rename.unwrap())
                     );
                 } else if add.is_some() {
+                    let add = add.unwrap();
                     let reader = create_paths_reader()?;
-                    let paths: Vec<String> = find_paths(reader, &add.clone().unwrap())?
+                    let paths: Vec<String> = find_paths(reader, &add)?
                         .iter()
                         .map(|path| path.to_owned())
                         .filter(|path| !path.contains(name.as_str()))
                         .collect();
                     let path = if paths.is_empty() {
-                        bail!(NO_PROJECT_FOUND)
+                        bail!("Could not locate the {add} repository.")
                     } else if paths.len() > 1 {
-                        eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
+                        eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
                         let path =
                             select_repo(paths).with_context(|| "Failed to set repository.")?;
@@ -357,30 +358,56 @@ impl Cli {
                     };
                     let mut options = dir::CopyOptions::new();
                     let to = PathBuf::from(&path).parent().unwrap().join(&name);
-                    if to.join(add.unwrap().as_str()).exists() {
+                    if to.join(add.as_str()).exists() {
                         let question = requestty::Question::confirm("overwrite")
                             .message("We found an existing repository with the same name, do you want to overwrite the existing repository?")
                             .build();
                         let answer = requestty::prompt_one(question)?;
-                        if let requestty::Answer::Bool(overwrite) = answer {
+                        if let Answer::Bool(overwrite) = answer {
                             if overwrite {
                                 options.overwrite = true;
-                                move_items(
-                                    &vec![path.clone()],
-                                    to,
-                                    &options,
-                                )?;
+                                move_items(&vec![path.clone()], to, &options)?;
                             }
                         }
                     } else {
-                        move_items(
-                            &vec![path.clone()],
-                            to,
-                            &options,
-                        )?;
+                        move_items(&vec![path.clone()], to, &options)?;
                     }
                 } else if remove.is_some() {
-                    todo!("Implement remove repo from workspace.")
+                    let remove = remove.unwrap();
+                    let reader = create_paths_reader()?;
+                    let paths: Vec<String> = find_paths(reader, &remove)?
+                        .iter()
+                        .map(|path| path.to_owned())
+                        .filter(|path| path.contains(name.as_str()))
+                        .collect();
+                    let path = if paths.is_empty() {
+                        bail!("Could not locate the {remove} repository inside {name}")
+                    } else if paths.len() > 1 {
+                        eprintln!("{}", MORE_PROJECTS_FOUND);
+                        let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+                        let path =
+                            select_repo(paths).with_context(|| "Failed to set repository.")?;
+                        path
+                    } else {
+                        paths[0].clone()
+                    };
+                    let mut options = dir::CopyOptions::new();
+                    let path = PathBuf::from(&path);
+                    let to = path.parent().unwrap().parent().unwrap();
+                    if to.join(remove.as_str()).exists() {
+                        let question = requestty::Question::confirm("overwrite")
+                            .message("We found an existing repository with the same name, do you want to overwrite the existing repository?")
+                            .build();
+                        let answer = requestty::prompt_one(question)?;
+                        if let Answer::Bool(overwrite) = answer {
+                            if overwrite {
+                                options.overwrite = true;
+                                move_items(&vec![path.clone()], to, &options)?;
+                            }
+                        }
+                    } else {
+                        move_items(&vec![path.clone()], to, &options)?;
+                    }
                 } else {
                     println!("Workspace `{}` found.", Colorize::green(&*name));
                 }
