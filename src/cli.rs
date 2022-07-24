@@ -1,18 +1,21 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use fs_extra::{dir, move_items};
 use libset::routes::home;
 use regex::bytes::Regex;
+use requestty::Answer;
 use std::fs;
+use std::path::PathBuf;
 
-use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
+use crate::constants::messages::*;
 
 use crate::utils::fork::ForkAction;
 use crate::utils::host::Host;
 use crate::utils::input::{
-    clone_setup, config_all, config_editor, config_host, config_owner, fork_setup,
+    clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, select_repo,
 };
-use crate::utils::project::OpenAction;
+use crate::utils::project::{create_paths_reader, find_paths, OpenAction};
 use crate::utils::settings::Settings;
 use crate::{constants::patterns::GIT_URL, utils::clone::CloneAction};
 
@@ -109,6 +112,20 @@ pub enum Commands {
             takes_value = true
         )]
         rename: Option<String>,
+        #[clap(
+            help = "Add repo to a workspace",
+            short = 'a',
+            long = "add",
+            takes_value = true
+        )]
+        add: Option<String>,
+        #[clap(
+            help = "Remove repo from a workspace",
+            short = 'm',
+            long = "remove",
+            takes_value = true
+        )]
+        remove: Option<String>,
         #[clap(help = "List all workspaces", short = 'l', long = "list")]
         list: bool,
     },
@@ -141,8 +158,17 @@ impl Cli {
                 name,
                 delete,
                 rename,
+                add,
+                remove,
                 list,
-            } => Cli::workspace(name.to_owned(), *delete, rename.clone(), *list),
+            } => Cli::workspace(
+                name.to_owned(),
+                *delete,
+                rename.clone(),
+                add.clone(),
+                remove.clone(),
+                *list,
+            ),
         }
     }
     fn clone(args: &[String], workspace: Option<String>) -> Result<()> {
@@ -238,6 +264,8 @@ impl Cli {
         name: Option<String>,
         delete: bool,
         rename: Option<String>,
+        add: Option<String>,
+        remove: Option<String>,
         list: bool,
     ) -> Result<()> {
         let mut settings = Settings::current().with_context(|| "Failed to get configuration")?;
@@ -309,6 +337,50 @@ impl Cli {
                         Colorize::yellow(&*name),
                         Colorize::blue(&*rename.unwrap())
                     );
+                } else if add.is_some() {
+                    let reader = create_paths_reader()?;
+                    let paths: Vec<String> = find_paths(reader, &add.clone().unwrap())?
+                        .iter()
+                        .map(|path| path.to_owned())
+                        .filter(|path| !path.contains(name.as_str()))
+                        .collect();
+                    let path = if paths.is_empty() {
+                        bail!(NO_PROJECT_FOUND)
+                    } else if paths.len() > 1 {
+                        eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
+                        let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+                        let path =
+                            select_repo(paths).with_context(|| "Failed to set repository.")?;
+                        path
+                    } else {
+                        paths[0].clone()
+                    };
+                    let mut options = dir::CopyOptions::new();
+                    let to = PathBuf::from(&path).parent().unwrap().join(&name);
+                    if to.join(add.unwrap().as_str()).exists() {
+                        let question = requestty::Question::confirm("overwrite")
+                            .message("We found an existing repository with the same name, do you want to overwrite the existing repository?")
+                            .build();
+                        let answer = requestty::prompt_one(question)?;
+                        if let requestty::Answer::Bool(overwrite) = answer {
+                            if overwrite {
+                                options.overwrite = true;
+                                move_items(
+                                    &vec![path.clone()],
+                                    to,
+                                    &options,
+                                )?;
+                            }
+                        }
+                    } else {
+                        move_items(
+                            &vec![path.clone()],
+                            to,
+                            &options,
+                        )?;
+                    }
+                } else if remove.is_some() {
+                    todo!("Implement remove repo from workspace.")
                 } else {
                     println!("Workspace `{}` found.", Colorize::green(&*name));
                 }

@@ -71,19 +71,19 @@ Think of workspaces as containers for your repositories, you can classify and ma
 
 To create a new workspace use:
 
-`dm workspace <workspace>`
+`dm workspace <name>`
 
 When you create a workspace, you can use it to clone a repository to that workspace.
 
-`dm clone <repo> --workspace <workspace>` 
+`dm clone <repo> --workspace <name>` 
 
 You can `add` and `remove` existing repositories to a workspace.
 
-`dm workspace <workspace> --add | --remove <repo>`
+`dm workspace <name> --add | --remove <repo>`
 
 If you no longer need a workspace, you can either move the repositories to another workspace manually or delete the workspace and all repositories inside it will return to the owner's folder.
 
-`dm workspace <workspace> --delete`
+`dm workspace <name> --delete`
 
 You can also rename workspaces, the folders will be updated accordingly.
 
@@ -117,7 +117,8 @@ $HOME
 └── Developer
     └── host
         └── owner
-            └── repo
+            └── workspace?
+                └── repo
 ```
 
 This makes it easier for you to find repositories and allows `dm` to open them by just specifying the name of the

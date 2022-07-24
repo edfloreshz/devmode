@@ -48,15 +48,30 @@ impl OpenAction {
         OpenAction::write_paths()
     }
     fn write_paths() -> Result<()> {
+        let settings = Settings::current().with_context(|| "Failed to get settings.")?;
         let mut devpaths = OpenOptions::new()
             .write(true)
             .open(data().join("devmode/devpaths"))?;
         for entry in WalkDir::new(home().join("Developer"))
-            .max_depth(3)
+            .max_depth(4)
             .min_depth(2)
         {
             let entry = entry?;
-            if entry.depth() == 3 && entry.path().is_dir() {
+            let repo = entry.path().to_str().unwrap().to_string();
+            let repo = repo.split(if cfg!(target_os = "windows") {
+                "\\"
+            } else {
+                "/"
+            }).last().unwrap();
+            let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
+            let workspace = parent.split(if cfg!(target_os = "windows") {
+                "\\"
+            } else {
+                "/"
+            }).last().unwrap();
+            if (entry.depth() == 3 && !settings.workspaces.names.contains(&repo.to_string())) 
+            || (entry.depth() == 4 && settings.workspaces.names.contains(&workspace.to_string())) 
+            && entry.path().is_dir() {
                 if let Err(e) = writeln!(devpaths, "{}", entry.path().display()) {
                     eprintln!("Couldn't write to file: {}", e);
                 }
@@ -105,24 +120,6 @@ pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
     Ok(paths)
 }
 
-fn create_paths_reader() -> Result<BufReader<File>> {
+pub fn create_paths_reader() -> Result<BufReader<File>> {
     Ok(BufReader::new(File::open(data().join("devmode/devpaths"))?))
-}
-
-pub fn _get_projects() -> Result<Vec<String>> {
-    let reader = create_paths_reader()?;
-    let paths = reader
-        .lines()
-        .map(|e| e.unwrap())
-        .map(|e| {
-            return if e.is_empty() {
-                String::new()
-            } else {
-                let parts = e.split('/').collect::<Vec<&str>>();
-                let a = parts[0].len() + parts[1].len() + parts[2].len() + parts[3].len() + 4;
-                e[a..].to_string()
-            };
-        })
-        .collect();
-    Ok(paths)
 }
