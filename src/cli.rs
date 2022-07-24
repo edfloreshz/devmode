@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use libset::routes::home;
 use regex::bytes::Regex;
 use std::fs;
@@ -8,7 +9,9 @@ use crate::constants::messages::APP_OPTIONS_NOT_FOUND;
 
 use crate::utils::fork::ForkAction;
 use crate::utils::host::Host;
-use crate::utils::input::{clone_setup, fork_setup, config_all, config_editor, config_owner, config_host};
+use crate::utils::input::{
+    clone_setup, config_all, config_editor, config_host, config_owner, fork_setup,
+};
 use crate::utils::project::OpenAction;
 use crate::utils::settings::Settings;
 use crate::{constants::patterns::GIT_URL, utils::clone::CloneAction};
@@ -80,21 +83,13 @@ pub enum Commands {
         map: bool,
         #[clap(help = "Show the current configuration.", short = 's', long = "show")]
         show: bool,
-        #[clap(help = "Configure everything.", short = 'a', long = "all")]
+        #[clap(help = "Configure your settings.", short = 'a', long = "all")]
         all: bool,
-        #[clap(
-            help = "Sets the favorite editor to open projects.",
-            short = 'e',
-            long = "editor"
-        )]
+        #[clap(help = "Set preferred code editor.", short = 'e', long = "editor")]
         editor: bool,
-        #[clap(
-            help = "Sets the favorite owner to projects.",
-            short = 'o',
-            long = "owner"
-        )]
+        #[clap(help = "Set preferred git username.", short = 'o', long = "owner")]
         owner: bool,
-        #[clap(help = "Sets the favorite host to clone projects.", long = "host")]
+        #[clap(help = "Set preferred Git host to clone projects from.", long = "host")]
         host: bool,
     },
     #[clap(
@@ -120,7 +115,7 @@ pub enum Commands {
 }
 
 impl Cli {
-    pub fn run(&self) -> anyhow::Result<()> {
+    pub fn run(&self) -> Result<()> {
         let rx = Regex::new(GIT_URL).with_context(|| "Unable to parse Regex.")?;
         match &self.commands {
             Commands::Clone { args, workspace } => Cli::clone(args, workspace.to_owned()),
@@ -151,24 +146,22 @@ impl Cli {
         }
     }
     fn clone(args: &[String], workspace: Option<String>) -> Result<()> {
-        let clone = if args.is_empty() {
+        let clone = CloneAction::new().set_workspace(workspace);
+        let mut clone = if args.is_empty() {
             clone_setup()?
         } else if args.len() == 1 && args.get(0).unwrap().contains("http") {
-            CloneAction::from_url(args.get(0).unwrap(), workspace)?
+            clone.set_url(args.get(0))?
         } else if args.len() == 3 {
-            let host = Host::from(args.get(0).unwrap());
-            let owner = args.get(1).unwrap();
-            let repo = args.get(2).unwrap();
-            CloneAction::from(host, owner, vec![repo.to_string()], workspace)
+            clone
+                .set_host(Some(Host::from(args.get(0).unwrap())))
+                .set_owner(args.get(1))
+                .set_repos(Some(vec![args.get(2).unwrap().to_owned()]))
         } else {
-            let options = Settings::current()
-                .with_context(|| APP_OPTIONS_NOT_FOUND)?;
-            CloneAction::from(
-                Host::from(&options.host),
-                &options.owner,
-                args.to_vec(),
-                workspace,
-            )
+            let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
+            clone
+                .set_host(Some(Host::from(&options.host)))
+                .set_owner(Some(&options.owner))
+                .set_repos(Some(args.to_vec()))
         };
         clone.run()
     }
@@ -181,8 +174,7 @@ impl Cli {
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
-            let options = Settings::current()
-                .with_context(|| APP_OPTIONS_NOT_FOUND)?;
+            let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
             let host = Host::from(&options.host);
             let repo = args.get(0).map(|a| a.to_string());
             ForkAction::from(
@@ -219,22 +211,22 @@ impl Cli {
                 Settings::init()?;
             }
             let settings = config_all()?;
-            settings.write()?;
+            settings.write(false)?;
         }
         if map {
             OpenAction::make_dev_paths()?
         }
         if editor {
             let settings = config_editor().with_context(|| "Failed to set editor.")?;
-            settings.write()?
+            settings.write(false)?
         }
         if owner {
             let settings = config_owner().with_context(|| "Failed to set owner.")?;
-            settings.write()?
+            settings.write(false)?
         }
         if host {
             let settings = config_host().with_context(|| "Failed to set host.")?;
-            settings.write()?
+            settings.write(false)?
         }
         if show {
             let settings = get_settings()?;
@@ -248,8 +240,7 @@ impl Cli {
         rename: Option<String>,
         list: bool,
     ) -> Result<()> {
-        let mut settings = Settings::current()
-            .with_context(|| "Failed to get configuration")?;
+        let mut settings = Settings::current().with_context(|| "Failed to get configuration")?;
         if let Some(name) = name {
             if settings.workspaces.names.contains(&name) {
                 let index = settings
@@ -265,9 +256,11 @@ impl Cli {
                             let user = user?;
                             for repo_or_workspace in fs::read_dir(&user.path())? {
                                 let repo_or_workspace = repo_or_workspace?;
-                                let name =
+                                let repo_name =
                                     repo_or_workspace.file_name().to_str().unwrap().to_string();
-                                if settings.workspaces.names.contains(&name) {
+                                if settings.workspaces.names.contains(&repo_name)
+                                    && repo_name.eq(&name)
+                                {
                                     for repo in fs::read_dir(repo_or_workspace.path())? {
                                         let repo = repo?;
                                         fs_extra::dir::move_dir(
@@ -282,7 +275,11 @@ impl Cli {
                         }
                     }
                     settings.workspaces.names.remove(index);
-                    settings.write()?;
+                    settings.write(true)?;
+                    println!(
+                        "Workspace {} was successfully deleted.",
+                        Colorize::yellow(&*name)
+                    )
                 } else if rename.is_some() {
                     let dev = home().join("Developer");
                     for provider in fs::read_dir(dev)? {
@@ -306,27 +303,36 @@ impl Cli {
                         }
                     }
                     *settings.workspaces.names.get_mut(index).unwrap() = rename.clone().unwrap();
-                    settings.write()?;
-                    println!("Workspace renamed to {}.", rename.unwrap());
+                    settings.write(true)?;
+                    println!(
+                        "Workspace renamed from {} to {}.",
+                        Colorize::yellow(&*name),
+                        Colorize::blue(&*rename.unwrap())
+                    );
                 } else {
-                    println!("Workspace `{name}` found.");
+                    println!("Workspace `{}` found.", Colorize::green(&*name));
                 }
             } else if delete || rename.is_some() {
-                bail!("Couldn't find a workspace that matches {name}.")
+                bail!(
+                    "Couldn't find a workspace that matches {}.",
+                    Colorize::yellow(&*name)
+                )
             } else {
                 settings.workspaces.names.push(name.clone());
-                settings.write()?;
-                println!("Workspace \"{name}\" was added.")
+                settings.write(true)?;
+                println!("Workspace {} was added.", Colorize::yellow(&*name))
             }
         } else if list {
             let workspaces = settings.workspaces.names;
-            println!("Currently available workspaces: {:?}", workspaces);
+            println!(
+                "Currently available workspaces: {}",
+                Colorize::yellow(&*format!("{:?}", workspaces))
+            );
         }
         Ok(())
     }
 }
 
 fn get_settings() -> Result<Settings> {
-    Settings::current()
-        .with_context(|| APP_OPTIONS_NOT_FOUND)
+    Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)
 }

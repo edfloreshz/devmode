@@ -1,23 +1,34 @@
 use crate::utils::application::Application;
-use crate::utils::editor::Editor;
-use requestty::{Answer, Question};
-use anyhow::{bail, Context, Result};
 use crate::utils::clone::CloneAction;
+use crate::utils::editor::Editor;
 use crate::utils::fork::ForkAction;
 use crate::utils::host::Host;
 use crate::utils::settings::Settings;
+use anyhow::{bail, Context, Result};
+use requestty::{Answer, Question};
 
 pub fn clone_setup() -> Result<CloneAction> {
     let mut clone = CloneAction::new();
     if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
     {
-        clone.host = Host::from(&host.text);
+        clone.host = Some(Host::from(&host.text));
     }
     if let Answer::String(owner) = ask("owner", "Git username:", "Please enter a Git username.")? {
-        clone.owner = owner;
+        clone.owner = Some(owner);
     }
     if let Answer::String(repo) = ask("repo", "Git repo name:", "Please enter a Git repo name.")? {
-        clone.repos.push(repo);
+        clone.repos.as_mut().unwrap().push(repo);
+    }
+    let settings = Settings::current().with_context(|| "Failed to get configuration")?;
+    let mut options = vec!["None"];
+    for ws in settings.workspaces.names.iter().map(|s| s.as_str()) {
+        options.push(ws);
+    }
+    if let Answer::ListItem(workspace) = pick("workspace", "Pick a workspace", options)? {
+        let workspace = workspace.text.to_lowercase();
+        if !workspace.eq("none") {
+            clone.workspace = Some(workspace);
+        }
     }
     Ok(clone)
 }

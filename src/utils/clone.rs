@@ -1,5 +1,4 @@
 use std::fs::remove_dir_all;
-use std::path::PathBuf;
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Ok, Result};
@@ -14,10 +13,11 @@ use crate::constants::patterns::{ORG_GIT_URL, REGULAR_GIT_URL};
 use crate::utils::host::Host;
 use crate::utils::project::OpenAction;
 
+#[derive(Clone)]
 pub struct CloneAction {
-    pub host: Host,
-    pub owner: String,
-    pub repos: Vec<String>,
+    pub host: Option<Host>,
+    pub owner: Option<String>,
+    pub repos: Option<Vec<String>>,
     pub url: Option<String>,
     pub workspace: Option<String>,
 }
@@ -31,25 +31,65 @@ impl Default for CloneAction {
 impl CloneAction {
     pub fn new() -> Self {
         CloneAction {
-            host: Host::None,
-            owner: String::new(),
-            repos: Vec::new(),
+            host: None,
+            owner: None,
+            repos: Some(vec![]),
             url: None,
             workspace: None,
         }
     }
-    pub fn from(host: Host, owner: &str, repos: Vec<String>, workspace: Option<String>) -> Self {
-        let owner = owner.to_string();
-        let repos = repos.iter().map(|r| r.to_string()).collect();
-        CloneAction {
-            host,
-            owner,
-            repos,
-            url: None,
-            workspace,
+    pub fn set_host(mut self, host: Option<Host>) -> Self {
+        self.host = host;
+        self
+    }
+    pub fn set_owner(mut self, owner: Option<&String>) -> Self {
+        self.owner = owner.cloned();
+        self
+    }
+    pub fn set_repos(mut self, repos: Option<Vec<String>>) -> Self {
+        self.repos = repos;
+        self
+    }
+    pub fn set_url(mut self, url: Option<&String>) -> Result<Self> {
+        self.url = url.cloned();
+        Ok(self)
+    }
+    pub fn set_workspace(mut self, workspace: Option<String>) -> Self {
+        self.workspace = workspace;
+        self
+    }
+    pub fn url_from_index(&self, index: usize) -> Result<String> {
+        let url = format!(
+            "{}/{}/{}",
+            self.host.clone().unwrap().url(),
+            self.owner.clone().unwrap(),
+            self.repos
+                .clone()
+                .unwrap()
+                .get(index)
+                .with_context(|| "Failed to get url from index.")?
+        );
+        Ok(url)
+    }
+    pub fn run(&mut self) -> Result<()> {
+        if self.url.is_some() {
+            self.parse_url()?;
+            self.clone_repo()
+        } else if let Host::None = self.host.clone().unwrap() {
+            bail!(
+                "You can't do this unless you set your configuration with ` dm config -a`\n\
+                    In the meantime, you can clone by specifying <host> <owner> <repo>"
+            )
+        } else if self.owner.is_none() {
+            bail!("Missing arguments: <owner> <repo>")
+        } else if self.repos.is_none() {
+            bail!("Missing arguments: <repo>")
+        } else {
+            self.clone_repo()
         }
     }
-    pub fn from_url(url: &str, workspace: Option<String>) -> Result<Self> {
+    pub fn parse_url(&mut self) -> Result<()> {
+        let url = self.url.clone().unwrap();
         let regular = Regex::from_str(REGULAR_GIT_URL).with_context(|| "Failed to parse regex.")?;
         let organization =
             Regex::from_str(ORG_GIT_URL).with_context(|| "Failed to parse regex.")?;
@@ -81,72 +121,46 @@ impl CloneAction {
                 .name("repo")
                 .map(|m| std::str::from_utf8(m.as_bytes()).unwrap())
                 .with_context(|| UNABLE_TO_MAP_URL)?;
-            let action = CloneAction {
-                host: Host::from(host),
-                owner: owner.to_string(),
-                repos: vec![repo.to_string()],
-                url: Some(url.to_string()),
-                workspace,
-            };
-            Ok(action)
+            self.host = Some(Host::from(host));
+            self.owner = Some(owner.to_string());
+            self.repos = Some(vec![repo.to_string()]);
+            Ok(())
         } else {
             Err(anyhow!("Failed to parse URL."))
         }
     }
-    pub fn url(&self, index: usize) -> Result<String> {
-        let url = format!(
-            "{}/{}/{}",
-            self.host.url(),
-            self.owner,
-            self.repos
-                .get(index)
-                .with_context(|| "Failed to get url from index.")?
-        );
-        Ok(url)
-    }
-    pub fn run(&self) -> Result<()> {
-        if self.url.is_some() {
-            self.clone_repo_url()
-        } else if let Host::None = self.host {
-            bail!(
-                "You can't do this unless you set your configuration with ` dm config -a`\n\
-                    In the meantime, you can clone by specifying <host> <owner> <repo>"
-            )
-        } else if self.owner.is_empty() {
-            bail!("Missing arguments: <owner> <repo>")
-        } else if self.repos.is_empty() {
-            bail!("Missing arguments: <repo>")
-        } else {
-            self.clone_repo()
-        }
-    }
+
     pub fn clone_repo(&self) -> Result<()> {
-        for (index, repo) in self.repos.iter().enumerate() {
-            let path = if self.workspace.is_some() {
-                home()
-                    .join("Developer")
-                    .join(self.host.to_string())
-                    .join(self.owner.clone())
-                    .join(self.workspace.as_ref().unwrap())
-                    .join(repo)
+        let host = self.host.clone().unwrap();
+        let owner = self.owner.clone().unwrap();
+        let repos = self.repos.clone().unwrap();
+        let path = home()
+            .join("Developer")
+            .join(host.to_string())
+            .join(owner.clone());
+        let path = if self.workspace.is_some() {
+            path.join(self.workspace.as_ref().unwrap())
+        } else {
+            path
+        };
+
+        for (index, repo) in repos.iter().enumerate() {
+            let save_path = if self.url.is_some() {
+                path.join(repos[0].clone())
             } else {
-                home()
-                    .join("Developer")
-                    .join(self.host.to_string())
-                    .join(self.owner.clone())
-                    .join(repo)
+                path.join(repo)
             };
 
-            println!("Cloning {}/{} from {}...", self.owner, repo, self.host);
+            println!("Cloning {}/{} from {}...", owner, repo, host);
 
-            std::fs::create_dir_all(PathBuf::from(&path))?;
+            std::fs::create_dir_all(&save_path)?;
 
             if let Err(err) = git2::build::RepoBuilder::new()
                 .fetch_options(CloneAction::get_fetch_options()?)
-                .clone(self.url(index)?.as_str(), &path)
+                .clone(self.url_from_index(index)?.as_str(), &save_path)
             {
                 match err.code() {
-                    ErrorCode::NotFound => remove_dir_all(path)?,
+                    ErrorCode::NotFound => remove_dir_all(&save_path)?,
                     ErrorCode::Exists => {
                         println!(
                             "{}: {} exists and is not an empty directory",
@@ -159,11 +173,11 @@ impl CloneAction {
                         let answer = requestty::prompt_one(question)?;
                         if let requestty::Answer::Bool(overwrite) = answer {
                             if overwrite {
-                                remove_dir_all(&path)?;
+                                remove_dir_all(&save_path)?;
                                 println!("Retrying clone...");
                                 git2::build::RepoBuilder::new()
                                     .fetch_options(CloneAction::get_fetch_options()?)
-                                    .clone(self.url(index)?.as_str(), &path)?;
+                                    .clone(self.url_from_index(index)?.as_str(), &save_path)?;
                             }
                         }
                     }
@@ -174,61 +188,6 @@ impl CloneAction {
         OpenAction::make_dev_paths()?;
         Ok(())
     }
-
-    pub fn clone_repo_url(&self) -> Result<()> {
-        let path = if self.workspace.is_some() {
-            home()
-                .join("Developer")
-                .join(self.host.to_string())
-                .join(self.owner.clone())
-                .join(self.workspace.as_ref().unwrap())
-                .join(self.repos[0].clone())
-        } else {
-            home()
-                .join("Developer")
-                .join(self.host.to_string())
-                .join(self.owner.clone())
-                .join(self.repos[0].clone())
-        };
-        println!(
-            "Cloning {}/{} from {}...",
-            self.owner, self.repos[0], self.host
-        );
-
-        std::fs::create_dir_all(PathBuf::from(&path))?;
-
-        if let Err(err) = git2::build::RepoBuilder::new()
-            .fetch_options(CloneAction::get_fetch_options()?)
-            .clone(self.url.as_ref().unwrap().as_str(), &path)
-        {
-            match err.code() {
-                ErrorCode::NotFound => remove_dir_all(path)?,
-                ErrorCode::Exists => {
-                    println!(
-                        "{}: {} exists and is not an empty directory",
-                        Colorize::red("Error"),
-                        path.display()
-                    );
-                    let question = requestty::Question::confirm("overwrite")
-                        .message("Do you want to overwrite the existing repository?")
-                        .build();
-                    let answer = requestty::prompt_one(question)?;
-                    if let requestty::Answer::Bool(overwrite) = answer {
-                        if overwrite {
-                            remove_dir_all(&path)?;
-                            println!("Retrying clone...");
-                            git2::build::RepoBuilder::new()
-                                .fetch_options(CloneAction::get_fetch_options()?)
-                                .clone(self.url.as_ref().unwrap().as_str(), &path)?;
-                        }
-                    }
-                }
-                _ => return Err(err.into()),
-            }
-        }
-        Ok(())
-    }
-
     fn get_fetch_options<'a>() -> Result<git2::FetchOptions<'a>> {
         let mut callbacks = git2::RemoteCallbacks::new();
         let git_config = git2::Config::open_default()?;

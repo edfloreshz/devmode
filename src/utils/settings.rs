@@ -45,8 +45,7 @@ impl Settings {
             .write()?;
         Ok(())
     }
-    pub fn write(&self) -> Result<()> {
-        println!();
+    pub fn write(&self, hide_output: bool) -> Result<()> {
         let current_settings = Settings::current();
         if current_settings.is_none() {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
@@ -55,11 +54,12 @@ impl Settings {
         } else if self != &current_settings.with_context(|| FAILED_TO_PARSE)? {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
                 .with_context(|| FAILED_TO_WRITE_CONFIG)?;
-            println!("{}", SETTINGS_UPDATED);
-        } else {
+            if !hide_output {
+                println!("{}", SETTINGS_UPDATED);
+            }
+        } else if !hide_output {
             println!("{}", NO_SETTINGS_CHANGED);
         }
-        println!();
         Ok(())
     }
     pub fn show(&self) {

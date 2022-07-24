@@ -9,9 +9,9 @@ use cmd_lib::*;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
-use crate::utils::input::select_repo;
 use crate::constants::messages::*;
 use crate::utils::application::Application;
+use crate::utils::input::select_repo;
 use crate::utils::settings::Settings;
 
 pub struct OpenAction {
@@ -62,7 +62,7 @@ impl OpenAction {
                 }
             }
         }
-        println!("Developer paths updated!");
+        println!("Repository cloned successfully! 🎉️");
         Ok(())
     }
 }
@@ -70,8 +70,7 @@ impl OpenAction {
 pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     println!("Opening {}... \n\n{}", name, OPENING_WARNING);
     let path = &paths[0];
-    let options = Settings::current()
-        .with_context(|| APP_OPTIONS_NOT_FOUND)?;
+    let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
         let route = path.replace('\\', "/");
