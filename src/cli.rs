@@ -20,7 +20,7 @@ use crate::utils::settings::Settings;
 use crate::{constants::patterns::GIT_URL, utils::clone::CloneAction};
 
 #[derive(Parser, Debug)]
-#[clap(name = "(Dev)mode", version = "0.2.9")]
+#[clap(name = "(Dev)mode", version = "0.3.0")]
 #[clap(author = "Eduardo F. <edfloreshz@gmail.com>")]
 #[clap(about = "Dev(mode) is a project management utility for developers.")]
 #[clap(arg_required_else_help = true)]
