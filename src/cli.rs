@@ -351,7 +351,7 @@ impl Cli {
                         Colorize::yellow(&*name),
                         Colorize::blue(&*rename.unwrap())
                     );
-                } else if add.is_some() {
+                } else if let Some(..) = add {
                     let add = add.unwrap();
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &add)?
@@ -364,9 +364,7 @@ impl Cli {
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        let path =
-                            select_repo(paths).with_context(|| "Failed to set repository.")?;
-                        path
+                        select_repo(paths).with_context(|| "Failed to set repository.")?
                     } else {
                         paths[0].clone()
                     };
@@ -380,13 +378,13 @@ impl Cli {
                         if let Answer::Bool(overwrite) = answer {
                             if overwrite {
                                 options.overwrite = true;
-                                move_items(&vec![path.clone()], to, &options)?;
+                                move_items(&[path], to, &options)?;
                             }
                         }
                     } else {
-                        move_items(&vec![path.clone()], to, &options)?;
+                        move_items(&[path], to, &options)?;
                     }
-                } else if remove.is_some() {
+                } else if let Some(..) = remove {
                     let remove = remove.unwrap();
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &remove)?
@@ -399,9 +397,7 @@ impl Cli {
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        let path =
-                            select_repo(paths).with_context(|| "Failed to set repository.")?;
-                        path
+                        select_repo(paths).with_context(|| "Failed to set repository.")?
                     } else {
                         paths[0].clone()
                     };
@@ -416,11 +412,11 @@ impl Cli {
                         if let Answer::Bool(overwrite) = answer {
                             if overwrite {
                                 options.overwrite = true;
-                                move_items(&vec![path.clone()], to, &options)?;
+                                move_items(&[path.clone()], to, &options)?;
                             }
                         }
                     } else {
-                        move_items(&vec![path.clone()], to, &options)?;
+                        move_items(&[path.clone()], to, &options)?;
                     }
                 } else {
                     println!("Workspace `{}` found.", Colorize::green(&*name));
