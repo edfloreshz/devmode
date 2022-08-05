@@ -351,8 +351,7 @@ impl Cli {
                         Colorize::yellow(&*name),
                         Colorize::blue(&*rename.unwrap())
                     );
-                } else if let Some(..) = add {
-                    let add = add.unwrap();
+                } else if let Some(add) = add {
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &add)?
                         .iter()
@@ -384,8 +383,7 @@ impl Cli {
                     } else {
                         move_items(&[path], to, &options)?;
                     }
-                } else if let Some(..) = remove {
-                    let remove = remove.unwrap();
+                } else if let Some(remove) = remove {
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &remove)?
                         .iter()
