@@ -59,6 +59,16 @@ pub enum Commands {
         project: String,
     },
     #[clap(
+        about = "Updates a project.",
+        alias = "u",
+        arg_required_else_help = true
+    )]
+    Update {
+        #[clap(help = "Provide a project name")]
+        #[clap(takes_value = true, required = true)]
+        project: String,
+    },
+    #[clap(
         about = "Clones a repo and sets the upstream to your fork.",
         alias = "fk"
     )]
@@ -137,6 +147,7 @@ impl Cli {
         match &self.commands {
             Commands::Clone { args, workspace } => Cli::clone(args, workspace.to_owned()),
             Commands::Open { project } => Cli::open(project),
+            Commands::Update { project } => Cli::update(project),
             Commands::Fork { args, upstream } => Cli::fork(args, upstream, rx),
             Commands::Config {
                 map,
@@ -193,6 +204,9 @@ impl Cli {
     }
     fn open(project: &str) -> Result<()> {
         OpenAction::new(project).open()
+    }
+    fn update(project: &str) -> Result<()> {
+        OpenAction::new(project).update()
     }
     fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<()> {
         let action = if args.is_empty() {

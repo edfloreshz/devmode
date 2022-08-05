@@ -1,6 +1,10 @@
+use git2::BranchType;
+use git2::Repository;
+// use git2::ResetType;
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::process::Command;
 
 use anyhow::Result;
@@ -39,6 +43,22 @@ impl OpenAction {
         }
         Ok(())
     }
+    pub fn update(&self) -> Result<()> {
+        let reader = create_paths_reader()?;
+        let paths = find_paths(reader, &self.name)?;
+        if paths.is_empty() {
+            bail!(NO_PROJECT_FOUND)
+        } else if paths.len() > 1 {
+            eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
+            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
+            update_project(&self.name, vec![path])?
+        } else {
+            update_project(&self.name, paths)?
+        }
+        println!("Your repository has been successfully updated!");
+        Ok(())
+    }
     pub fn make_dev_paths() -> Result<()> {
         let paths_dir = data().join("devmode/devpaths");
         if !paths_dir.exists() {
@@ -58,20 +78,28 @@ impl OpenAction {
         {
             let entry = entry?;
             let repo = entry.path().to_str().unwrap().to_string();
-            let repo = repo.split(if cfg!(target_os = "windows") {
-                "\\"
-            } else {
-                "/"
-            }).last().unwrap();
+            let repo = repo
+                .split(if cfg!(target_os = "windows") {
+                    "\\"
+                } else {
+                    "/"
+                })
+                .last()
+                .unwrap();
             let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
-            let workspace = parent.split(if cfg!(target_os = "windows") {
-                "\\"
-            } else {
-                "/"
-            }).last().unwrap();
-            if (entry.depth() == 3 && !settings.workspaces.names.contains(&repo.to_string())) 
-            || (entry.depth() == 4 && settings.workspaces.names.contains(&workspace.to_string())) 
-            && entry.path().is_dir() {
+            let workspace = parent
+                .split(if cfg!(target_os = "windows") {
+                    "\\"
+                } else {
+                    "/"
+                })
+                .last()
+                .unwrap();
+            if (entry.depth() == 3 && !settings.workspaces.names.contains(&repo.to_string()))
+                || (entry.depth() == 4
+                    && settings.workspaces.names.contains(&workspace.to_string()))
+                    && entry.path().is_dir()
+            {
                 if let Err(e) = writeln!(devpaths, "{}", entry.path().display()) {
                     eprintln!("Couldn't write to file: {}", e);
                 }
@@ -98,6 +126,36 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
         }
     } else {
         options.editor.app.run(path.clone())?;
+    }
+    Ok(())
+}
+
+pub fn update_project(name: &str, paths: Vec<String>) -> Result<()> {
+    println!("Update project {}... \n\n", name);
+    let path = &paths[0];
+    let project = Repository::open(Path::new(path)).expect(NO_PROJECT_FOUND);
+    // project.reset(&project.revparse_single("HEAD"), ResetType::Hard, None)?;
+
+    let main_branch = if let Err(_e) = project.find_branch("main", BranchType::Local) {
+        "master"
+    } else {
+        "main"
+    };
+    project
+        .find_remote("origin")?
+        .fetch(&[main_branch], None, None)?;
+    let fetch_head = project.find_reference("FETCH_HEAD")?;
+    let fetch_commit = project.reference_to_annotated_commit(&fetch_head)?;
+    let analysis = project.merge_analysis(&[&fetch_commit])?;
+
+    if analysis.0.is_fast_forward() {
+        let refname = format!("refs/heads/{}", main_branch);
+        let mut reference = project.find_reference(&refname)?;
+        reference.set_target(fetch_commit.id(), "Fast-Forward")?;
+        project.set_head(&refname)?;
+        project.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+    } else {
+        bail!("Fast-forward only!")
     }
     Ok(())
 }
