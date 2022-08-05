@@ -59,7 +59,7 @@ pub enum Commands {
         project: String,
     },
     #[clap(
-        about = "Updates a project.",
+        about = "Fetch the latest changes for a project.",
         alias = "u",
         arg_required_else_help = true
     )]
