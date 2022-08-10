@@ -5,13 +5,13 @@ use std::io::Write;
 use std::path::Path;
 
 use anyhow::bail;
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::constants::messages::*;
 
-pub fn pull(repo_paht: &Path) -> Result<()> {
+pub fn pull(repo_path: &Path) -> Result<()> {
     let remote_name = "origin";
-    let repo = Repository::open(repo_paht).expect(NO_PROJECT_FOUND);
+    let repo = Repository::open(repo_path).with_context(|| NO_PROJECT_FOUND)?;
     let remote_branch = get_branch(&repo)?;
     let remote_branch = remote_branch.as_str();
     let mut remote = repo.find_remote(remote_name)?;

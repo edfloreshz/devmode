@@ -1,4 +1,3 @@
-// use git2::ResetType;
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
@@ -130,9 +129,8 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
 }
 
 pub fn update_project(name: &str, paths: Vec<String>) -> Result<()> {
-    println!("Update project {}... \n\n", name);
+    println!("Updating project {}... \n\n", name);
     let path = &paths[0];
-    // project.reset(&project.revparse_single("HEAD"), ResetType::Hard, None)?;
 
     git_pull::pull(Path::new(path))
 }
