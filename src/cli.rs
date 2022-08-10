@@ -59,6 +59,16 @@ pub enum Commands {
         project: String,
     },
     #[clap(
+        about = "Fetch the latest changes for a project.",
+        alias = "u",
+        arg_required_else_help = true
+    )]
+    Update {
+        #[clap(help = "Provide a project name")]
+        #[clap(takes_value = true, required = true)]
+        project: String,
+    },
+    #[clap(
         about = "Clones a repo and sets the upstream to your fork.",
         alias = "fk"
     )]
@@ -137,6 +147,7 @@ impl Cli {
         match &self.commands {
             Commands::Clone { args, workspace } => Cli::clone(args, workspace.to_owned()),
             Commands::Open { project } => Cli::open(project),
+            Commands::Update { project } => Cli::update(project),
             Commands::Fork { args, upstream } => Cli::fork(args, upstream, rx),
             Commands::Config {
                 map,
@@ -193,6 +204,9 @@ impl Cli {
     }
     fn open(project: &str) -> Result<()> {
         OpenAction::new(project).open()
+    }
+    fn update(project: &str) -> Result<()> {
+        OpenAction::new(project).update()
     }
     fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<()> {
         let action = if args.is_empty() {
@@ -337,8 +351,7 @@ impl Cli {
                         Colorize::yellow(&*name),
                         Colorize::blue(&*rename.unwrap())
                     );
-                } else if add.is_some() {
-                    let add = add.unwrap();
+                } else if let Some(add) = add {
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &add)?
                         .iter()
@@ -350,9 +363,7 @@ impl Cli {
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        let path =
-                            select_repo(paths).with_context(|| "Failed to set repository.")?;
-                        path
+                        select_repo(paths).with_context(|| "Failed to set repository.")?
                     } else {
                         paths[0].clone()
                     };
@@ -366,14 +377,13 @@ impl Cli {
                         if let Answer::Bool(overwrite) = answer {
                             if overwrite {
                                 options.overwrite = true;
-                                move_items(&vec![path.clone()], to, &options)?;
+                                move_items(&[path], to, &options)?;
                             }
                         }
                     } else {
-                        move_items(&vec![path.clone()], to, &options)?;
+                        move_items(&[path], to, &options)?;
                     }
-                } else if remove.is_some() {
-                    let remove = remove.unwrap();
+                } else if let Some(remove) = remove {
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &remove)?
                         .iter()
@@ -385,9 +395,7 @@ impl Cli {
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        let path =
-                            select_repo(paths).with_context(|| "Failed to set repository.")?;
-                        path
+                        select_repo(paths).with_context(|| "Failed to set repository.")?
                     } else {
                         paths[0].clone()
                     };
@@ -402,11 +410,11 @@ impl Cli {
                         if let Answer::Bool(overwrite) = answer {
                             if overwrite {
                                 options.overwrite = true;
-                                move_items(&vec![path.clone()], to, &options)?;
+                                move_items(&[path.clone()], to, &options)?;
                             }
                         }
                     } else {
-                        move_items(&vec![path.clone()], to, &options)?;
+                        move_items(&[path.clone()], to, &options)?;
                     }
                 } else {
                     println!("Workspace `{}` found.", Colorize::green(&*name));

@@ -1,6 +1,7 @@
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::process::Command;
 
 use anyhow::Result;
@@ -11,6 +12,7 @@ use walkdir::WalkDir;
 
 use crate::constants::messages::*;
 use crate::utils::application::Application;
+use crate::utils::git_pull;
 use crate::utils::input::select_repo;
 use crate::utils::settings::Settings;
 
@@ -39,6 +41,22 @@ impl OpenAction {
         }
         Ok(())
     }
+    pub fn update(&self) -> Result<()> {
+        let reader = create_paths_reader()?;
+        let paths = find_paths(reader, &self.name)?;
+        if paths.is_empty() {
+            bail!(NO_PROJECT_FOUND)
+        } else if paths.len() > 1 {
+            eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
+            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
+            update_project(&self.name, vec![path])?
+        } else {
+            update_project(&self.name, paths)?
+        }
+        println!("Your repository has been successfully updated!");
+        Ok(())
+    }
     pub fn make_dev_paths() -> Result<()> {
         let paths_dir = data().join("devmode/devpaths");
         if !paths_dir.exists() {
@@ -58,20 +76,28 @@ impl OpenAction {
         {
             let entry = entry?;
             let repo = entry.path().to_str().unwrap().to_string();
-            let repo = repo.split(if cfg!(target_os = "windows") {
-                "\\"
-            } else {
-                "/"
-            }).last().unwrap();
+            let repo = repo
+                .split(if cfg!(target_os = "windows") {
+                    "\\"
+                } else {
+                    "/"
+                })
+                .last()
+                .unwrap();
             let parent = entry.path().parent().unwrap().to_str().unwrap().to_string();
-            let workspace = parent.split(if cfg!(target_os = "windows") {
-                "\\"
-            } else {
-                "/"
-            }).last().unwrap();
-            if (entry.depth() == 3 && !settings.workspaces.names.contains(&repo.to_string())) 
-            || (entry.depth() == 4 && settings.workspaces.names.contains(&workspace.to_string())) 
-            && entry.path().is_dir() {
+            let workspace = parent
+                .split(if cfg!(target_os = "windows") {
+                    "\\"
+                } else {
+                    "/"
+                })
+                .last()
+                .unwrap();
+            if (entry.depth() == 3 && !settings.workspaces.names.contains(&repo.to_string()))
+                || (entry.depth() == 4
+                    && settings.workspaces.names.contains(&workspace.to_string()))
+                    && entry.path().is_dir()
+            {
                 if let Err(e) = writeln!(devpaths, "{}", entry.path().display()) {
                     eprintln!("Couldn't write to file: {}", e);
                 }
@@ -100,6 +126,13 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
         options.editor.app.run(path.clone())?;
     }
     Ok(())
+}
+
+pub fn update_project(name: &str, paths: Vec<String>) -> Result<()> {
+    println!("Updating project {}... \n\n", name);
+    let path = &paths[0];
+
+    git_pull::pull(Path::new(path))
 }
 
 pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {

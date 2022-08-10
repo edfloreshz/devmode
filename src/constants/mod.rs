@@ -34,6 +34,7 @@ pub mod messages {
     pub const UNABLE_TO_MAP_URL: &str = "Could not map url.";
     pub const FAILED_TO_CLONE_REPO: &str = "Failed to clone repository.";
     pub const FAILED_TO_SET_REMOTE: &str = "Failed to set remote.";
+    pub const FAILED_TO_GET_BRANCH: &str = "Failed to get branch.";
     pub const OPENING_WARNING: &str =
         "If the editor does not support openning from a path, you'll have to open it yourself.";
     pub const NO_EDITOR_SET: &str = "No editor set, run `dm config -e` to configure it.";
