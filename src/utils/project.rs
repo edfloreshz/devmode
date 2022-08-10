@@ -1,5 +1,3 @@
-use git2::BranchType;
-use git2::Repository;
 // use git2::ResetType;
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::Write;
@@ -15,6 +13,7 @@ use walkdir::WalkDir;
 
 use crate::constants::messages::*;
 use crate::utils::application::Application;
+use crate::utils::git_pull;
 use crate::utils::input::select_repo;
 use crate::utils::settings::Settings;
 
@@ -133,31 +132,9 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
 pub fn update_project(name: &str, paths: Vec<String>) -> Result<()> {
     println!("Update project {}... \n\n", name);
     let path = &paths[0];
-    let project = Repository::open(Path::new(path)).expect(NO_PROJECT_FOUND);
     // project.reset(&project.revparse_single("HEAD"), ResetType::Hard, None)?;
 
-    let main_branch = if let Err(_e) = project.find_branch("main", BranchType::Local) {
-        "master"
-    } else {
-        "main"
-    };
-    project
-        .find_remote("origin")?
-        .fetch(&[main_branch], None, None)?;
-    let fetch_head = project.find_reference("FETCH_HEAD")?;
-    let fetch_commit = project.reference_to_annotated_commit(&fetch_head)?;
-    let analysis = project.merge_analysis(&[&fetch_commit])?;
-
-    if analysis.0.is_fast_forward() {
-        let refname = format!("refs/heads/{}", main_branch);
-        let mut reference = project.find_reference(&refname)?;
-        reference.set_target(fetch_commit.id(), "Fast-Forward")?;
-        project.set_head(&refname)?;
-        project.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
-    } else {
-        bail!("Fast-forward only!")
-    }
-    Ok(())
+    git_pull::pull(Path::new(path))
 }
 
 pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
