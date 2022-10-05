@@ -10,6 +10,7 @@ use regex::bytes::Regex;
 
 use crate::constants::messages::*;
 use crate::constants::patterns::{ORG_GIT_URL, REGULAR_GIT_URL};
+use crate::utils::git_pull;
 use crate::utils::host::Host;
 use crate::utils::project::OpenAction;
 
@@ -184,6 +185,8 @@ impl CloneAction {
                     _ => return Err(err.into()),
                 }
             }
+            println!("Save into: {}", &save_path.display());
+            git_pull::status_short(save_path.to_str().unwrap().to_string())?;
         }
         OpenAction::make_dev_paths()?;
         Ok(())
