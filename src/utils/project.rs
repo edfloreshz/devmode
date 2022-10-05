@@ -109,8 +109,14 @@ impl OpenAction {
 }
 
 pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
-    println!("Opening {}... \n\n{}", name, OPENING_WARNING);
     let path = &paths[0];
+    println!(
+        "Opening {} in {}... \n\n{}",
+        name,
+        path.clone(),
+        OPENING_WARNING
+    );
+    git_pull::status_short(path.clone())?;
     let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
