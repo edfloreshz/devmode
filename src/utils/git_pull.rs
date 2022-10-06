@@ -188,20 +188,20 @@ fn fetch<'a>(
 pub fn status_short(path: String) -> Result<(), Error> {
     let repo = Repository::open(&path)?;
     if repo.is_bare() {
-        return Err(Error::from_str("cannot report status on bare repository"));
+        return Err(Error::from_str("Cannot report status on bare repository."));
     }
     let statuses = repo.statuses(None)?;
 
     let branch = get_branch(&repo);
     println!(
-        "## {}",
+        "Branch: {}",
         branch.unwrap_or_else(|_| "HEAD (no branch)".to_string())
     );
 
     let modules = repo.submodules()?;
     for sm in modules {
         println!(
-            "# - submodule '{}' at {}",
+            "Submodule '{}' at {}",
             sm.name().unwrap(),
             sm.path().display()
         );
