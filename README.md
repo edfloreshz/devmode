@@ -162,6 +162,19 @@ You can also use ` dm o`
 
 If two or more projects with the same name are found, you will have to choose which one to open.
 
+# Dependencies
+- openssl
+
+## Fedora
+```
+sudo dnf install -y openssl-devel
+```
+
+## Ubuntu
+```
+sudo apt install -y libssl-sdev
+```
+
 ## Proposals
 
 If you have a proposal for a new feature, open a new [issue](https://github.com/edfloreshz/devmode/issues).
