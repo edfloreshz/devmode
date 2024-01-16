@@ -8,11 +8,11 @@ use git2_credentials::CredentialHandler;
 use libset::routes::home;
 use regex::bytes::Regex;
 
+use crate::commands::git_pull;
+use crate::commands::host::Host;
+use crate::commands::project::OpenAction;
 use crate::constants::messages::*;
 use crate::constants::patterns::{ORG_GIT_URL, REGULAR_GIT_URL};
-use crate::utils::git_pull;
-use crate::utils::host::Host;
-use crate::utils::project::OpenAction;
 
 #[derive(Clone)]
 pub struct CloneAction {

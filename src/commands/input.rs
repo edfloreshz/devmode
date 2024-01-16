@@ -1,9 +1,9 @@
-use crate::utils::application::Application;
-use crate::utils::clone::CloneAction;
-use crate::utils::editor::Editor;
-use crate::utils::fork::ForkAction;
-use crate::utils::host::Host;
-use crate::utils::settings::Settings;
+use crate::commands::application::Application;
+use crate::commands::clone::CloneAction;
+use crate::commands::editor::Editor;
+use crate::commands::fork::ForkAction;
+use crate::commands::host::Host;
+use crate::commands::settings::Settings;
 use anyhow::{bail, Context, Result};
 use requestty::{Answer, Question};
 

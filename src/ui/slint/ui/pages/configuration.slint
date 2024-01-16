@@ -1,0 +1,55 @@
+import { VerticalBox, HorizontalBox, StandardListView, TextEdit, ComboBox , Switch, GroupBox} from "std-widgets.slint";
+
+export component Configuration inherits VerticalBox {
+    in-out property <bool> custom-editor;
+
+    GroupBox {
+        title: "Git";
+        VerticalBox {
+            HorizontalBox {
+                Text {
+                    vertical-alignment: center;
+                    text: "Service:";
+                }
+                ComboBox {
+                    model: ["GitHub", "GitLab"];
+                }
+            }
+            HorizontalBox {
+                visible: true;
+                Text {
+                    vertical-alignment: center;
+                    text: "Username:";
+                }
+                TextEdit {
+                    height: 40px;
+                }
+            }
+        }
+    }
+    GroupBox {
+        title: "Editor";
+        VerticalBox {
+            HorizontalBox {
+                ComboBox {
+                    model: ["Vim", "VSCode", "Helix"];
+                }
+                Switch {
+                    checked <=> root.custom-editor;
+                    text: "Custom";
+                }
+            }
+            HorizontalBox {
+                visible: root.custom-editor;
+                Text {
+                    vertical-alignment: center;
+                    text: "Editor command:";
+                }
+                TextEdit {
+                    height: 40px;
+                }
+            }
+        }
+    }
+    
+}

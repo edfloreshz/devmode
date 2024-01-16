@@ -10,14 +10,14 @@ use std::path::PathBuf;
 
 use crate::constants::messages::*;
 
-use crate::utils::fork::ForkAction;
-use crate::utils::host::Host;
-use crate::utils::input::{
+use crate::commands::fork::ForkAction;
+use crate::commands::host::Host;
+use crate::commands::input::{
     clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, select_repo,
 };
-use crate::utils::project::{create_paths_reader, find_paths, OpenAction};
-use crate::utils::settings::Settings;
-use crate::{constants::patterns::GIT_URL, utils::clone::CloneAction};
+use crate::commands::project::{create_paths_reader, find_paths, OpenAction};
+use crate::commands::settings::Settings;
+use crate::{commands::clone::CloneAction, constants::patterns::GIT_URL};
 
 #[derive(Parser, Debug)]
 #[clap(name = "(Dev)mode", version = "0.3.0")]

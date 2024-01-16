@@ -1,0 +1,32 @@
+import { VerticalBox , StandardListView, GroupBox , TextEdit, Button, HorizontalBox, Switch} from "std-widgets.slint";
+export component Clone inherits VerticalBox {
+    GroupBox {
+        title: "Repositories";
+        VerticalBox {
+            StandardListView {
+                current-item: 0;
+                model: [ 
+                    { text: "Blue"}, { text: "Red" }, { text: "Green" },
+                    { text: "Yellow" }, { text: "Black"}, { text: "White"},
+                    { text: "Magenta" }, { text: "Cyan" },
+                ];
+            }
+            HorizontalBox {
+                Text {
+                    vertical-alignment: center;
+                    text: "URL:";
+                }
+                TextEdit {
+                    height: 40px;
+                }
+                Switch {
+                    checked: false;
+                    text: "Upstream?";
+                }
+                Button {
+                    text: "Clone";
+                }
+            }
+        }
+    }
+}

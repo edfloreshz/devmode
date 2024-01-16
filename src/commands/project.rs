@@ -10,11 +10,11 @@ use cmd_lib::*;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
+use crate::commands::application::Application;
+use crate::commands::git_pull;
+use crate::commands::input::select_repo;
+use crate::commands::settings::Settings;
 use crate::constants::messages::*;
-use crate::utils::application::Application;
-use crate::utils::git_pull;
-use crate::utils::input::select_repo;
-use crate::utils::settings::Settings;
 
 pub struct OpenAction {
     pub name: String,
