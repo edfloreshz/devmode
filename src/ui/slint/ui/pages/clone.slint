@@ -1,5 +1,11 @@
-import { VerticalBox , StandardListView, GroupBox , TextEdit, Button, HorizontalBox, Switch} from "std-widgets.slint";
-export component Clone inherits VerticalBox {
+import { VerticalBox , StandardListView, GroupBox , LineEdit, Button, HorizontalBox, Switch } from "std-widgets.slint";
+import { Logic } from "logic.slint";
+
+export component ClonePage inherits VerticalBox {
+    
+    in-out property <bool> upstream-toggled;
+    callback clone(string);
+
     GroupBox {
         title: "Repositories";
         VerticalBox {
@@ -16,15 +22,29 @@ export component Clone inherits VerticalBox {
                     vertical-alignment: center;
                     text: "URL:";
                 }
-                TextEdit {
+                url  := LineEdit {
                     height: 40px;
+                    text: "Test";
                 }
                 Switch {
-                    checked: false;
-                    text: "Upstream?";
+                    checked <=> root.upstream-toggled;
+                    text: "Upstream";
                 }
-                Button {
-                    text: "Clone";
+            }
+            HorizontalBox {
+                visible: root.upstream-toggled;
+                Text {
+                    vertical-alignment: center;
+                    text: "Upstream:";
+                }
+                upstream  := LineEdit {
+                    height: 40px;
+                }
+            }
+            Button {
+                text: "Clone";
+                clicked => {
+                    Logic.clone(url.text)
                 }
             }
         }

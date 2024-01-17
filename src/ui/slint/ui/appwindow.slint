@@ -1,8 +1,11 @@
 import { Button, VerticalBox, HorizontalBox, GroupBox, TabWidget, CheckBox } from "std-widgets.slint";
-import { Clone } from "pages/clone.slint";
+import { ClonePage } from "pages/clone.slint";
 import { Open } from "pages/open.slint";
 import { Workspaces } from "pages/workspaces.slint";
 import { Configuration } from "pages/configuration.slint";
+import { Logic } from "pages/logic.slint";
+
+export { Logic }
 
 export component AppWindow inherits Window {
     VerticalBox {
@@ -12,7 +15,7 @@ export component AppWindow inherits Window {
             TabWidget {
                 Tab {
                     title: "Clone";
-                    Clone {}
+                    ClonePage {}
                 }
     
                 Tab {
@@ -22,13 +25,14 @@ export component AppWindow inherits Window {
     
                 Tab {
                     title: "Workspaces";
-                    Workspaces {}
+                    Workspaces {
+                    }
                 }
 
                 Tab {
                     title: "Configuration";
                     Configuration {
-                        custom-editor: false;
+                        custom-editor-enabled: false;
                     }
                 }
             }
