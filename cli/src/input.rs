@@ -1,10 +1,10 @@
-use crate::commands::application::Application;
-use crate::commands::clone::CloneAction;
-use crate::commands::editor::Editor;
-use crate::commands::fork::ForkAction;
-use crate::commands::host::Host;
-use crate::commands::settings::Settings;
 use anyhow::{bail, Context, Result};
+use devmode_shared::application::Application;
+use devmode_shared::clone::CloneAction;
+use devmode_shared::editor::Editor;
+use devmode_shared::fork::ForkAction;
+use devmode_shared::host::Host;
+use devmode_shared::settings::Settings;
 use requestty::{Answer, Question};
 
 pub fn clone_setup() -> Result<CloneAction> {

@@ -4,8 +4,8 @@ use libset::element::Content;
 use libset::{config::Config, format::FileFormat, new_file};
 use serde::{Deserialize, Serialize};
 
-use crate::commands::editor::Editor;
 use crate::constants::messages::*;
+use crate::editor::Editor;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Settings {
@@ -17,7 +17,7 @@ pub struct Settings {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Workspaces {
-    pub(crate) names: Vec<String>,
+    pub names: Vec<String>,
 }
 
 impl Content for Settings {}

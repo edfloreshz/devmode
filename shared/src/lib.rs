@@ -1,9 +1,9 @@
 pub mod application;
 pub mod clone;
+pub mod constants;
 pub mod editor;
 pub mod fork;
 pub mod git_pull;
 pub mod host;
-pub mod input;
 pub mod project;
 pub mod settings;

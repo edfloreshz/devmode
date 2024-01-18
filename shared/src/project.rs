@@ -4,17 +4,16 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::Command;
 
+use anyhow::Context;
 use anyhow::Result;
-use anyhow::{bail, Context};
 use cmd_lib::*;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
-use crate::commands::application::Application;
-use crate::commands::git_pull;
-use crate::commands::input::select_repo;
-use crate::commands::settings::Settings;
+use crate::application::Application;
 use crate::constants::messages::*;
+use crate::git_pull;
+use crate::settings::Settings;
 
 pub struct OpenAction {
     pub name: String,
@@ -26,37 +25,15 @@ impl OpenAction {
             name: name.to_string(),
         }
     }
-    pub fn open(&self) -> Result<()> {
-        let reader = create_paths_reader()?;
-        let paths = find_paths(reader, &self.name)?;
-        if paths.is_empty() {
-            bail!(NO_PROJECT_FOUND)
-        } else if paths.len() > 1 {
-            eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
-            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
-            open_project(&self.name, vec![path])?
-        } else {
-            open_project(&self.name, paths)?
-        }
-        Ok(())
+
+    pub fn open(&self, paths: Vec<String>) -> Result<()> {
+        open_project(&self.name, paths)
     }
-    pub fn update(&self) -> Result<()> {
-        let reader = create_paths_reader()?;
-        let paths = find_paths(reader, &self.name)?;
-        if paths.is_empty() {
-            bail!(NO_PROJECT_FOUND)
-        } else if paths.len() > 1 {
-            eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
-            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
-            update_project(&self.name, vec![path])?
-        } else {
-            update_project(&self.name, paths)?
-        }
-        println!("Your repository has been successfully updated!");
-        Ok(())
+
+    pub fn update(&self, paths: Vec<String>) -> Result<()> {
+        update_project(&self.name, paths)
     }
+
     pub fn make_dev_paths() -> Result<()> {
         let paths_dir = data().join("devmode/devpaths");
         if !paths_dir.exists() {

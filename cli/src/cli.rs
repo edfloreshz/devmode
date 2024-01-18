@@ -8,16 +8,16 @@ use requestty::Answer;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::constants::messages::*;
+use devmode_shared::constants::messages::*;
 
-use crate::commands::fork::ForkAction;
-use crate::commands::host::Host;
-use crate::commands::input::{
+use crate::input::{
     clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, select_repo,
 };
-use crate::commands::project::{create_paths_reader, find_paths, OpenAction};
-use crate::commands::settings::Settings;
-use crate::{commands::clone::CloneAction, constants::patterns::GIT_URL};
+use devmode_shared::fork::ForkAction;
+use devmode_shared::host::Host;
+use devmode_shared::project::{create_paths_reader, find_paths, OpenAction};
+use devmode_shared::settings::Settings;
+use devmode_shared::{clone::CloneAction, constants::patterns::GIT_URL};
 
 #[derive(Parser, Debug)]
 #[clap(name = "(Dev)mode", version = "0.3.0")]
@@ -187,7 +187,7 @@ impl Cli {
         let mut clone = if args.is_empty() {
             clone_setup()?
         } else if args.len() == 1 && args.get(0).unwrap().contains("http") {
-            clone.set_url(args.get(0))?
+            clone.set_url(args.get(0).cloned())
         } else if args.len() == 3 {
             clone
                 .set_host(Some(Host::from(args.get(0).unwrap())))
@@ -203,10 +203,33 @@ impl Cli {
         clone.run()
     }
     fn open(project: &str) -> Result<()> {
-        OpenAction::new(project).open()
+        let reader = create_paths_reader()?;
+        let paths = find_paths(reader, project)?;
+        if paths.is_empty() {
+            bail!(NO_PROJECT_FOUND)
+        } else if paths.len() > 1 {
+            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+            let path = select_repo(paths)
+                .with_context(|| "Failed to set repository.")?
+                .to_string();
+            OpenAction::new(project).open(vec![path])
+        } else {
+            OpenAction::new(project).open(paths)
+        }
     }
     fn update(project: &str) -> Result<()> {
-        OpenAction::new(project).update()
+        let reader = create_paths_reader()?;
+        let paths = find_paths(reader, project)?;
+        if paths.is_empty() {
+            bail!(NO_PROJECT_FOUND)
+        } else if paths.len() > 1 {
+            eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
+            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
+            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
+            OpenAction::new(project).update(vec![path])
+        } else {
+            OpenAction::new(project).update(paths)
+        }
     }
     fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<()> {
         let action = if args.is_empty() {
