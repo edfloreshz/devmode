@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::constants::names::*;
 use crate::constants::url::{GH_URL, GL_URL};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Host {
     GitHub,
     GitLab,
@@ -28,7 +28,7 @@ impl Host {
             Host::None
         }
     }
-    pub fn get(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             Host::GitHub => GH_NAME,
             Host::GitLab => GL_NAME,
@@ -39,6 +39,6 @@ impl Host {
 
 impl Display for Host {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.get())
+        write!(f, "{}", self.name())
     }
 }

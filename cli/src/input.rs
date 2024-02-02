@@ -1,4 +1,7 @@
+use std::{fs::remove_dir_all, path::PathBuf};
+
 use anyhow::{bail, Context, Result};
+use colored::Colorize;
 use devmode_shared::application::Application;
 use devmode_shared::clone::CloneAction;
 use devmode_shared::editor::Editor;
@@ -6,28 +9,55 @@ use devmode_shared::fork::ForkAction;
 use devmode_shared::host::Host;
 use devmode_shared::settings::Settings;
 use requestty::{Answer, Question};
+use url_builder::URLBuilder;
+
+pub fn overwrite(path: PathBuf) -> Result<bool> {
+    println!(
+        "{}: {} exists and is not an empty directory",
+        Colorize::red("Error"),
+        path.display()
+    );
+    let question = requestty::Question::confirm("overwrite")
+        .message("Do you want to overwrite the existing repository?")
+        .build();
+    let answer = requestty::prompt_one(question)?;
+    if let requestty::Answer::Bool(overwrite) = answer {
+        if overwrite {
+            remove_dir_all(&path)?;
+            return Ok(overwrite);
+        }
+    }
+    Ok(false)
+}
 
 pub fn clone_setup() -> Result<CloneAction> {
-    let mut clone = CloneAction::new();
+    let mut url = URLBuilder::new();
+    url.set_protocol("https");
     if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
     {
-        clone.host = Some(Host::from(&host.text));
+        url.set_host(Host::from(&host.text).url());
     }
     if let Answer::String(owner) = ask("owner", "Git username:", "Please enter a Git username.")? {
-        clone.owner = Some(owner);
+        url.add_route(&owner);
     }
     if let Answer::String(repo) = ask("repo", "Git repo name:", "Please enter a Git repo name.")? {
-        clone.repos.as_mut().unwrap().push(repo);
+        url.add_route(&repo);
     }
+
+    let mut clone = CloneAction::new(&url.build());
+
     let settings = Settings::current().with_context(|| "Failed to get configuration")?;
-    let mut options = vec!["None"];
-    for ws in settings.workspaces.names.iter().map(|s| s.as_str()) {
-        options.push(ws);
-    }
+    let mut options: Vec<&str> = settings
+        .workspaces
+        .names
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
+    options.insert(0, "None");
     if let Answer::ListItem(workspace) = pick("workspace", "Pick a workspace", options)? {
         let workspace = workspace.text.to_lowercase();
         if !workspace.eq("none") {
-            clone.workspace = Some(workspace);
+            clone.set_workspace(workspace);
         }
     }
     Ok(clone)

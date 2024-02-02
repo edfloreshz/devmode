@@ -14,8 +14,8 @@ pub mod names {
 }
 
 pub mod url {
-    pub const GH_URL: &str = "https://github.com";
-    pub const GL_URL: &str = "https://gitlab.com";
+    pub const GH_URL: &str = "github.com";
+    pub const GL_URL: &str = "gitlab.com";
 }
 
 pub mod commands {

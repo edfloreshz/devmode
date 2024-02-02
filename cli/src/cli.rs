@@ -1,17 +1,20 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use devmode_shared::action::Action;
 use fs_extra::{dir, move_items};
 use libset::routes::home;
 use regex::bytes::Regex;
 use requestty::Answer;
 use std::fs;
 use std::path::PathBuf;
+use url_builder::URLBuilder;
 
 use devmode_shared::constants::messages::*;
 
 use crate::input::{
-    clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, select_repo,
+    clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, overwrite,
+    select_repo,
 };
 use devmode_shared::fork::ForkAction;
 use devmode_shared::host::Host;
@@ -145,7 +148,7 @@ impl Cli {
     pub fn run(&self) -> Result<()> {
         let rx = Regex::new(GIT_URL).with_context(|| "Unable to parse Regex.")?;
         match &self.commands {
-            Commands::Clone { args, workspace } => Cli::clone(args, workspace.to_owned()),
+            Commands::Clone { args, workspace } => Cli::clone(args.clone(), workspace.to_owned()),
             Commands::Open { project } => Cli::open(project),
             Commands::Update { project } => Cli::update(project),
             Commands::Fork { args, upstream } => Cli::fork(args, upstream, rx),
@@ -182,26 +185,60 @@ impl Cli {
             ),
         }
     }
-    fn clone(args: &[String], workspace: Option<String>) -> Result<()> {
-        let clone = CloneAction::new().set_workspace(workspace);
+
+    fn clone(args: Vec<String>, workspace: Option<String>) -> Result<()> {
+        let mut url = URLBuilder::new();
         let mut clone = if args.is_empty() {
             clone_setup()?
-        } else if args.len() == 1 && args.get(0).unwrap().contains("http") {
-            clone.set_url(args.get(0).cloned())
+        } else if args.len() == 1 {
+            if let Some(url) = args.get(0) {
+                CloneAction::new(url)
+            } else {
+                bail!("Failed to clone.")
+            }
         } else if args.len() == 3 {
-            clone
-                .set_host(Some(Host::from(args.get(0).unwrap())))
-                .set_owner(args.get(1))
-                .set_repos(Some(vec![args.get(2).unwrap().to_owned()]))
+            if let Some(host) = args.get(0) {
+                url.set_host(Host::from(host).url());
+            }
+            if let Some(owner) = args.get(1) {
+                url.add_route(owner);
+            }
+            if let Some(repo) = args.get(2) {
+                url.add_route(repo);
+            }
+            CloneAction::new(&url.build())
         } else {
             let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
-            clone
-                .set_host(Some(Host::from(&options.host)))
-                .set_owner(Some(&options.owner))
-                .set_repos(Some(args.to_vec()))
+            url.set_host(Host::from(&options.host).url())
+                .add_route(&options.owner);
+            if let Some(repo) = args.get(2) {
+                url.add_route(repo);
+            }
+
+            CloneAction::new(&url.build())
         };
-        clone.run()
+        if let Some(workspace) = workspace {
+            clone.set_workspace(workspace);
+        }
+
+        match clone.run() {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                if let Some(error) = err.downcast_ref::<git2::Error>() {
+                    match error.code() {
+                        git2::ErrorCode::Exists => {
+                            if overwrite(clone.get_local_path()?)? {
+                                clone.run()?;
+                            }
+                        }
+                        _ => eprint!("{error}"),
+                    }
+                };
+                Ok(())
+            }
+        }
     }
+
     fn open(project: &str) -> Result<()> {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;

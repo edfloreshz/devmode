@@ -11,7 +11,8 @@ path = "src/main.rs"
 
 [dependencies]
 devmode-shared = { path = "../shared" }
-slint = "1.0"
+git2 = "0.14.4"
+slint = "1.4"
 
 [build-dependencies]
-slint-build = "1.0"
+slint-build = "1.4"

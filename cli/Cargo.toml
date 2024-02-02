@@ -30,3 +30,4 @@ cmd_lib = "1.1.0"
 walkdir = "2.3.2"
 serde = { version = "1.0.126", features = ["derive"] }
 fs_extra = "1.2.0"
+url-builder = "0.1.1"
