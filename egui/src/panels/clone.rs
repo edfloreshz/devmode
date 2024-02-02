@@ -1,4 +1,9 @@
-use eframe::egui::{Layout, Response, ScrollArea, TextEdit, Ui};
+use eframe::{
+    egui::{Layout, Response, ScrollArea, TextEdit, Ui},
+    epaint::vec2,
+};
+
+use crate::Repository;
 
 #[derive(Debug)]
 pub struct ClonePanel {
@@ -23,18 +28,13 @@ impl Default for ClonePanel {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Clone)]
-struct Repository {
-    name: String,
-    url: String,
-}
-
 impl ClonePanel {
     pub(crate) fn ui(&mut self, ui: &mut Ui) -> Response {
         ScrollArea::vertical().show(ui, |ui| {
-            ui.strong("Repositories");
+            ui.heading("Remote repositories");
+            ui.separator();
             ui.vertical(|ui| {
-                ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
                     // Use the `Layout` API to justify the content vertically
                     ui.with_layout(
                         Layout::top_down(eframe::emath::Align::Min).with_cross_justify(true),
@@ -54,7 +54,10 @@ impl ClonePanel {
     pub(crate) fn footer(&mut self, ui: &mut Ui) -> Response {
         ui.horizontal(|ui| {
             ui.label("URL:");
-            ui.add_sized(ui.available_size(), TextEdit::singleline(&mut self.url));
+            ui.add_sized(
+                ui.available_size(),
+                TextEdit::singleline(&mut self.url).margin(vec2(10.0, 10.0)),
+            );
         });
         ui.button("Clone")
     }

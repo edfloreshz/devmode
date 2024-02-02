@@ -61,7 +61,7 @@ impl CloneAction {
         }
         let path = home()
             .join("Developer")
-            .join(Host::from(self.url.host.as_ref().unwrap()).name())
+            .join(Host::from(self.url.host.as_ref().unwrap()).to_string())
             .join(self.url.owner.as_ref().unwrap())
             .join(self.workspace.as_ref().unwrap_or(&String::default()))
             .join(self.url.name.clone());

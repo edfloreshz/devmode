@@ -28,17 +28,18 @@ impl Host {
             Host::None
         }
     }
-    pub fn name(&self) -> &str {
-        match self {
-            Host::GitHub => GH_NAME,
-            Host::GitLab => GL_NAME,
-            Host::None => NONE,
-        }
-    }
 }
 
 impl Display for Host {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name())
+        write!(
+            f,
+            "{}",
+            match self {
+                Host::GitHub => GH_NAME,
+                Host::GitLab => GL_NAME,
+                Host::None => NONE,
+            }
+        )
     }
 }
