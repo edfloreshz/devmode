@@ -10,7 +10,7 @@ name = "dmg"
 path = "src/main.rs"
 
 [dependencies]
-devmode-shared = { path = "../shared" }
+devmode-shared = { path = "../../shared" }
 git2 = "0.14.4"
 slint = "1.4"
 
