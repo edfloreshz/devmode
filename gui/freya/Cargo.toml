@@ -11,7 +11,7 @@ keywords = ["development", "utility"]
 exclude = [".idea", ".github", ".vscode"]
 
 [dependencies]
-freya = "0.1"
+freya = { git = "https://github.com/marc2332/freya" }
 dioxus = { version = "0.4", features = [
     "macro",
     "hooks",

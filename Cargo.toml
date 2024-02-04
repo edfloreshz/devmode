@@ -39,5 +39,5 @@ exclude = [".idea", ".github", ".vscode"]
 
 [workspace]
 resolver = "2"
-members = ["cli", "gui/slint", "gui/iced", "gui/egui", "gui/freya"]
-# exclude = ["gui/freya"]
+members = ["cli", "gui/freya", "gui/iced", "gui/egui"]
+exclude = ["gui/slint"]
