@@ -1,4 +1,4 @@
-use devmode_shared::{application::Application, editor::Editor, host::Host, settings::Settings};
+use devmode::{application::Application, editor::Editor, host::Host, settings::Settings};
 use eframe::{
     egui::{ComboBox, Response, TextEdit, Ui},
     epaint::vec2,

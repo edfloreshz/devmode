@@ -1,14 +1,14 @@
 [package]
-name = "devmode"
-version = "0.3.0"
-edition = "2021"
-license = "GPL-2.0"
+name = "devmode-cli"
 description = "Devmode is a project management utility for developers."
-homepage = "https://devmode.edfloreshz.dev/"
-documentation = "https://docs.rs/devmode"
-repository = "https://github.com/edfloreshz/devmode/"
-readme = "README.md"
-exclude = [".idea", ".github", ".vscode", "assets/img", "assets/scripts"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [[bin]]
 name = "dm"
@@ -17,7 +17,7 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-devmode-shared = { path = "../shared" }
+devmode = { path = "../" }
 libset = "0.1.2"
 clap = { version = "3.2.14", features = ["derive"] }
 anyhow = "1.0.44"

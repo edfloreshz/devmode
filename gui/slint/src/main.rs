@@ -1,4 +1,4 @@
-use devmode_shared::{action::Action, clone::CloneAction};
+use devmode::{action::Action, clone::CloneAction};
 
 slint::include_modules!();
 

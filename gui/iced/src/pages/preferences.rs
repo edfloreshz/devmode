@@ -1,4 +1,4 @@
-use devmode_shared::{application::Application, editor::Editor, host::Host, settings::Settings};
+use devmode::settings::Settings;
 use iced::widget::text;
 
 use crate::app::Message;

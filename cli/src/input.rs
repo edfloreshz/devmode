@@ -2,12 +2,12 @@ use std::{fs::remove_dir_all, path::PathBuf};
 
 use anyhow::{bail, Context, Result};
 use colored::Colorize;
-use devmode_shared::application::Application;
-use devmode_shared::clone::CloneAction;
-use devmode_shared::editor::Editor;
-use devmode_shared::fork::ForkAction;
-use devmode_shared::host::Host;
-use devmode_shared::settings::Settings;
+use devmode::application::Application;
+use devmode::clone::CloneAction;
+use devmode::editor::Editor;
+use devmode::fork::ForkAction;
+use devmode::host::Host;
+use devmode::settings::Settings;
 use requestty::{Answer, Question};
 use url_builder::URLBuilder;
 

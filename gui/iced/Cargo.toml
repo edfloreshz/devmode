@@ -1,11 +1,17 @@
 [package]
-name = "iced"
-version = "0.1.0"
-edition = "2021"
+name = "devmode-iced"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 iced = "0.10.0"
 strum = { version = "0.26.1", features = ["derive"] }
-devmode-shared = { path = "../../shared" }
+devmode = { path = "../../" }

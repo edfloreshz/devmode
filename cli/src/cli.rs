@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use devmode_shared::action::Action;
+use devmode::action::Action;
 use fs_extra::{dir, move_items};
 use libset::routes::home;
 use regex::bytes::Regex;
@@ -10,17 +10,17 @@ use std::fs;
 use std::path::PathBuf;
 use url_builder::URLBuilder;
 
-use devmode_shared::constants::messages::*;
+use devmode::constants::messages::*;
 
 use crate::input::{
     clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, overwrite,
     select_repo,
 };
-use devmode_shared::fork::ForkAction;
-use devmode_shared::host::Host;
-use devmode_shared::project::{create_paths_reader, find_paths, OpenAction};
-use devmode_shared::settings::Settings;
-use devmode_shared::{clone::CloneAction, constants::patterns::GIT_URL};
+use devmode::fork::ForkAction;
+use devmode::host::Host;
+use devmode::project::{create_paths_reader, find_paths, OpenAction};
+use devmode::settings::Settings;
+use devmode::{clone::CloneAction, constants::patterns::GIT_URL};
 
 #[derive(Parser, Debug)]
 #[clap(name = "(Dev)mode", version = "0.3.0")]

@@ -1,16 +1,21 @@
 [package]
-name = "devmode-gui"
-version = "0.1.0"
-authors = ["Eduardo Flores <edfloreshz@gmail.com>"]
-edition = "2021"
+name = "devmode-slint"
 build = "build.rs"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [[bin]]
 name = "dmg"
 path = "src/main.rs"
 
 [dependencies]
-devmode-shared = { path = "../../shared" }
+devmode = { path = "../../" }
 git2 = "0.14.4"
 slint = "1.4"
 
