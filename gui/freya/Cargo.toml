@@ -16,3 +16,4 @@ dioxus = { version = "0.4", features = [
     "macro",
     "hooks",
 ], default-features = false }
+dark-light = "1.0.0"

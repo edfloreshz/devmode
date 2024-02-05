@@ -24,7 +24,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Default, PartialEq, EnumIter, Display, Clone)]
-enum Page {
+pub enum Page {
     #[default]
     Clone,
     Open,
