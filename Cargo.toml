@@ -1,7 +1,7 @@
 [package]
 name = "devmode"
 description = "A project management utility for developers"
-version.workspace = true
+version = "0.3.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -39,5 +39,4 @@ exclude = [".idea", ".github", ".vscode"]
 
 [workspace]
 resolver = "2"
-members = ["cli", "gui/dioxus", "gui/freya", "gui/iced", "gui/egui"]
-exclude = ["gui/slint"]
+members = ["src/cli", "src/ui"]
