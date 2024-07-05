@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-use crate::fl;
+use crate::pages::clone;
+use crate::{fl, pages};
 use cosmic::app::{Command, Core};
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, Length};
@@ -13,14 +14,12 @@ const REPOSITORY: &str = "https://github.com/edfloreshz/cosmic-app-template";
 
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
-pub struct YourApp {
-    /// Application state which is managed by the COSMIC runtime.
+pub struct Devmode {
     core: Core,
-    /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
-    /// Key bindings for the application's menu bar.
+    page: Page,
+    clone: pages::clone::ClonePage,
     key_binds: HashMap<menu::KeyBind, MenuAction>,
-    /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
 }
 
@@ -31,13 +30,15 @@ pub struct YourApp {
 pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
+    Clone(clone::Message),
 }
 
 /// Identifies a page in the application.
 pub enum Page {
-    Page1,
-    Page2,
-    Page3,
+    Clone,
+    Workspaces,
+    Open,
+    Config,
 }
 
 /// Identifies a context page to display in the context drawer.
@@ -78,14 +79,14 @@ impl menu::action::MenuAction for MenuAction {
 /// - `Flags` is the data that your application needs to use before it starts.
 /// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
 /// - `APP_ID` is the unique identifier of your application.
-impl Application for YourApp {
+impl Application for Devmode {
     type Executor = cosmic::executor::Default;
 
     type Flags = ();
 
     type Message = Message;
 
-    const APP_ID: &'static str = "com.example.CosmicAppTemplate";
+    const APP_ID: &'static str = "dev.edfloreshz.Devmode";
 
     fn core(&self) -> &Core {
         &self.core
@@ -111,31 +112,36 @@ impl Application for YourApp {
         let mut nav = nav_bar::Model::default();
 
         nav.insert()
-            .text("Page 1")
-            .data::<Page>(Page::Page1)
-            .icon(icon::from_name("applications-science-symbolic"))
+            .text("Clone")
+            .data::<Page>(Page::Clone)
+            .icon(icon::from_name("browser-download-symbolic"))
             .activate();
 
         nav.insert()
-            .text("Page 2")
-            .data::<Page>(Page::Page2)
-            .icon(icon::from_name("applications-system-symbolic"));
+            .text("Workspaces")
+            .data::<Page>(Page::Workspaces)
+            .icon(icon::from_name("multitasking-symbolic"));
 
         nav.insert()
-            .text("Page 3")
-            .data::<Page>(Page::Page3)
-            .icon(icon::from_name("applications-games-symbolic"));
+            .text("Open")
+            .data::<Page>(Page::Open)
+            .icon(icon::from_name("folder-open-symbolic"));
 
-        let mut app = YourApp {
+        nav.insert()
+            .text("Config")
+            .data::<Page>(Page::Config)
+            .icon(icon::from_name("settings-symbolic"));
+
+        let app = Devmode {
             core,
             context_page: ContextPage::default(),
+            page: Page::Clone,
+            clone: pages::clone::ClonePage::new(),
             key_binds: HashMap::new(),
             nav,
         };
 
-        let command = app.update_titles();
-
-        (app, command)
+        (app, Command::none())
     }
 
     /// Elements to pack at the start of the header bar.
@@ -151,15 +157,19 @@ impl Application for YourApp {
         vec![menu_bar.into()]
     }
 
-    /// This is the main view of your application, it is the root of your widget tree.
-    ///
-    /// The `Element` type is used to represent the visual elements of your application,
-    /// it has a `Message` associated with it, which dictates what type of message it can send.
-    ///
-    /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
-        widget::text::title1(fl!("welcome"))
+        let spacing = theme::active().cosmic().spacing;
+
+        let page: Element<Self::Message> = match self.page {
+            Page::Clone => self.clone.view().map(Message::Clone),
+            Page::Workspaces => todo!(),
+            Page::Open => todo!(),
+            Page::Config => todo!(),
+        };
+
+        widget::container(page)
             .apply(widget::container)
+            .padding(spacing.space_xxs)
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(Horizontal::Center)
@@ -172,6 +182,15 @@ impl Application for YourApp {
     /// background thread managed by the application's executor.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
+            Message::Clone(message) => {
+                for command in self.clone.update(message) {
+                    match command {
+                        clone::Command::Clone(_repository, _workspace) => {
+                            todo!("Implement cloning mechanism.")
+                        }
+                    }
+                }
+            }
             Message::LaunchUrl(url) => {
                 let _result = open::that_detached(url);
             }
@@ -209,18 +228,17 @@ impl Application for YourApp {
         // Activate the page in the model.
         self.nav.activate(id);
 
-        self.update_titles()
+        Command::none()
     }
 }
 
-impl YourApp {
+impl Devmode {
     /// The about page for this app.
     pub fn about(&self) -> Element<Message> {
         let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
 
         let icon = widget::svg(widget::svg::Handle::from_memory(
-            &include_bytes!("../res/icons/hicolor/128x128/apps/com.example.CosmicAppTemplate.svg")
-                [..],
+            &include_bytes!("../res/icons/hicolor/scalable/apps/dev.edfloreshz.Devmode.svg")[..],
         ));
 
         let title = widget::text::title3(fl!("app-title"));
@@ -236,20 +254,5 @@ impl YourApp {
             .align_items(Alignment::Center)
             .spacing(space_xxs)
             .into()
-    }
-
-    /// Updates the header and window titles.
-    pub fn update_titles(&mut self) -> Command<Message> {
-        let mut window_title = fl!("app-title");
-        let mut header_title = String::new();
-
-        if let Some(page) = self.nav.text(self.nav.active()) {
-            window_title.push_str(" — ");
-            window_title.push_str(page);
-            header_title.push_str(page);
-        }
-
-        self.set_header_title(header_title);
-        self.set_window_title(window_title)
     }
 }

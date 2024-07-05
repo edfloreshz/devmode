@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use app::YourApp;
+use app::Devmode;
 /// The `app` module is used by convention to indicate the main component of our application.
 mod app;
 mod core;
+mod pages;
 
 /// The `cosmic::app::run()` function is the starting point of your application.
 /// It takes two arguments:
@@ -12,5 +13,5 @@ mod core;
 ///  If your app does not need any flags, you can pass in `()`.
 fn main() -> cosmic::iced::Result {
     let settings = cosmic::app::Settings::default();
-    cosmic::app::run::<YourApp>(settings, ())
+    cosmic::app::run::<Devmode>(settings, ())
 }

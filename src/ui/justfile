@@ -1,5 +1,5 @@
 name := 'cosmic-app-template'
-export APPID := 'com.example.CosmicAppTemplate'
+export APPID := 'dev.edfloreshz.Devmode'
 
 rootdir := ''
 prefix := '/usr'
