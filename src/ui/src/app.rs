@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 
-use crate::pages::clone;
 use crate::{fl, pages};
 use cosmic::app::{Command, Core};
 use cosmic::iced::alignment::{Horizontal, Vertical};
@@ -19,6 +18,9 @@ pub struct Devmode {
     context_page: ContextPage,
     page: Page,
     clone: pages::clone::ClonePage,
+    workspaces: pages::workspaces::WorkspacesPage,
+    open: pages::open::OpenPage,
+    config: pages::config::ConfigPage,
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     nav: nav_bar::Model,
 }
@@ -30,10 +32,14 @@ pub struct Devmode {
 pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
-    Clone(clone::Message),
+    Clone(pages::clone::Message),
+    Workspaces(pages::workspaces::Message),
+    Open(pages::open::Message),
+    Config(pages::config::Message),
 }
 
 /// Identifies a page in the application.
+#[derive(Debug, Clone, Copy)]
 pub enum Page {
     Clone,
     Workspaces,
@@ -137,6 +143,9 @@ impl Application for Devmode {
             context_page: ContextPage::default(),
             page: Page::Clone,
             clone: pages::clone::ClonePage::new(),
+            workspaces: pages::workspaces::WorkspacesPage::new(),
+            open: pages::open::OpenPage::new(),
+            config: pages::config::ConfigPage::new(),
             key_binds: HashMap::new(),
             nav,
         };
@@ -162,9 +171,9 @@ impl Application for Devmode {
 
         let page: Element<Self::Message> = match self.page {
             Page::Clone => self.clone.view().map(Message::Clone),
-            Page::Workspaces => todo!(),
-            Page::Open => todo!(),
-            Page::Config => todo!(),
+            Page::Workspaces => self.workspaces.view().map(Message::Workspaces),
+            Page::Open => self.open.view().map(Message::Open),
+            Page::Config => self.config.view().map(Message::Config),
         };
 
         widget::container(page)
@@ -185,16 +194,18 @@ impl Application for Devmode {
             Message::Clone(message) => {
                 for command in self.clone.update(message) {
                     match command {
-                        clone::Command::Clone(_repository, _workspace) => {
+                        pages::clone::Command::Clone(_repository, _workspace) => {
                             todo!("Implement cloning mechanism.")
                         }
                     }
                 }
             }
+            Message::Workspaces(message) => for command in self.workspaces.update(message) {},
+            Message::Open(message) => for command in self.open.update(message) {},
+            Message::Config(message) => for command in self.config.update(message) {},
             Message::LaunchUrl(url) => {
                 let _result = open::that_detached(url);
             }
-
             Message::ToggleContextPage(context_page) => {
                 if self.context_page == context_page {
                     // Close the context drawer if the toggled context page is the same.
@@ -227,6 +238,10 @@ impl Application for Devmode {
     fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
         // Activate the page in the model.
         self.nav.activate(id);
+
+        if let Some(page) = self.nav.active_data::<Page>() {
+            self.page = *page;
+        }
 
         Command::none()
     }
