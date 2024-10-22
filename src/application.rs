@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::process::Command;
 
-use anyhow::Result;
+use crate::Error;
 use cmd_lib::run_cmd;
 use serde::{Deserialize, Serialize};
 
@@ -25,7 +25,7 @@ impl Application {
             _ => "",
         })
     }
-    pub fn run(&self, arg: String) -> Result<()> {
+    pub fn run(&self, arg: String) -> Result<(), Error> {
         match self {
             Application::VSCode => {
                 if cfg!(target_os = "windows") {

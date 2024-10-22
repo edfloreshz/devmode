@@ -1,5 +1,5 @@
-use anyhow::Result;
+use crate::Error;
 
 pub trait Action {
-    fn run(&mut self) -> Result<()>;
+    fn run(&mut self) -> Result<(), Error>;
 }

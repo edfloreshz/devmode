@@ -1,7 +1,6 @@
-use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
-use colored::Colorize;
 use devmode::action::Action;
+use devmode::Error;
 use fs_extra::{dir, move_items};
 use libset::routes::home;
 use regex::bytes::Regex;
@@ -145,8 +144,8 @@ pub enum Commands {
 }
 
 impl Cli {
-    pub fn run(&self) -> Result<()> {
-        let rx = Regex::new(GIT_URL).with_context(|| "Unable to parse Regex.")?;
+    pub fn run(&self) -> Result<(), Error> {
+        let rx = Regex::new(GIT_URL)?;
         match &self.commands {
             Commands::Clone { args, workspace } => Cli::clone(args.clone(), workspace.to_owned()),
             Commands::Open { project } => Cli::open(project),
@@ -186,7 +185,7 @@ impl Cli {
         }
     }
 
-    fn clone(args: Vec<String>, workspace: Option<String>) -> Result<()> {
+    fn clone(args: Vec<String>, workspace: Option<String>) -> Result<(), Error> {
         let mut url = URLBuilder::new();
         let mut clone = if args.is_empty() {
             clone_setup()?
@@ -194,7 +193,7 @@ impl Cli {
             if let Some(url) = args.get(0) {
                 CloneAction::new(url)
             } else {
-                bail!("Failed to clone.")
+                return devmode::generic("No URL provided");
             }
         } else if args.len() == 3 {
             if let Some(host) = args.get(0) {
@@ -208,7 +207,7 @@ impl Cli {
             }
             CloneAction::new(&url.build())
         } else {
-            let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
+            let options = Settings::current().ok_or(Error::Generic("Failed to load settings"))?;
             url.set_host(Host::from(&options.host).url())
                 .add_route(&options.owner);
             if let Some(repo) = args.get(2) {
@@ -221,78 +220,72 @@ impl Cli {
             clone.set_workspace(workspace);
         }
 
-        match clone.run() {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                if let Some(error) = err.downcast_ref::<git2::Error>() {
-                    match error.code() {
-                        git2::ErrorCode::Exists => {
-                            if overwrite(clone.get_local_path()?)? {
-                                clone.run()?;
-                            }
-                        }
-                        _ => eprint!("{error}"),
+        if let Err(Error::Git(error)) = clone.run() {
+            match error.code() {
+                git2::ErrorCode::Exists => {
+                    if overwrite(clone.get_local_path()?)? {
+                        clone.run()?;
                     }
-                };
-                Ok(())
+                }
+                _ => log::error!("{error}"),
             }
-        }
+        };
+
+        Ok(())
     }
 
-    fn open(project: &str) -> Result<()> {
+    fn open(project: &str) -> Result<(), Error> {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            bail!(NO_PROJECT_FOUND)
+            return devmode::generic(NO_PROJECT_FOUND);
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-            let path = select_repo(paths)
-                .with_context(|| "Failed to set repository.")?
-                .to_string();
+            let path = select_repo(paths)?.to_string();
             OpenAction::new(project).open(vec![path])
         } else {
             OpenAction::new(project).open(paths)
         }
     }
-    fn update(project: &str) -> Result<()> {
+    fn update(project: &str) -> Result<(), Error> {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            bail!(NO_PROJECT_FOUND)
+            return devmode::generic(NO_PROJECT_FOUND);
         } else if paths.len() > 1 {
             eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-            let path = select_repo(paths).with_context(|| "Failed to set repository.")?;
+            let path = select_repo(paths)?;
             OpenAction::new(project).update(vec![path])
         } else {
             OpenAction::new(project).update(paths)
         }
     }
-    fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<()> {
+
+    fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<(), Error> {
         let action = if args.is_empty() {
             fork_setup()?
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
-            let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
+            let options = Settings::current().ok_or(Error::Generic(APP_OPTIONS_NOT_FOUND))?;
             let host = Host::from(&options.host);
-            let repo = args.get(0).map(|a| a.to_string());
-            ForkAction::from(
-                host,
-                upstream.to_string(),
-                options.owner,
-                repo.with_context(|| "Failed to get repo name.")?,
-            )
+            let repo = args
+                .get(0)
+                .map(|a| a.to_string())
+                .ok_or(Error::Generic("Failed to get repo"))?;
+            ForkAction::from(host, upstream.to_string(), options.owner, repo)
         } else {
             let host = Host::from(args.get(0).unwrap());
-            let owner = args.get(1).map(|a| a.to_string());
-            let repo = args.get(2).map(|a| a.to_string());
-            ForkAction::from(
-                host,
-                upstream.to_string(),
-                owner.with_context(|| "Failed to get owner name.")?,
-                repo.with_context(|| "Failed to get repo name")?,
-            )
+            let owner = args
+                .get(1)
+                .map(|a| a.to_string())
+                .ok_or(Error::Generic("Failed to get owner"))?;
+            let repo = args
+                .get(2)
+                .map(|a| a.to_string())
+                .ok_or(Error::Generic("Failed to get repo"))?;
+            ForkAction::from(host, upstream.to_string(), owner, repo)
         };
         action.run()
     }
@@ -304,7 +297,7 @@ impl Cli {
         owner: bool,
         host: bool,
         none: bool,
-    ) -> Result<()> {
+    ) -> Result<(), Error> {
         if all || none {
             if get_settings().is_err() {
                 println!("First time setup! 🥳\n");
@@ -317,15 +310,15 @@ impl Cli {
             OpenAction::make_dev_paths()?
         }
         if editor {
-            let settings = config_editor().with_context(|| "Failed to set editor.")?;
+            let settings = config_editor()?;
             settings.write(false)?
         }
         if owner {
-            let settings = config_owner().with_context(|| "Failed to set owner.")?;
+            let settings = config_owner()?;
             settings.write(false)?
         }
         if host {
-            let settings = config_host().with_context(|| "Failed to set host.")?;
+            let settings = config_host()?;
             settings.write(false)?
         }
         if show {
@@ -341,8 +334,9 @@ impl Cli {
         add: Option<String>,
         remove: Option<String>,
         list: bool,
-    ) -> Result<()> {
-        let mut settings = Settings::current().with_context(|| "Failed to get configuration")?;
+    ) -> Result<(), Error> {
+        let mut settings =
+            Settings::current().ok_or(Error::Generic("Failed to get configuration"))?;
         if let Some(name) = name {
             if settings.workspaces.names.contains(&name) {
                 let index = settings
@@ -378,10 +372,7 @@ impl Cli {
                     }
                     settings.workspaces.names.remove(index);
                     settings.write(true)?;
-                    println!(
-                        "Workspace {} was successfully deleted.",
-                        Colorize::yellow(&*name)
-                    )
+                    println!("Workspace {name} was successfully deleted.")
                 } else if rename.is_some() {
                     let dev = home().join("Developer");
                     for provider in fs::read_dir(dev)? {
@@ -406,11 +397,7 @@ impl Cli {
                     }
                     *settings.workspaces.names.get_mut(index).unwrap() = rename.clone().unwrap();
                     settings.write(true)?;
-                    println!(
-                        "Workspace renamed from {} to {}.",
-                        Colorize::yellow(&*name),
-                        Colorize::blue(&*rename.unwrap())
-                    );
+                    println!("Workspace renamed from {name} to {}.", rename.unwrap());
                 } else if let Some(add) = add {
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &add)?
@@ -419,11 +406,11 @@ impl Cli {
                         .filter(|path| !path.contains(name.as_str()))
                         .collect();
                     let path = if paths.is_empty() {
-                        bail!("Could not locate the {add} repository.")
+                        return devmode::generic("Could not locate the {add} repository.");
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        select_repo(paths).with_context(|| "Failed to set repository.")?
+                        select_repo(paths)?
                     } else {
                         paths[0].clone()
                     };
@@ -451,11 +438,13 @@ impl Cli {
                         .filter(|path| path.contains(name.as_str()))
                         .collect();
                     let path = if paths.is_empty() {
-                        bail!("Could not locate the {remove} repository inside {name}")
+                        return devmode::generic(
+                            "Could not locate the {remove} repository inside {name}",
+                        );
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        select_repo(paths).with_context(|| "Failed to set repository.")?
+                        select_repo(paths)?
                     } else {
                         paths[0].clone()
                     };
@@ -477,29 +466,23 @@ impl Cli {
                         move_items(&[path.clone()], to, &options)?;
                     }
                 } else {
-                    println!("Workspace `{}` found.", Colorize::green(&*name));
+                    println!("Workspace `{name}` found.");
                 }
             } else if delete || rename.is_some() {
-                bail!(
-                    "Couldn't find a workspace that matches {}.",
-                    Colorize::yellow(&*name)
-                )
+                return devmode::generic("Couldn't find a workspace that matches {name}.");
             } else {
                 settings.workspaces.names.push(name.clone());
                 settings.write(true)?;
-                println!("Workspace {} was added.", Colorize::yellow(&*name))
+                println!("Workspace {name} was added.")
             }
         } else if list {
             let workspaces = settings.workspaces.names;
-            println!(
-                "Currently available workspaces: {}",
-                Colorize::yellow(&*format!("{:?}", workspaces))
-            );
+            println!("Currently available workspaces: {workspaces:?}",);
         }
         Ok(())
     }
 }
 
-fn get_settings() -> Result<Settings> {
-    Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)
+fn get_settings() -> Result<Settings, Error> {
+    Settings::current().ok_or(Error::Generic(APP_OPTIONS_NOT_FOUND))
 }

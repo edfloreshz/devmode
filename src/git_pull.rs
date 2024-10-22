@@ -1,4 +1,4 @@
-use git2::Error;
+use git2::Error as GitError;
 use git2::ErrorCode;
 use git2::Repository;
 use git2::SubmoduleIgnore;
@@ -6,14 +6,13 @@ use std::io;
 use std::io::Write;
 use std::path::Path;
 
-use anyhow::bail;
-use anyhow::{Context, Result};
+use crate::constants::messages::FAILED_TO_GET_BRANCH;
+use crate::error;
+use crate::error::Error;
 
-use crate::constants::messages::*;
-
-pub fn pull(repo_path: &Path) -> Result<()> {
+pub fn pull(repo_path: &Path) -> Result<(), Error> {
     let remote_name = "origin";
-    let repo = Repository::open(repo_path).with_context(|| NO_PROJECT_FOUND)?;
+    let repo = Repository::open(repo_path)?;
     let remote_branch = get_branch(&repo)?;
     let remote_branch = remote_branch.as_str();
     let mut remote = repo.find_remote(remote_name)?;
@@ -27,7 +26,7 @@ fn merge<'a>(
     repo: &'a Repository,
     remote_branch: &str,
     fetch_commit: git2::AnnotatedCommit<'a>,
-) -> Result<(), git2::Error> {
+) -> Result<(), GitError> {
     let analysis = repo.merge_analysis(&[&fetch_commit])?;
     if analysis.0.is_fast_forward() {
         println!("Doing fast forward");
@@ -66,7 +65,7 @@ fn normal_merge(
     repo: &Repository,
     local: &git2::AnnotatedCommit,
     remote: &git2::AnnotatedCommit,
-) -> Result<(), git2::Error> {
+) -> Result<(), GitError> {
     let local_tree = repo.find_commit(local.id())?.tree()?;
     let remote_tree = repo.find_commit(local.id())?.tree()?;
     let ancestor = repo
@@ -101,7 +100,7 @@ fn fast_forward(
     repo: &Repository,
     lb: &mut git2::Reference,
     rc: &git2::AnnotatedCommit,
-) -> Result<(), git2::Error> {
+) -> Result<(), GitError> {
     let name = match lb.name() {
         Some(s) => s.to_string(),
         None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
@@ -114,18 +113,18 @@ fn fast_forward(
     Ok(())
 }
 
-fn get_branch(repo: &Repository) -> Result<String> {
+fn get_branch(repo: &Repository) -> Result<String, Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
         Err(ref e) if e.code() == ErrorCode::UnbornBranch || e.code() == ErrorCode::NotFound => {
             None
         }
-        Err(e) => bail!(e),
+        Err(e) => return Err(Error::Git(e)),
     };
     let head = head.as_ref().and_then(|h| h.shorthand());
     match head {
         Some(branch) => Ok(String::from(branch)),
-        None => bail!(FAILED_TO_GET_BRANCH),
+        None => error::generic(FAILED_TO_GET_BRANCH),
     }
 }
 
@@ -133,7 +132,7 @@ fn fetch<'a>(
     repo: &'a git2::Repository,
     refs: &[&str],
     remote: &'a mut git2::Remote,
-) -> Result<git2::AnnotatedCommit<'a>, git2::Error> {
+) -> Result<git2::AnnotatedCommit<'a>, GitError> {
     let mut cb = git2::RemoteCallbacks::new();
 
     cb.transfer_progress(|stats| {
@@ -185,22 +184,24 @@ fn fetch<'a>(
     repo.reference_to_annotated_commit(&fetch_head)
 }
 
-pub fn status_short(path: String) -> Result<(), Error> {
+pub fn status_short(path: String) -> Result<(), GitError> {
     let repo = Repository::open(&path)?;
     if repo.is_bare() {
-        return Err(Error::from_str("Cannot report status on bare repository."));
+        return Err(GitError::from_str(
+            "Cannot report status on bare repository.",
+        ));
     }
     let statuses = repo.statuses(None)?;
 
     let branch = get_branch(&repo);
-    println!(
+    log::info!(
         "Branch: {}",
-        branch.unwrap_or_else(|_| "HEAD (no branch)".to_string())
+        branch.unwrap_or_else(|_| "HEAD (no branch)".to_string()),
     );
 
     let modules = repo.submodules()?;
     for sm in modules {
-        println!(
+        log::info!(
             "Submodule '{}' at {}",
             sm.name().unwrap(),
             sm.path().display()

@@ -1,20 +1,17 @@
 use std::{fs::remove_dir_all, path::PathBuf};
 
-use anyhow::{bail, Context, Result};
-use colored::Colorize;
-use devmode::application::Application;
 use devmode::clone::CloneAction;
 use devmode::editor::Editor;
 use devmode::fork::ForkAction;
 use devmode::host::Host;
 use devmode::settings::Settings;
+use devmode::{application::Application, Error};
 use requestty::{Answer, Question};
 use url_builder::URLBuilder;
 
-pub fn overwrite(path: PathBuf) -> Result<bool> {
+pub fn overwrite(path: PathBuf) -> Result<bool, Error> {
     println!(
-        "{}: {} exists and is not an empty directory",
-        Colorize::red("Error"),
+        "Error: {} exists and is not an empty directory",
         path.display()
     );
     let question = requestty::Question::confirm("overwrite")
@@ -30,7 +27,7 @@ pub fn overwrite(path: PathBuf) -> Result<bool> {
     Ok(false)
 }
 
-pub fn clone_setup() -> Result<CloneAction> {
+pub fn clone_setup() -> Result<CloneAction, Error> {
     let mut url = URLBuilder::new();
     url.set_protocol("https");
     if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
@@ -46,7 +43,7 @@ pub fn clone_setup() -> Result<CloneAction> {
 
     let mut clone = CloneAction::new(&url.build());
 
-    let settings = Settings::current().with_context(|| "Failed to get configuration")?;
+    let settings = Settings::current().ok_or(Error::Generic("Failed to get configuration"))?;
     let mut options: Vec<&str> = settings
         .workspaces
         .names
@@ -63,7 +60,7 @@ pub fn clone_setup() -> Result<CloneAction> {
     Ok(clone)
 }
 
-pub fn fork_setup() -> Result<ForkAction> {
+pub fn fork_setup() -> Result<ForkAction, Error> {
     let mut fork = ForkAction::new();
     if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
     {
@@ -83,7 +80,7 @@ pub fn fork_setup() -> Result<ForkAction> {
 }
 
 /// Runs the configuration setup again.
-pub fn config_all() -> anyhow::Result<Settings> {
+pub fn config_all() -> Result<Settings, Error> {
     let settings = Settings::new(
         config_host()?.host,
         config_owner()?.owner,
@@ -92,11 +89,11 @@ pub fn config_all() -> anyhow::Result<Settings> {
     Ok(settings)
 }
 
-pub fn config_owner() -> anyhow::Result<Settings> {
+pub fn config_owner() -> Result<Settings, Error> {
     let answer = ask("owner", "Git username:", "Please enter a Git username.")?;
     let owner = match answer {
         Answer::String(owner) => owner,
-        _ => bail!("Owner is required."),
+        _ => return devmode::generic("Owner is required."),
     };
     let current = Settings::current();
     let settings = match current {
@@ -112,11 +109,11 @@ pub fn config_owner() -> anyhow::Result<Settings> {
     Ok(settings)
 }
 
-pub fn config_host() -> anyhow::Result<Settings> {
+pub fn config_host() -> Result<Settings, Error> {
     let answer = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
     let host = match answer {
         Answer::ListItem(item) => Host::from(&item.text).to_string(),
-        _ => bail!("Host is required."),
+        _ => return devmode::generic("Host is required."),
     };
     let current = Settings::current();
     let settings = match current {
@@ -132,7 +129,7 @@ pub fn config_host() -> anyhow::Result<Settings> {
     Ok(settings)
 }
 
-pub fn config_editor() -> anyhow::Result<Settings> {
+pub fn config_editor() -> Result<Settings, Error> {
     let answer = pick(
         "editor",
         "Choose your favorite editor:",
@@ -149,13 +146,13 @@ pub fn config_editor() -> anyhow::Result<Settings> {
                 if let Answer::String(name) = answer {
                     Editor::custom(name)
                 } else {
-                    bail!("Editor name is required.")
+                    return devmode::generic("Editor name is required.");
                 }
             } else {
                 Editor::new(Application::from(&*item.text))
             }
         }
-        _ => bail!("Editor must be picked."),
+        _ => return devmode::generic("Editor must be picked."),
     };
     let current = Settings::current();
     let settings = match current {
@@ -171,16 +168,16 @@ pub fn config_editor() -> anyhow::Result<Settings> {
     Ok(settings)
 }
 
-pub fn select_repo(paths: Vec<&str>) -> anyhow::Result<String> {
+pub fn select_repo(paths: Vec<&str>) -> Result<String, Error> {
     let answer = pick("repo", "Select the repository you want to open:", paths)?;
     let repo = match answer {
         Answer::ListItem(item) => item.text,
-        _ => bail!("Repository must be picked."),
+        _ => return devmode::generic("Repository must be picked."),
     };
     Ok(repo)
 }
 
-pub fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
+pub fn ask(key: &str, message: &str, err: &str) -> Result<Answer, Error> {
     requestty::prompt_one(
         Question::input(key)
             .message(message)
@@ -193,15 +190,15 @@ pub fn ask(key: &str, message: &str, err: &str) -> Result<Answer> {
             })
             .build(),
     )
-    .with_context(|| "Failed to present prompt.")
+    .map_err(|e| Error::String(e.to_string()))
 }
 
-pub fn pick(key: &str, message: &str, options: Vec<&str>) -> anyhow::Result<Answer> {
+pub fn pick(key: &str, message: &str, options: Vec<&str>) -> Result<Answer, Error> {
     requestty::prompt_one(
         Question::select(key)
             .message(message)
             .choices(options)
             .build(),
     )
-    .with_context(|| "Failed to get input.")
+    .map_err(|e| Error::String(e.to_string()))
 }

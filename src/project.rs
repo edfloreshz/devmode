@@ -4,14 +4,13 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::Command;
 
-use anyhow::Context;
-use anyhow::Result;
 use cmd_lib::*;
 use libset::routes::{data, home};
 use walkdir::WalkDir;
 
 use crate::application::Application;
 use crate::constants::messages::*;
+use crate::error::Error;
 use crate::git_pull;
 use crate::settings::Settings;
 
@@ -26,24 +25,24 @@ impl OpenAction {
         }
     }
 
-    pub fn open(&self, paths: Vec<String>) -> Result<()> {
+    pub fn open(&self, paths: Vec<String>) -> Result<(), Error> {
         open_project(&self.name, paths)
     }
 
-    pub fn update(&self, paths: Vec<String>) -> Result<()> {
+    pub fn update(&self, paths: Vec<String>) -> Result<(), Error> {
         update_project(&self.name, paths)
     }
 
-    pub fn make_dev_paths() -> Result<()> {
+    pub fn make_dev_paths() -> Result<(), Error> {
         let paths_dir = data().join("devmode/devpaths");
         if !paths_dir.exists() {
-            create_dir_all(&paths_dir).with_context(|| "Failed to create directory.")?;
+            create_dir_all(&paths_dir)?;
             File::create(paths_dir.join("devpaths"))?;
         }
         OpenAction::write_paths()
     }
-    fn write_paths() -> Result<()> {
-        let settings = Settings::current().with_context(|| "Failed to get settings.")?;
+    fn write_paths() -> Result<(), Error> {
+        let settings = Settings::current().ok_or(Error::Generic("Failed to get settings."))?;
         let mut devpaths = OpenOptions::new()
             .write(true)
             .open(data().join("devmode/devpaths"))?;
@@ -85,7 +84,7 @@ impl OpenAction {
     }
 }
 
-pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
+pub fn open_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
     let path = &paths[0];
     println!(
         "Opening {} in {}... \n\n{}",
@@ -94,7 +93,7 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
         OPENING_WARNING
     );
     git_pull::status_short(path.clone())?;
-    let options = Settings::current().with_context(|| APP_OPTIONS_NOT_FOUND)?;
+    let options = Settings::current().ok_or(Error::Generic(APP_OPTIONS_NOT_FOUND))?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
         let route = path.replace('\\', "/");
@@ -111,31 +110,35 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn update_project(name: &str, paths: Vec<String>) -> Result<()> {
+pub fn update_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
     println!("Updating project {}... \n\n", name);
     let path = &paths[0];
 
     git_pull::pull(Path::new(path))
 }
 
-pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>> {
+pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>, Error> {
     let paths = reader
         .lines()
-        .map(|e| e.unwrap_or_default())
-        .filter(|e| {
-            let split: Vec<&str> = e
-                .split(if cfg!(target_os = "windows") {
-                    "\\"
-                } else {
-                    "/"
-                })
-                .collect();
-            split.last().unwrap() == &path
+        .filter_map(|e| {
+            if let Ok(line) = e {
+                let split: Vec<&str> = line
+                    .split(if cfg!(target_os = "windows") {
+                        "\\"
+                    } else {
+                        "/"
+                    })
+                    .collect();
+                if split.last().unwrap() == &path {
+                    return Some(line);
+                }
+            }
+            None
         })
         .collect::<Vec<String>>();
     Ok(paths)
 }
 
-pub fn create_paths_reader() -> Result<BufReader<File>> {
+pub fn create_paths_reader() -> Result<BufReader<File>, Error> {
     Ok(BufReader::new(File::open(data().join("devmode/devpaths"))?))
 }

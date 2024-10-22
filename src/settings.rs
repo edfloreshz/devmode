@@ -1,4 +1,3 @@
-use anyhow::{Context, Result};
 use colored::Colorize;
 use libset::element::Content;
 use libset::{config::Config, format::FileFormat, new_file};
@@ -6,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::constants::messages::*;
 use crate::editor::Editor;
+use crate::Error;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Settings {
@@ -31,7 +31,7 @@ impl Settings {
             workspaces: Workspaces { names: vec![] },
         }
     }
-    pub fn init() -> Result<()> {
+    pub fn init() -> Result<(), Error> {
         Config::new("devmode")
             .author("Eduardo Flores")
             .about("Development management app.")
@@ -42,23 +42,24 @@ impl Settings {
                     .set_content(Box::new(Settings::default())),
             )
             .add(new_file!("devpaths"))
-            .write()?;
+            .write()
+            .map_err(|e| Error::String(e.to_string()))?;
         Ok(())
     }
-    pub fn write(&self, hide_output: bool) -> Result<()> {
+    pub fn write(&self, hide_output: bool) -> Result<(), Error> {
         let current_settings = Settings::current();
         if current_settings.is_none() {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
-                .with_context(|| FAILED_TO_WRITE_CONFIG)?;
-            println!("Settings set correctly.");
-        } else if self != &current_settings.with_context(|| FAILED_TO_PARSE)? {
+                .map_err(|e| Error::String(e.to_string()))?;
+            log::info!("Settings set correctly.");
+        } else if self != &current_settings.ok_or(Error::Generic(FAILED_TO_PARSE))? {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
-                .with_context(|| FAILED_TO_WRITE_CONFIG)?;
+                .map_err(|e| Error::String(e.to_string()))?;
             if !hide_output {
-                println!("{}", SETTINGS_UPDATED);
+                log::info!("{}", SETTINGS_UPDATED);
             }
         } else if !hide_output {
-            println!("{}", NO_SETTINGS_CHANGED);
+            log::info!("{}", NO_SETTINGS_CHANGED);
         }
         Ok(())
     }
@@ -76,6 +77,7 @@ impl Settings {
             self.workspaces.names
         );
     }
+
     pub fn current() -> Option<Settings> {
         Config::get::<Settings>("devmode/settings.toml", FileFormat::TOML)
     }
