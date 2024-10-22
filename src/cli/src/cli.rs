@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use devmode::action::Action;
-use devmode::Error;
+use devmode::{DevmodeStatus, Error};
 use fs_extra::{dir, move_items};
 use libset::routes::home;
 use regex::bytes::Regex;
@@ -8,8 +8,6 @@ use requestty::Answer;
 use std::fs;
 use std::path::PathBuf;
 use url_builder::URLBuilder;
-
-use devmode::constants::messages::*;
 
 use crate::input::{
     clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, overwrite,
@@ -247,7 +245,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return devmode::error(NO_PROJECT_FOUND);
+            return Err(Error::String(DevmodeStatus::NoProjectFound.to_string()));
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?.to_string();
@@ -260,9 +258,8 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return devmode::error(NO_PROJECT_FOUND);
+            return Err(Error::String(DevmodeStatus::NoProjectFound.to_string()));
         } else if paths.len() > 1 {
-            eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?;
             OpenAction::new(project).update(vec![path])
@@ -277,7 +274,9 @@ impl Cli {
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
-            let options = Settings::current().ok_or(Error::Generic(APP_OPTIONS_NOT_FOUND))?;
+            let options = Settings::current().ok_or(Error::String(
+                DevmodeStatus::AppSettingsNotFound.to_string(),
+            ))?;
             let host = Host::from(&options.host);
             let repo = args
                 .get(0)
@@ -417,7 +416,6 @@ impl Cli {
                     let path = if paths.is_empty() {
                         return devmode::error("Could not locate the {add} repository.");
                     } else if paths.len() > 1 {
-                        eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
                         select_repo(paths)?
                     } else {
@@ -451,7 +449,6 @@ impl Cli {
                             "Could not locate the {remove} repository inside {name}",
                         );
                     } else if paths.len() > 1 {
-                        eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
                         select_repo(paths)?
                     } else {
@@ -493,5 +490,7 @@ impl Cli {
 }
 
 fn get_settings() -> Result<Settings, Error> {
-    Settings::current().ok_or(Error::Generic(APP_OPTIONS_NOT_FOUND))
+    Settings::current().ok_or(Error::String(
+        DevmodeStatus::AppSettingsNotFound.to_string(),
+    ))
 }

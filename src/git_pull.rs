@@ -6,9 +6,8 @@ use std::io;
 use std::io::Write;
 use std::path::Path;
 
-use crate::constants::messages::FAILED_TO_GET_BRANCH;
-use crate::error;
 use crate::error::Error;
+use crate::DevmodeStatus;
 
 pub fn pull(repo_path: &Path) -> Result<(), Error> {
     let remote_name = "origin";
@@ -124,7 +123,7 @@ fn get_branch(repo: &Repository) -> Result<String, Error> {
     let head = head.as_ref().and_then(|h| h.shorthand());
     match head {
         Some(branch) => Ok(String::from(branch)),
-        None => error::error(FAILED_TO_GET_BRANCH),
+        None => Err(Error::String(DevmodeStatus::FailedToGetBranch.to_string())),
     }
 }
 

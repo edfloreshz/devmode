@@ -3,8 +3,13 @@ pub mod application;
 pub mod clone;
 pub mod constants;
 pub mod editor;
+
 mod error;
-pub use error::{error, Error};
+pub use error::*;
+
+mod status;
+pub use status::*;
+
 pub mod fork;
 pub mod git_pull;
 pub mod host;

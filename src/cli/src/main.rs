@@ -10,7 +10,7 @@ fn main() -> Result<(), Error> {
     start_logger();
     let cli = Cli::parse();
     if let Err(e) = cli.run() {
-        log::error!("{}", e);
+        log::error!("{}", e)
     }
     Ok(())
 }

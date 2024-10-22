@@ -9,10 +9,9 @@ use libset::routes::{data, home};
 use walkdir::WalkDir;
 
 use crate::application::Application;
-use crate::constants::messages::*;
 use crate::error::Error;
-use crate::git_pull;
 use crate::settings::Settings;
+use crate::{git_pull, DevmodeStatus};
 
 pub struct OpenAction {
     pub name: String,
@@ -90,10 +89,12 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
         "Opening {} in {}... \n\n{}",
         name,
         path.clone(),
-        OPENING_WARNING
+        DevmodeStatus::OpenedProjectWithWarning.to_string()
     );
     git_pull::status_short(path.clone())?;
-    let options = Settings::current().ok_or(Error::Generic(APP_OPTIONS_NOT_FOUND))?;
+    let options = Settings::current().ok_or(Error::String(
+        DevmodeStatus::AppSettingsNotFound.to_string(),
+    ))?;
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
         let route = path.replace('\\', "/");

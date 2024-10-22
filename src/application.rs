@@ -1,12 +1,11 @@
 use std::fmt::{Display, Formatter};
 use std::process::Command;
 
-use crate::Error;
+use crate::{DevmodeStatus, Error};
 use cmd_lib::run_cmd;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::commands::*;
-use crate::constants::messages::NO_EDITOR_SET;
 use crate::constants::names::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -70,7 +69,7 @@ impl Display for Application {
             Application::VSCode => write!(f, "{}", VSCODE_NAME),
             Application::Vim => write!(f, "{}", VIM_NAME),
             Application::Custom => write!(f, "{}", CUSTOM_NAME),
-            _ => write!(f, "{}", NO_EDITOR_SET),
+            _ => write!(f, "{}", DevmodeStatus::NoEditorSet.to_string()),
         }
     }
 }

@@ -4,7 +4,6 @@ use git2::Repository;
 use libset::routes::home;
 use regex::bytes::Regex;
 
-use crate::constants::messages::*;
 use crate::host::Host;
 use crate::project::OpenAction;
 use crate::{error, Error};
@@ -112,7 +111,7 @@ impl ForkAction {
         if path.is_empty() {
             println!("Seems that you haven't cloned the repository locally.");
         }
-        let project = Repository::open(Path::new(&path)).expect(NO_PROJECT_FOUND);
+        let project = Repository::open(Path::new(&path))?;
         project.remote("upstream", &self.upstream)?;
         Ok(())
     }
