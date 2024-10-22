@@ -187,13 +187,26 @@ impl Cli {
 
     fn clone(args: Vec<String>, workspace: Option<String>) -> Result<(), Error> {
         let mut url = URLBuilder::new();
+        url.set_protocol("https");
         let mut clone = if args.is_empty() {
             clone_setup()?
+        } else if Settings::current().is_some() && args.len() == 1 {
+            let Some(options) = Settings::current() else {
+                return devmode::error("");
+            };
+
+            url.set_host(Host::from(&options.host).url())
+                .add_route(&options.owner);
+            if let Some(repo) = args.get(0) {
+                url.add_route(repo);
+            }
+
+            CloneAction::new(&url.build())
         } else if args.len() == 1 {
             if let Some(url) = args.get(0) {
                 CloneAction::new(url)
             } else {
-                return devmode::generic("No URL provided");
+                return devmode::error("No URL provided");
             }
         } else if args.len() == 3 {
             if let Some(host) = args.get(0) {
@@ -207,27 +220,23 @@ impl Cli {
             }
             CloneAction::new(&url.build())
         } else {
-            let options = Settings::current().ok_or(Error::Generic("Failed to load settings"))?;
-            url.set_host(Host::from(&options.host).url())
-                .add_route(&options.owner);
-            if let Some(repo) = args.get(2) {
-                url.add_route(repo);
-            }
-
-            CloneAction::new(&url.build())
+            return devmode::error("The command was invalid");
         };
         if let Some(workspace) = workspace {
             clone.set_workspace(workspace);
         }
 
-        if let Err(Error::Git(error)) = clone.run() {
-            match error.code() {
-                git2::ErrorCode::Exists => {
-                    if overwrite(clone.get_local_path()?)? {
-                        clone.run()?;
+        if let Err(error) = clone.run() {
+            match error {
+                Error::Git(error) => match error.code() {
+                    git2::ErrorCode::Exists => {
+                        if overwrite(clone.get_local_path()?)? {
+                            clone.run()?;
+                        }
                     }
-                }
-                _ => log::error!("{error}"),
+                    _ => log::error!("{error}"),
+                },
+                error => log::error!("{error}"),
             }
         };
 
@@ -238,7 +247,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return devmode::generic(NO_PROJECT_FOUND);
+            return devmode::error(NO_PROJECT_FOUND);
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?.to_string();
@@ -251,7 +260,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return devmode::generic(NO_PROJECT_FOUND);
+            return devmode::error(NO_PROJECT_FOUND);
         } else if paths.len() > 1 {
             eprintln!("{}", MORE_PROJECTS_FOUND); // TODO: Let user decide which
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
@@ -406,7 +415,7 @@ impl Cli {
                         .filter(|path| !path.contains(name.as_str()))
                         .collect();
                     let path = if paths.is_empty() {
-                        return devmode::generic("Could not locate the {add} repository.");
+                        return devmode::error("Could not locate the {add} repository.");
                     } else if paths.len() > 1 {
                         eprintln!("{}", MORE_PROJECTS_FOUND);
                         let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
@@ -438,7 +447,7 @@ impl Cli {
                         .filter(|path| path.contains(name.as_str()))
                         .collect();
                     let path = if paths.is_empty() {
-                        return devmode::generic(
+                        return devmode::error(
                             "Could not locate the {remove} repository inside {name}",
                         );
                     } else if paths.len() > 1 {
@@ -469,7 +478,7 @@ impl Cli {
                     println!("Workspace `{name}` found.");
                 }
             } else if delete || rename.is_some() {
-                return devmode::generic("Couldn't find a workspace that matches {name}.");
+                return devmode::error("Couldn't find a workspace that matches {name}.");
             } else {
                 settings.workspaces.names.push(name.clone());
                 settings.write(true)?;

@@ -124,7 +124,7 @@ fn get_branch(repo: &Repository) -> Result<String, Error> {
     let head = head.as_ref().and_then(|h| h.shorthand());
     match head {
         Some(branch) => Ok(String::from(branch)),
-        None => error::generic(FAILED_TO_GET_BRANCH),
+        None => error::error(FAILED_TO_GET_BRANCH),
     }
 }
 

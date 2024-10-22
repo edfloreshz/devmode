@@ -26,6 +26,6 @@ pub enum Error {
     String(String),
 }
 
-pub fn generic<T>(msg: &'static str) -> Result<T, Error> {
+pub fn error<T>(msg: &'static str) -> Result<T, Error> {
     Err(Error::Generic(msg))
 }

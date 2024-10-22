@@ -18,7 +18,7 @@ use crate::{error, git_pull, Error};
 #[setters(strip_option)]
 pub struct CloneAction {
     #[setters(skip)]
-    pub url: GitUrl,
+    pub url: Option<GitUrl>,
     pub workspace: Option<String>,
 }
 
@@ -31,23 +31,32 @@ impl Action for CloneAction {
 impl CloneAction {
     pub fn new(url: &str) -> Self {
         Self {
-            url: GitUrl::parse(url).unwrap(),
+            url: GitUrl::parse(url).ok(),
             workspace: None,
         }
     }
 
     pub fn clone_repo(&self) -> Result<(), Error> {
+        let Some(url) = &self.url else {
+            return error::error("Url is not in the correct format.");
+        };
         let path = self.get_local_path()?;
-
         let clone = git2::build::RepoBuilder::new()
             .fetch_options(CloneAction::get_fetch_options()?)
-            .clone(&self.url.to_string(), &path);
+            .clone(&url.to_string(), &path);
 
         if let Err(err) = clone {
-            if let ErrorCode::NotFound = err.code() {
-                remove_dir_all(&path)?
+            match err.code() {
+                ErrorCode::GenericError => {
+                    if let Some(parent) = path.parent() {
+                        let children: Vec<_> = std::fs::read_dir(parent)?.collect();
+                        if children.is_empty() {
+                            remove_dir_all(&parent)?;
+                        }
+                    }
+                }
+                _ => return Err(Error::Git(err)),
             }
-            return Err(Error::Git(err));
         }
 
         git_pull::status_short(path.to_str().unwrap().to_string())?;
@@ -56,15 +65,18 @@ impl CloneAction {
     }
 
     pub fn get_local_path(&self) -> Result<PathBuf, Error> {
-        if self.url.host.is_none() || self.url.owner.is_none() {
-            return error::generic("Url is not in the correct format.");
+        let Some(url) = &self.url else {
+            return error::error("Url is not in the correct format.");
+        };
+        if url.host.is_none() || url.owner.is_none() {
+            return error::error("Url is not in the correct format.");
         }
         let path = home()
             .join("Developer")
-            .join(Host::from(self.url.host.as_ref().unwrap()).to_string())
-            .join(self.url.owner.as_ref().unwrap())
+            .join(Host::from(url.host.as_ref().unwrap()).to_string())
+            .join(url.owner.as_ref().unwrap())
             .join(self.workspace.as_ref().unwrap_or(&String::default()))
-            .join(self.url.name.clone());
+            .join(url.name.clone());
 
         Ok(path)
     }

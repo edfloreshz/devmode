@@ -47,16 +47,16 @@ impl ForkAction {
     }
     pub fn run(&self) -> Result<(), Error> {
         return if let Host::None = self.host {
-            error::generic(
+            error::error(
                 "You can't do this unless you set your configuration with ` dm config -a`\n\
                     In the meantime, you can clone by specifying <host> <owner> <repo>",
             )
         } else if self.owner.is_empty() {
-            error::generic("Missing arguments: <owner> <repo>")
+            error::error("Missing arguments: <owner> <repo>")
         } else if self.repo.is_empty() {
-            error::generic("Missing arguments: <repo>")
+            error::error("Missing arguments: <repo>")
         } else if self.upstream.is_empty() {
-            error::generic(
+            error::error(
                 "Missing arguments: <upstream>. \
             For example ... -u https://github.com/user/upstream",
             )

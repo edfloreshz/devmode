@@ -93,7 +93,7 @@ pub fn config_owner() -> Result<Settings, Error> {
     let answer = ask("owner", "Git username:", "Please enter a Git username.")?;
     let owner = match answer {
         Answer::String(owner) => owner,
-        _ => return devmode::generic("Owner is required."),
+        _ => return devmode::error("Owner is required."),
     };
     let current = Settings::current();
     let settings = match current {
@@ -113,7 +113,7 @@ pub fn config_host() -> Result<Settings, Error> {
     let answer = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
     let host = match answer {
         Answer::ListItem(item) => Host::from(&item.text).to_string(),
-        _ => return devmode::generic("Host is required."),
+        _ => return devmode::error("Host is required."),
     };
     let current = Settings::current();
     let settings = match current {
@@ -146,13 +146,13 @@ pub fn config_editor() -> Result<Settings, Error> {
                 if let Answer::String(name) = answer {
                     Editor::custom(name)
                 } else {
-                    return devmode::generic("Editor name is required.");
+                    return devmode::error("Editor name is required.");
                 }
             } else {
                 Editor::new(Application::from(&*item.text))
             }
         }
-        _ => return devmode::generic("Editor must be picked."),
+        _ => return devmode::error("Editor must be picked."),
     };
     let current = Settings::current();
     let settings = match current {
@@ -172,7 +172,7 @@ pub fn select_repo(paths: Vec<&str>) -> Result<String, Error> {
     let answer = pick("repo", "Select the repository you want to open:", paths)?;
     let repo = match answer {
         Answer::ListItem(item) => item.text,
-        _ => return devmode::generic("Repository must be picked."),
+        _ => return devmode::error("Repository must be picked."),
     };
     Ok(repo)
 }

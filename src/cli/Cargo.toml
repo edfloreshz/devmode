@@ -30,3 +30,4 @@ serde = { version = "1.0.126", features = ["derive"] }
 fs_extra = "1.2.0"
 url-builder = "0.1.1"
 log = "0.4.22"
+pretty_env_logger = "0.5.0"
