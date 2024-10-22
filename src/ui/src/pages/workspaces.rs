@@ -60,7 +60,7 @@ impl WorkspacesPage {
             .width(Length::Fill);
 
             let row = widget::row::with_capacity(4)
-                .align_items(Alignment::Center)
+                .align_y(Alignment::Center)
                 .spacing(spacing.space_xxs)
                 .padding([spacing.space_xxxs, spacing.space_xxs])
                 .push(item_text);

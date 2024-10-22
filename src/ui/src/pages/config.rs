@@ -33,8 +33,6 @@ impl ConfigPage {
     }
 
     pub fn update(&self, message: Message) -> Vec<Command> {
-        let mut commands = vec![];
-        match message {}
-        commands
+        vec![]
     }
 }

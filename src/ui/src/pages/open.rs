@@ -2,7 +2,6 @@ use cosmic::{
     iced::{Alignment, Length},
     theme, widget, Apply, Element,
 };
-use slotmap::{DefaultKey, SecondaryMap, SlotMap};
 
 #[derive(Debug, Default)]
 pub struct Repository {
@@ -45,7 +44,7 @@ impl OpenPage {
             let item_text = widget::text(item).width(Length::Fill);
 
             let row = widget::row::with_capacity(4)
-                .align_items(Alignment::Center)
+                .align_y(Alignment::Center)
                 .spacing(spacing.space_xxs)
                 .padding([spacing.space_xxxs, spacing.space_xxs])
                 .push(item_text);
@@ -65,10 +64,6 @@ impl OpenPage {
     }
 
     pub fn update(&self, message: Message) -> Vec<Command> {
-        let mut commands = vec![];
-        match message {
-            Message::Select(_) => todo!(),
-        }
-        commands
+        vec![]
     }
 }

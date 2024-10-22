@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::{fl, pages};
-use cosmic::app::{Command, Core};
+use cosmic::app::{Core, Task};
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{self, icon, menu, nav_bar};
@@ -114,7 +114,7 @@ impl Application for Devmode {
     /// - `core` is used to passed on for you by libcosmic to use in the core of your own application.
     /// - `flags` is used to pass in any data that your application needs to use before it starts.
     /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
+    fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
         let mut nav = nav_bar::Model::default();
 
         nav.insert()
@@ -150,7 +150,7 @@ impl Application for Devmode {
             nav,
         };
 
-        (app, Command::none())
+        (app, Task::none())
     }
 
     /// Elements to pack at the start of the header bar.
@@ -189,7 +189,7 @@ impl Application for Devmode {
     /// Application messages are handled here. The application state can be modified based on
     /// what message was received. Commands may be returned for asynchronous execution on a
     /// background thread managed by the application's executor.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
         match message {
             Message::Clone(message) => {
                 for command in self.clone.update(message) {
@@ -220,7 +220,7 @@ impl Application for Devmode {
                 self.set_context_title(context_page.title());
             }
         }
-        Command::none()
+        Task::none()
     }
 
     /// Display a context drawer if the context page is requested.
@@ -235,7 +235,7 @@ impl Application for Devmode {
     }
 
     /// Called when a nav item is selected.
-    fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
+    fn on_nav_select(&mut self, id: nav_bar::Id) -> Task<Self::Message> {
         // Activate the page in the model.
         self.nav.activate(id);
 
@@ -243,7 +243,7 @@ impl Application for Devmode {
             self.page = *page;
         }
 
-        Command::none()
+        Task::none()
     }
 }
 
@@ -266,7 +266,7 @@ impl Devmode {
             .push(icon)
             .push(title)
             .push(link)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(space_xxs)
             .into()
     }

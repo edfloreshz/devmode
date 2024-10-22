@@ -63,8 +63,8 @@ impl ClonePage {
             .padding([spacing.space_none, spacing.space_xxs]);
 
         for (id, item) in &self.repositories {
-            let item_checkbox =
-                widget::checkbox("", item.selected, move |value| Message::Select(id, value));
+            let item_checkbox = widget::checkbox("", item.selected)
+                .on_toggle(move |value| Message::Select(id, value));
 
             let item_text = widget::editable_input(
                 "",
@@ -78,7 +78,7 @@ impl ClonePage {
             .width(Length::Fill);
 
             let row = widget::row::with_capacity(4)
-                .align_items(Alignment::Center)
+                .align_y(Alignment::Center)
                 .spacing(spacing.space_xxs)
                 .padding([spacing.space_xxxs, spacing.space_xxs])
                 .push(item_checkbox)
