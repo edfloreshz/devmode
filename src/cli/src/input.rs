@@ -150,7 +150,7 @@ pub fn config_editor() -> Result<Settings, Error> {
                     return devmode::error("Editor name is required.");
                 }
             } else {
-                Editor::new(Application::from(&*item.text))
+                Editor::new(Application::from(&item.text))
             }
         }
         _ => return devmode::error("Editor must be picked."),

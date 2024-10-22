@@ -10,7 +10,7 @@ mod pages;
 /// It takes two arguments:
 /// - `settings` is a structure that contains everything relevant with your app's configuration, such as antialiasing, themes, icons, etc...
 /// - `()` is the flags that your app needs to use before it starts.
-///  If your app does not need any flags, you can pass in `()`.
+/// If your app does not need any flags, you can pass in `()`.
 fn main() -> cosmic::iced::Result {
     let settings = cosmic::app::Settings::default();
     cosmic::app::run::<Devmode>(settings, ())

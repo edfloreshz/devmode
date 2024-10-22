@@ -201,19 +201,19 @@ impl Cli {
 
             url.set_host(Host::from(&options.host).url())
                 .add_route(&options.owner);
-            if let Some(repo) = args.get(0) {
+            if let Some(repo) = args.first() {
                 url.add_route(repo);
             }
 
             CloneAction::new(&url.build())
         } else if args.len() == 1 {
-            if let Some(url) = args.get(0) {
+            if let Some(url) = args.first() {
                 CloneAction::new(url)
             } else {
                 return Err(Error::Devmode(DevmodeError::NoUrlProvided));
             }
         } else if args.len() == 3 {
-            if let Some(host) = args.get(0) {
+            if let Some(host) = args.first() {
                 url.set_host(Host::from(host).url());
             }
             if let Some(owner) = args.get(1) {
@@ -251,7 +251,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return Err(Error::Devmode(DevmodeError::NoProjectFound));
+            Err(Error::Devmode(DevmodeError::NoProjectFound))
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?.to_string();
@@ -264,7 +264,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return Err(Error::Devmode(DevmodeError::NoProjectFound));
+            Err(Error::Devmode(DevmodeError::NoProjectFound))
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?;
@@ -277,19 +277,19 @@ impl Cli {
     fn fork(args: &[String], upstream: &str, rx: Regex) -> Result<(), Error> {
         let action = if args.is_empty() {
             fork_setup()?
-        } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
-            ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
+        } else if rx.is_match(args.first().unwrap().as_bytes()) {
+            ForkAction::parse_url(args.first().unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
             let options =
                 Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
             let host = Host::from(&options.host);
             let repo = args
-                .get(0)
+                .first()
                 .map(|a| a.to_string())
                 .ok_or(Error::Generic("Failed to get repo"))?;
             ForkAction::from(host, upstream.to_string(), options.owner, repo)
         } else {
-            let host = Host::from(args.get(0).unwrap());
+            let host = Host::from(args.first().unwrap());
             let owner = args
                 .get(1)
                 .map(|a| a.to_string())
@@ -349,7 +349,7 @@ impl Cli {
                     for provider in fs::read_dir(dev)? {
                         for user in fs::read_dir(provider?.path())? {
                             let user = user?;
-                            for repo_or_workspace in fs::read_dir(&user.path())? {
+                            for repo_or_workspace in fs::read_dir(user.path())? {
                                 let repo_or_workspace = repo_or_workspace?;
                                 let repo_name =
                                     repo_or_workspace.file_name().to_str().unwrap().to_string();
@@ -360,7 +360,7 @@ impl Cli {
                                         let repo = repo?;
                                         fs_extra::dir::move_dir(
                                             repo.path(),
-                                            &user.path(),
+                                            user.path(),
                                             &Default::default(),
                                         )?;
                                     }
@@ -377,7 +377,7 @@ impl Cli {
                     for provider in fs::read_dir(dev)? {
                         for user in fs::read_dir(provider?.path())? {
                             let user = user?;
-                            for repo_or_workspace in fs::read_dir(&user.path())? {
+                            for repo_or_workspace in fs::read_dir(user.path())? {
                                 let repo_or_workspace = repo_or_workspace?;
                                 let name =
                                     repo_or_workspace.file_name().to_str().unwrap().to_string();
