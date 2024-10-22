@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use crate::application::Application;
 use crate::error::Error;
 use crate::settings::Settings;
-use crate::{git_pull, DevmodeStatus};
+use crate::{git_pull, DevmodeError, DevmodeStatus};
 
 pub struct OpenAction {
     pub name: String,
@@ -25,7 +25,7 @@ impl OpenAction {
     }
 
     pub fn open(&self, paths: Vec<String>) -> Result<(), Error> {
-        open_project(&self.name, paths)
+        open_project(paths)
     }
 
     pub fn update(&self, paths: Vec<String>) -> Result<(), Error> {
@@ -40,8 +40,10 @@ impl OpenAction {
         }
         OpenAction::write_paths()
     }
+
     fn write_paths() -> Result<(), Error> {
-        let settings = Settings::current().ok_or(Error::Generic("Failed to get settings."))?;
+        let settings =
+            Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
         let mut devpaths = OpenOptions::new()
             .write(true)
             .open(data().join("devmode/devpaths"))?;
@@ -78,23 +80,15 @@ impl OpenAction {
                 }
             }
         }
-        println!("Repository cloned successfully! 🎉️");
+        crate::report(DevmodeStatus::RepositoryCloned);
         Ok(())
     }
 }
 
-pub fn open_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
+pub fn open_project(paths: Vec<String>) -> Result<(), Error> {
     let path = &paths[0];
-    println!(
-        "Opening {} in {}... \n\n{}",
-        name,
-        path.clone(),
-        DevmodeStatus::OpenedProjectWithWarning.to_string()
-    );
-    git_pull::status_short(path.clone())?;
-    let options = Settings::current().ok_or(Error::String(
-        DevmodeStatus::AppSettingsNotFound.to_string(),
-    ))?;
+    let options = Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
+    println!("Opening {} in {}...", path, options.editor.app.to_string(),);
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
         let route = path.replace('\\', "/");
@@ -112,9 +106,8 @@ pub fn open_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
 }
 
 pub fn update_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
-    println!("Updating project {}... \n\n", name);
+    crate::report(DevmodeStatus::RepositoryUpdated(name.to_string()));
     let path = &paths[0];
-
     git_pull::pull(Path::new(path))
 }
 

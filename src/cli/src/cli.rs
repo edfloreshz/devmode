@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use devmode::action::Action;
-use devmode::{DevmodeStatus, Error};
+use devmode::config::Config;
+use devmode::workspace::Workspace;
+use devmode::{DevmodeError, Error};
 use fs_extra::{dir, move_items};
 use libset::routes::home;
 use regex::bytes::Regex;
@@ -111,8 +113,10 @@ pub enum Commands {
         arg_required_else_help = true
     )]
     Workspace {
-        #[clap(help = "Name for the workspace.")]
+        #[clap(help = "The name of the workspace")]
         name: Option<String>,
+        #[clap(help = "Add a workspace", short = 'a', long = "add")]
+        add: bool,
         #[clap(help = "Delete a workspace", short = 'd', long = "delete")]
         delete: bool,
         #[clap(
@@ -123,12 +127,12 @@ pub enum Commands {
         )]
         rename: Option<String>,
         #[clap(
-            help = "Add a repo to a workspace",
-            short = 'a',
-            long = "add",
+            help = "Include a repo in a workspace",
+            short = 'i',
+            long = "include",
             takes_value = true
         )]
-        add: Option<String>,
+        include: Option<String>,
         #[clap(
             help = "Remove a repo from a workspace",
             short = 'm',
@@ -156,30 +160,32 @@ impl Cli {
                 editor,
                 owner,
                 host,
-            } => Cli::config(
-                *map,
-                *show,
-                *all,
-                *editor,
-                *owner,
-                *host,
-                !map && !show && !*all && !*editor && !*owner && !*host,
-            ),
+            } => Cli::config(Config {
+                map: *map,
+                show: *show,
+                all: *all,
+                editor: *editor,
+                owner: *owner,
+                host: *host,
+                none: !map && !show && !all && !editor && !owner && !host,
+            }),
             Commands::Workspace {
                 name,
+                add,
                 delete,
                 rename,
-                add,
+                include,
                 remove,
                 list,
-            } => Cli::workspace(
-                name.to_owned(),
-                *delete,
-                rename.clone(),
-                add.clone(),
-                remove.clone(),
-                *list,
-            ),
+            } => Cli::workspace(Workspace {
+                name: name.to_owned(),
+                add: *add,
+                delete: *delete,
+                rename: rename.to_owned(),
+                include: include.to_owned(),
+                remove: remove.to_owned(),
+                list: *list,
+            }),
         }
     }
 
@@ -190,7 +196,7 @@ impl Cli {
             clone_setup()?
         } else if Settings::current().is_some() && args.len() == 1 {
             let Some(options) = Settings::current() else {
-                return devmode::error("");
+                return Err(Error::Devmode(DevmodeError::AppSettingsNotFound));
             };
 
             url.set_host(Host::from(&options.host).url())
@@ -204,7 +210,7 @@ impl Cli {
             if let Some(url) = args.get(0) {
                 CloneAction::new(url)
             } else {
-                return devmode::error("No URL provided");
+                return Err(Error::Devmode(DevmodeError::NoUrlProvided));
             }
         } else if args.len() == 3 {
             if let Some(host) = args.get(0) {
@@ -218,7 +224,7 @@ impl Cli {
             }
             CloneAction::new(&url.build())
         } else {
-            return devmode::error("The command was invalid");
+            return Err(Error::Devmode(DevmodeError::InvalidCommand));
         };
         if let Some(workspace) = workspace {
             clone.set_workspace(workspace);
@@ -245,7 +251,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return Err(Error::String(DevmodeStatus::NoProjectFound.to_string()));
+            return Err(Error::Devmode(DevmodeError::NoProjectFound));
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?.to_string();
@@ -258,7 +264,7 @@ impl Cli {
         let reader = create_paths_reader()?;
         let paths = find_paths(reader, project)?;
         if paths.is_empty() {
-            return Err(Error::String(DevmodeStatus::NoProjectFound.to_string()));
+            return Err(Error::Devmode(DevmodeError::NoProjectFound));
         } else if paths.len() > 1 {
             let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
             let path = select_repo(paths)?;
@@ -274,9 +280,8 @@ impl Cli {
         } else if rx.is_match(args.get(0).unwrap().as_bytes()) {
             ForkAction::parse_url(args.get(0).unwrap(), rx, upstream.to_string())?
         } else if args.len() == 1 {
-            let options = Settings::current().ok_or(Error::String(
-                DevmodeStatus::AppSettingsNotFound.to_string(),
-            ))?;
+            let options =
+                Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
             let host = Host::from(&options.host);
             let repo = args
                 .get(0)
@@ -297,16 +302,8 @@ impl Cli {
         };
         action.run()
     }
-    fn config(
-        map: bool,
-        show: bool,
-        all: bool,
-        editor: bool,
-        owner: bool,
-        host: bool,
-        none: bool,
-    ) -> Result<(), Error> {
-        if all || none {
+    fn config(config: Config) -> Result<(), Error> {
+        if config.all || config.none {
             if get_settings().is_err() {
                 println!("First time setup! 🥳\n");
                 Settings::init()?;
@@ -314,38 +311,32 @@ impl Cli {
             let settings = config_all()?;
             settings.write(false)?;
         }
-        if map {
+        if config.map {
             OpenAction::make_dev_paths()?
         }
-        if editor {
+        if config.editor {
             let settings = config_editor()?;
             settings.write(false)?
         }
-        if owner {
+        if config.owner {
             let settings = config_owner()?;
             settings.write(false)?
         }
-        if host {
+        if config.host {
             let settings = config_host()?;
             settings.write(false)?
         }
-        if show {
+        if config.show {
             let settings = get_settings()?;
             settings.show();
         }
         Ok(())
     }
-    fn workspace(
-        name: Option<String>,
-        delete: bool,
-        rename: Option<String>,
-        add: Option<String>,
-        remove: Option<String>,
-        list: bool,
-    ) -> Result<(), Error> {
+
+    fn workspace(workspace: Workspace) -> Result<(), Error> {
         let mut settings =
-            Settings::current().ok_or(Error::Generic("Failed to get configuration"))?;
-        if let Some(name) = name {
+            Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
+        if let Some(name) = workspace.name {
             if settings.workspaces.names.contains(&name) {
                 let index = settings
                     .workspaces
@@ -353,7 +344,7 @@ impl Cli {
                     .iter()
                     .position(|ws| *ws == name)
                     .unwrap();
-                if delete {
+                if workspace.delete {
                     let dev = home().join("Developer");
                     for provider in fs::read_dir(dev)? {
                         for user in fs::read_dir(provider?.path())? {
@@ -381,7 +372,7 @@ impl Cli {
                     settings.workspaces.names.remove(index);
                     settings.write(true)?;
                     println!("Workspace {name} was successfully deleted.")
-                } else if rename.is_some() {
+                } else if workspace.rename.is_some() {
                     let dev = home().join("Developer");
                     for provider in fs::read_dir(dev)? {
                         for user in fs::read_dir(provider?.path())? {
@@ -397,18 +388,22 @@ impl Cli {
                                             .path()
                                             .parent()
                                             .unwrap()
-                                            .join(rename.clone().unwrap()),
+                                            .join(workspace.rename.clone().unwrap()),
                                     )?;
                                 }
                             }
                         }
                     }
-                    *settings.workspaces.names.get_mut(index).unwrap() = rename.clone().unwrap();
+                    *settings.workspaces.names.get_mut(index).unwrap() =
+                        workspace.rename.clone().unwrap();
                     settings.write(true)?;
-                    println!("Workspace renamed from {name} to {}.", rename.unwrap());
-                } else if let Some(add) = add {
+                    println!(
+                        "Workspace renamed from {name} to {}.",
+                        workspace.rename.unwrap()
+                    );
+                } else if let Some(include) = workspace.include {
                     let reader = create_paths_reader()?;
-                    let paths: Vec<String> = find_paths(reader, &add)?
+                    let paths: Vec<String> = find_paths(reader, &include)?
                         .iter()
                         .map(|path| path.to_owned())
                         .filter(|path| !path.contains(name.as_str()))
@@ -423,7 +418,7 @@ impl Cli {
                     };
                     let mut options = dir::CopyOptions::new();
                     let to = PathBuf::from(&path).parent().unwrap().join(&name);
-                    if to.join(add.as_str()).exists() {
+                    if to.join(include.as_str()).exists() {
                         let question = requestty::Question::confirm("overwrite")
                             .message("We found an existing repository with the same name, do you want to overwrite the existing repository?")
                             .build();
@@ -437,7 +432,7 @@ impl Cli {
                     } else {
                         move_items(&[path], to, &options)?;
                     }
-                } else if let Some(remove) = remove {
+                } else if let Some(remove) = workspace.remove {
                     let reader = create_paths_reader()?;
                     let paths: Vec<String> = find_paths(reader, &remove)?
                         .iter()
@@ -474,14 +469,26 @@ impl Cli {
                 } else {
                     println!("Workspace `{name}` found.");
                 }
-            } else if delete || rename.is_some() {
+            } else if workspace.delete || workspace.rename.is_some() {
                 return devmode::error("Couldn't find a workspace that matches {name}.");
-            } else {
+            } else if workspace.add {
                 settings.workspaces.names.push(name.clone());
                 settings.write(true)?;
                 println!("Workspace {name} was added.")
+            } else {
+                let question = requestty::Question::confirm("workspace")
+                    .message("Would you like to create this workspace?")
+                    .build();
+                let answer = requestty::prompt_one(question)?;
+                if let Answer::Bool(create) = answer {
+                    if create {
+                        settings.workspaces.names.push(name.clone());
+                        settings.write(true)?;
+                        println!("Workspace {name} was added.")
+                    }
+                }
             }
-        } else if list {
+        } else if workspace.list {
             let workspaces = settings.workspaces.names;
             println!("Currently available workspaces: {workspaces:?}",);
         }
@@ -490,7 +497,5 @@ impl Cli {
 }
 
 fn get_settings() -> Result<Settings, Error> {
-    Settings::current().ok_or(Error::String(
-        DevmodeStatus::AppSettingsNotFound.to_string(),
-    ))
+    Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))
 }

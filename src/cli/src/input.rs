@@ -5,6 +5,7 @@ use devmode::editor::Editor;
 use devmode::fork::ForkAction;
 use devmode::host::Host;
 use devmode::settings::Settings;
+use devmode::DevmodeError;
 use devmode::{application::Application, Error};
 use requestty::{Answer, Question};
 use url_builder::URLBuilder;
@@ -43,7 +44,7 @@ pub fn clone_setup() -> Result<CloneAction, Error> {
 
     let mut clone = CloneAction::new(&url.build());
 
-    let settings = Settings::current().ok_or(Error::Generic("Failed to get configuration"))?;
+    let settings = Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
     let mut options: Vec<&str> = settings
         .workspaces
         .names

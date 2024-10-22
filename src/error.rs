@@ -4,6 +4,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("Devmode error: {0}")]
+    Devmode(#[from] DevmodeError),
     #[error("Argument parsing error: {0}")]
     Parse(#[from] clap::Error),
     #[error("IO error: {0}")]
@@ -28,4 +30,26 @@ pub enum Error {
 
 pub fn error<T>(msg: &'static str) -> Result<T, Error> {
     Err(Error::Generic(msg))
+}
+
+#[derive(Error, Debug)]
+pub enum DevmodeError {
+    #[error("No project found.")]
+    NoProjectFound,
+    #[error("No settings were changed.")]
+    NoUrlProvided,
+    #[error("Invalid command.")]
+    InvalidCommand,
+    #[error("The current app options could not be found.\nRun `dm cf --all` to reconfigure them")]
+    AppSettingsNotFound,
+    #[error("Failed to write settings")]
+    FailedToWriteSettings,
+    #[error("Failed to parse settings")]
+    FailedToParseSettings,
+    #[error("Failed to clone repository")]
+    FailedToCloneRepository,
+    #[error("Failed to set remote repository")]
+    FailedToSetRemote,
+    #[error("Failed to get branch")]
+    FailedToGetBranch,
 }

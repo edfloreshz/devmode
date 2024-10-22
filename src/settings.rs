@@ -4,7 +4,7 @@ use libset::{config::Config, format::FileFormat, new_file};
 use serde::{Deserialize, Serialize};
 
 use crate::editor::Editor;
-use crate::{DevmodeStatus, Error};
+use crate::{DevmodeError, DevmodeStatus, Error};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct Settings {
@@ -50,19 +50,17 @@ impl Settings {
         if current_settings.is_none() {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
                 .map_err(|e| Error::String(e.to_string()))?;
-            crate::info(DevmodeStatus::SettingsUpdated);
+            crate::report(DevmodeStatus::SettingsUpdated);
         } else if self
-            != &current_settings.ok_or(Error::String(
-                DevmodeStatus::FailedToParseSettings.to_string(),
-            ))?
+            != &current_settings.ok_or(Error::Devmode(DevmodeError::FailedToParseSettings))?
         {
             Config::set::<Settings>("devmode/settings.toml", self.clone(), FileFormat::TOML)
                 .map_err(|e| Error::String(e.to_string()))?;
             if !hide_output {
-                crate::info(DevmodeStatus::SettingsUpdated);
+                crate::report(DevmodeStatus::SettingsUpdated);
             }
         } else if !hide_output {
-            crate::info(DevmodeStatus::NoSettingsChanged);
+            crate::report(DevmodeStatus::NoSettingsChanged);
         }
         Ok(())
     }
