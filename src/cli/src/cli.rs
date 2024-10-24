@@ -1,23 +1,22 @@
 use clap::{Parser, Subcommand};
 use devmode::action::Action;
 use devmode::config::Config;
-use devmode::workspace::Workspace;
+use devmode::workspace::{Workspace, WorkspaceOptions};
 use devmode::{DevmodeError, Error};
+use fs_extra::dir::CopyOptions;
 use fs_extra::{dir, move_items};
-use libset::routes::home;
 use regex::bytes::Regex;
-use requestty::Answer;
-use std::fs;
+use std::fs::remove_dir_all;
 use std::path::PathBuf;
 use url_builder::URLBuilder;
 
 use crate::input::{
-    clone_setup, config_all, config_editor, config_host, config_owner, fork_setup, overwrite,
-    select_repo,
+    clone_setup, config_all, config_editor, config_host, config_owner, create_workspace,
+    fork_setup, overwrite, select_repo,
 };
 use devmode::fork::ForkAction;
 use devmode::host::Host;
-use devmode::project::{create_paths_reader, find_paths, OpenAction};
+use devmode::project::{find_paths, OpenAction};
 use devmode::settings::Settings;
 use devmode::{clone::CloneAction, constants::patterns::GIT_URL};
 
@@ -177,7 +176,7 @@ impl Cli {
                 include,
                 remove,
                 list,
-            } => Cli::workspace(Workspace {
+            } => Cli::workspace(WorkspaceOptions {
                 name: name.to_owned(),
                 add: *add,
                 delete: *delete,
@@ -194,7 +193,7 @@ impl Cli {
         url.set_protocol("https");
         let mut clone = if args.is_empty() {
             clone_setup()?
-        } else if Settings::current().is_some() && args.len() == 1 {
+        } else if Settings::current().is_some() && args.len().eq(&1) {
             let Some(options) = Settings::current() else {
                 return Err(Error::Devmode(DevmodeError::AppSettingsNotFound));
             };
@@ -206,13 +205,13 @@ impl Cli {
             }
 
             CloneAction::new(&url.build())
-        } else if args.len() == 1 {
+        } else if args.len().eq(&1) {
             if let Some(url) = args.first() {
                 CloneAction::new(url)
             } else {
                 return Err(Error::Devmode(DevmodeError::NoUrlProvided));
             }
-        } else if args.len() == 3 {
+        } else if args.len().eq(&3) {
             if let Some(host) = args.first() {
                 url.set_host(Host::from(host).url());
             }
@@ -234,7 +233,13 @@ impl Cli {
             match error {
                 Error::Git(error) => match error.code() {
                     git2::ErrorCode::Exists => {
-                        if overwrite(clone.get_local_path()?)? {
+                        let path = clone.get_local_path()?;
+                        println!(
+                            "Error: {} exists and is not an empty directory",
+                            path.display()
+                        );
+                        if overwrite()? {
+                            remove_dir_all(&path)?;
                             clone.run()?;
                         }
                     }
@@ -248,29 +253,36 @@ impl Cli {
     }
 
     fn open(project: &str) -> Result<(), Error> {
-        let reader = create_paths_reader()?;
-        let paths = find_paths(reader, project)?;
+        let paths = find_paths(project)?;
         if paths.is_empty() {
             Err(Error::Devmode(DevmodeError::NoProjectFound))
         } else if paths.len() > 1 {
-            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-            let path = select_repo(paths)?.to_string();
-            OpenAction::new(project).open(vec![path])
+            let path = select_repo(project, None)?;
+            OpenAction::new(project).open(path)
         } else {
-            OpenAction::new(project).open(paths)
+            OpenAction::new(project).open(
+                paths
+                    .get(0)
+                    .ok_or(Error::Devmode(DevmodeError::PathNotFound))?
+                    .clone(),
+            )
         }
     }
+
     fn update(project: &str) -> Result<(), Error> {
-        let reader = create_paths_reader()?;
-        let paths = find_paths(reader, project)?;
+        let paths = find_paths(project)?;
         if paths.is_empty() {
             Err(Error::Devmode(DevmodeError::NoProjectFound))
         } else if paths.len() > 1 {
-            let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-            let path = select_repo(paths)?;
-            OpenAction::new(project).update(vec![path])
+            let path = select_repo(project, None)?;
+            OpenAction::new(project).update(path)
         } else {
-            OpenAction::new(project).update(paths)
+            OpenAction::new(project).update(
+                paths
+                    .get(0)
+                    .ok_or(Error::Devmode(DevmodeError::PathNotFound))?
+                    .clone(),
+            )
         }
     }
 
@@ -279,7 +291,7 @@ impl Cli {
             fork_setup()?
         } else if rx.is_match(args.first().unwrap().as_bytes()) {
             ForkAction::parse_url(args.first().unwrap(), rx, upstream.to_string())?
-        } else if args.len() == 1 {
+        } else if args.len().eq(&1) {
             let options =
                 Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
             let host = Host::from(&options.host);
@@ -333,164 +345,89 @@ impl Cli {
         Ok(())
     }
 
-    fn workspace(workspace: Workspace) -> Result<(), Error> {
+    fn workspace(arguments: WorkspaceOptions) -> Result<(), Error> {
         let mut settings =
             Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
-        if let Some(name) = workspace.name {
-            if settings.workspaces.names.contains(&name) {
-                let index = settings
-                    .workspaces
-                    .names
-                    .iter()
-                    .position(|ws| *ws == name)
-                    .unwrap();
-                if workspace.delete {
-                    let dev = home().join("Developer");
-                    for provider in fs::read_dir(dev)? {
-                        for user in fs::read_dir(provider?.path())? {
-                            let user = user?;
-                            for repo_or_workspace in fs::read_dir(user.path())? {
-                                let repo_or_workspace = repo_or_workspace?;
-                                let repo_name =
-                                    repo_or_workspace.file_name().to_str().unwrap().to_string();
-                                if settings.workspaces.names.contains(&repo_name)
-                                    && repo_name.eq(&name)
-                                {
-                                    for repo in fs::read_dir(repo_or_workspace.path())? {
-                                        let repo = repo?;
-                                        fs_extra::dir::move_dir(
-                                            repo.path(),
-                                            user.path(),
-                                            &Default::default(),
-                                        )?;
-                                    }
-                                    fs::remove_dir_all(repo_or_workspace.path())?;
-                                }
-                            }
-                        }
-                    }
-                    settings.workspaces.names.remove(index);
-                    settings.write(true)?;
-                    println!("Workspace {name} was successfully deleted.")
-                } else if workspace.rename.is_some() {
-                    let dev = home().join("Developer");
-                    for provider in fs::read_dir(dev)? {
-                        for user in fs::read_dir(provider?.path())? {
-                            let user = user?;
-                            for repo_or_workspace in fs::read_dir(user.path())? {
-                                let repo_or_workspace = repo_or_workspace?;
-                                let name =
-                                    repo_or_workspace.file_name().to_str().unwrap().to_string();
-                                if settings.workspaces.names.contains(&name) {
-                                    fs::rename(
-                                        repo_or_workspace.path(),
-                                        repo_or_workspace
-                                            .path()
-                                            .parent()
-                                            .unwrap()
-                                            .join(workspace.rename.clone().unwrap()),
-                                    )?;
-                                }
-                            }
-                        }
-                    }
-                    *settings.workspaces.names.get_mut(index).unwrap() =
-                        workspace.rename.clone().unwrap();
-                    settings.write(true)?;
-                    println!(
-                        "Workspace renamed from {name} to {}.",
-                        workspace.rename.unwrap()
-                    );
-                } else if let Some(include) = workspace.include {
-                    let reader = create_paths_reader()?;
-                    let paths: Vec<String> = find_paths(reader, &include)?
-                        .iter()
-                        .map(|path| path.to_owned())
-                        .filter(|path| !path.contains(name.as_str()))
-                        .collect();
-                    let path = if paths.is_empty() {
-                        return devmode::error("Could not locate the {add} repository.");
-                    } else if paths.len() > 1 {
-                        let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        select_repo(paths)?
-                    } else {
-                        paths[0].clone()
-                    };
-                    let mut options = dir::CopyOptions::new();
-                    let to = PathBuf::from(&path).parent().unwrap().join(&name);
-                    if to.join(include.as_str()).exists() {
-                        let question = requestty::Question::confirm("overwrite")
-                            .message("We found an existing repository with the same name, do you want to overwrite the existing repository?")
-                            .build();
-                        let answer = requestty::prompt_one(question)?;
-                        if let Answer::Bool(overwrite) = answer {
-                            if overwrite {
-                                options.overwrite = true;
-                                move_items(&[path], to, &options)?;
-                            }
-                        }
-                    } else {
-                        move_items(&[path], to, &options)?;
-                    }
-                } else if let Some(remove) = workspace.remove {
-                    let reader = create_paths_reader()?;
-                    let paths: Vec<String> = find_paths(reader, &remove)?
-                        .iter()
-                        .map(|path| path.to_owned())
-                        .filter(|path| path.contains(name.as_str()))
-                        .collect();
-                    let path = if paths.is_empty() {
-                        return devmode::error(
-                            "Could not locate the {remove} repository inside {name}",
-                        );
-                    } else if paths.len() > 1 {
-                        let paths: Vec<&str> = paths.iter().map(|s| s as &str).collect();
-                        select_repo(paths)?
-                    } else {
-                        paths[0].clone()
-                    };
-                    let mut options = dir::CopyOptions::new();
-                    let path = PathBuf::from(&path);
-                    let to = path.parent().unwrap().parent().unwrap();
-                    if to.join(remove.as_str()).exists() {
-                        let question = requestty::Question::confirm("overwrite")
-                            .message("We found an existing repository with the same name, do you want to overwrite the existing repository?")
-                            .build();
-                        let answer = requestty::prompt_one(question)?;
-                        if let Answer::Bool(overwrite) = answer {
-                            if overwrite {
-                                options.overwrite = true;
-                                move_items(&[path.clone()], to, &options)?;
-                            }
-                        }
-                    } else {
-                        move_items(&[path.clone()], to, &options)?;
-                    }
-                } else {
-                    println!("Workspace `{name}` found.");
-                }
-            } else if workspace.delete || workspace.rename.is_some() {
-                return devmode::error("Couldn't find a workspace that matches {name}.");
-            } else if workspace.add {
-                settings.workspaces.names.push(name.clone());
-                settings.write(true)?;
-                println!("Workspace {name} was added.")
-            } else {
-                let question = requestty::Question::confirm("workspace")
-                    .message("Would you like to create this workspace?")
-                    .build();
-                let answer = requestty::prompt_one(question)?;
-                if let Answer::Bool(create) = answer {
-                    if create {
-                        settings.workspaces.names.push(name.clone());
-                        settings.write(true)?;
-                        println!("Workspace {name} was added.")
-                    }
-                }
-            }
-        } else if workspace.list {
+        let Some(ref workspace_name) = arguments.name else {
             let workspaces = settings.workspaces.names;
-            println!("Currently available workspaces: {workspaces:?}",);
+            println!("Currently available workspaces: {workspaces:?}");
+            return Ok(());
+        };
+        let mut workspace = Workspace::new(&workspace_name);
+        if settings.workspaces.names.contains(workspace_name) {
+            if arguments.delete {
+                workspace.delete()?;
+                println!("Workspace {workspace_name} was successfully deleted.");
+            } else if let Some(ref to) = arguments.rename {
+                workspace.rename(to)?;
+                println!("Workspace renamed from {workspace_name} to {to}.");
+            } else if let Some(ref project) = arguments.include {
+                let paths: Vec<PathBuf> = find_paths(project)?
+                    .iter()
+                    .filter(|path| !path.display().to_string().contains(workspace_name))
+                    .map(PathBuf::from)
+                    .collect();
+                let project = if paths.len() > 0 {
+                    select_repo(project, Some(workspace_name))?
+                } else {
+                    paths
+                        .get(0)
+                        .ok_or(Error::Devmode(DevmodeError::ProjectNotFound))?
+                        .clone()
+                };
+                let mut options = CopyOptions::new();
+                let destination = project
+                    .parent()
+                    .ok_or(Error::Devmode(DevmodeError::PathNotFound))?
+                    .join(&workspace_name);
+
+                if destination.exists() {
+                    options.overwrite = overwrite()?;
+                }
+
+                move_items(&[project], destination, &options)?;
+            } else if let Some(ref project_name) = arguments.remove {
+                let paths: Vec<PathBuf> = find_paths(project_name)?
+                    .iter()
+                    .filter(|path| !path.display().to_string().contains(workspace_name))
+                    .map(PathBuf::from)
+                    .collect();
+                let project = if paths.len() > 0 {
+                    select_repo(project_name, Some(workspace_name))?
+                } else {
+                    paths
+                        .get(0)
+                        .ok_or(Error::Devmode(DevmodeError::ProjectNotFound))?
+                        .clone()
+                };
+                let mut options = dir::CopyOptions::new();
+                let to = project
+                    .parent()
+                    .ok_or(Error::Devmode(DevmodeError::PathNotFound))?
+                    .parent()
+                    .ok_or(Error::Devmode(DevmodeError::PathNotFound))?;
+
+                if to.join(&project).exists() {
+                    options.overwrite = overwrite()?;
+                }
+
+                move_items(&[project.clone()], to, &options)?;
+            } else {
+                println!("Workspace `{workspace_name}` found.");
+            }
+        } else if arguments.delete || arguments.rename.is_some() {
+            return devmode::error("Couldn't find a workspace that matches {name}.");
+        } else if arguments.add {
+            settings.workspaces.names.push(workspace_name.clone());
+            settings.write(true)?;
+            println!("Workspace {workspace_name} was added.")
+        } else {
+            let create = create_workspace()?;
+            if create {
+                settings.workspaces.names.push(workspace_name.clone());
+                settings.write(true)?;
+                println!("Workspace {workspace_name} was added.")
+            }
         }
         Ok(())
     }

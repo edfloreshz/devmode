@@ -115,7 +115,9 @@ fn fast_forward(
 fn get_branch(repo: &Repository) -> Result<String, Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
-        Err(ref e) if e.code() == ErrorCode::UnbornBranch || e.code() == ErrorCode::NotFound => {
+        Err(ref e)
+            if e.code().eq(&ErrorCode::UnbornBranch) || e.code().eq(&ErrorCode::NotFound) =>
+        {
             None
         }
         Err(e) => return Err(Error::Git(e)),
@@ -135,7 +137,7 @@ fn fetch<'a>(
     let mut cb = git2::RemoteCallbacks::new();
 
     cb.transfer_progress(|stats| {
-        if stats.received_objects() == stats.total_objects() {
+        if stats.received_objects().eq(&stats.total_objects()) {
             print!(
                 "Resolving deltas {}/{}\r",
                 stats.indexed_deltas(),
@@ -221,7 +223,7 @@ pub fn status_short(path: String) -> Result<(), GitError> {
         };
         let mut wstatus = match entry.status() {
             s if s.contains(git2::Status::WT_NEW) => {
-                if istatus == ' ' {
+                if istatus.eq(&' ') {
                     istatus = '?';
                 }
                 '?'
@@ -237,7 +239,7 @@ pub fn status_short(path: String) -> Result<(), GitError> {
             istatus = '!';
             wstatus = '!';
         }
-        if istatus == '?' && wstatus == '?' {
+        if istatus.eq(&'?') && wstatus.eq(&'?') {
             continue;
         }
         let mut extra = "";
@@ -300,7 +302,7 @@ pub fn status_short(path: String) -> Result<(), GitError> {
 
     for entry in statuses
         .iter()
-        .filter(|e| e.status() == git2::Status::WT_NEW)
+        .filter(|e| e.status().eq(&git2::Status::WT_NEW))
     {
         println!(
             "?? {}",

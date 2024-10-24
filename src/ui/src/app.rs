@@ -207,7 +207,7 @@ impl Application for Devmode {
                 let _result = open::that_detached(url);
             }
             Message::ToggleContextPage(context_page) => {
-                if self.context_page == context_page {
+                if self.context_page.eq(&context_page) {
                     // Close the context drawer if the toggled context page is the same.
                     self.core.window.show_context = !self.core.window.show_context;
                 } else {

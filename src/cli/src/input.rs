@@ -1,46 +1,68 @@
-use std::{fs::remove_dir_all, path::PathBuf};
+use std::path::PathBuf;
 
 use devmode::clone::CloneAction;
+use devmode::constants::names::{CUSTOM_NAME, NONE, VIM_NAME, VSCODE_NAME};
 use devmode::editor::Editor;
 use devmode::fork::ForkAction;
 use devmode::host::Host;
+use devmode::project::find_paths;
 use devmode::settings::Settings;
 use devmode::DevmodeError;
 use devmode::{application::Application, Error};
 use requestty::{Answer, Question};
 use url_builder::URLBuilder;
 
-pub fn overwrite(path: PathBuf) -> Result<bool, Error> {
-    println!(
-        "Error: {} exists and is not an empty directory",
-        path.display()
-    );
-    let question = requestty::Question::confirm("overwrite")
-        .message("Do you want to overwrite the existing repository?")
+pub fn confirm(message: &str, id: &str) -> Result<bool, Error> {
+    let question = requestty::Question::confirm(id).message(message).build();
+    let answer = requestty::prompt_one(question)?;
+    if let Answer::Bool(confirm) = answer {
+        Ok(confirm)
+    } else {
+        Err(Error::Unknown)
+    }
+}
+
+pub fn input(key: &str, message: &str, err: &str) -> Result<String, Error> {
+    let question = Question::input(key)
+        .message(message)
+        .validate(|answer, _| {
+            if answer.is_empty() {
+                Err(err.into())
+            } else {
+                Ok(())
+            }
+        })
         .build();
     let answer = requestty::prompt_one(question)?;
-    if let requestty::Answer::Bool(overwrite) = answer {
-        if overwrite {
-            remove_dir_all(&path)?;
-            return Ok(overwrite);
-        }
+    if let Answer::String(output) = answer {
+        Ok(output)
+    } else {
+        Err(Error::Unknown)
     }
-    Ok(false)
+}
+
+pub fn select(key: &str, message: &str, options: Vec<impl Into<String>>) -> Result<String, Error> {
+    let question = Question::select(key)
+        .message(message)
+        .choices(options)
+        .build();
+    let answer = requestty::prompt_one(question)?;
+    if let Answer::ListItem(item) = answer {
+        Ok(item.text)
+    } else {
+        Err(Error::Unknown)
+    }
 }
 
 pub fn clone_setup() -> Result<CloneAction, Error> {
     let mut url = URLBuilder::new();
     url.set_protocol("https");
-    if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
-    {
-        url.set_host(Host::from(&host.text).url());
-    }
-    if let Answer::String(owner) = ask("owner", "Git username:", "Please enter a Git username.")? {
-        url.add_route(&owner);
-    }
-    if let Answer::String(repo) = ask("repo", "Git repo name:", "Please enter a Git repo name.")? {
-        url.add_route(&repo);
-    }
+    let host = select("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
+    url.set_host(Host::from(&host).url());
+    let owner = input("owner", "Git username:", "Please enter a Git username.")?;
+    url.add_route(&owner);
+    let repo = input("repo", "Git repo name:", "Please enter a Git repo name.")?;
+    url.add_route(&repo);
 
     let mut clone = CloneAction::new(&url.build());
 
@@ -51,32 +73,24 @@ pub fn clone_setup() -> Result<CloneAction, Error> {
         .iter()
         .map(|s| s.as_str())
         .collect();
-    options.insert(0, "None");
-    if let Answer::ListItem(workspace) = pick("workspace", "Pick a workspace", options)? {
-        let workspace = workspace.text.to_lowercase();
-        if !workspace.eq("none") {
-            clone.set_workspace(workspace);
-        }
+    options.insert(0, NONE);
+    let workspace = select("workspace", "Pick a workspace", options)?;
+    if !workspace.eq(NONE) {
+        clone.set_workspace(workspace);
     }
     Ok(clone)
 }
 
 pub fn fork_setup() -> Result<ForkAction, Error> {
     let mut fork = ForkAction::new();
-    if let Answer::ListItem(host) = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?
-    {
-        fork.host = Host::from(&host.text);
-    }
-    if let Answer::String(owner) = ask("owner", "Git username:", "Please enter a Git username.")? {
-        fork.owner = owner;
-    }
-    if let Answer::String(repo) = ask("repo", "Git repo name:", "Please enter a Git repo name.")? {
-        fork.repo = repo;
-    }
-    if let Answer::String(repo) = ask("upstream", "Upstream URL:", "Please enter an upstream URL.")?
-    {
-        fork.upstream = repo;
-    }
+    let host = select("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
+    fork.host = Host::from(&host);
+    let owner = input("owner", "Git username:", "Please enter a Git username.")?;
+    fork.owner = owner;
+    let repo = input("repo", "Git repo name:", "Please enter a Git repo name.")?;
+    fork.repo = repo;
+    let repo = input("upstream", "Upstream URL:", "Please enter an upstream URL.")?;
+    fork.upstream = repo;
     Ok(fork)
 }
 
@@ -91,69 +105,34 @@ pub fn config_all() -> Result<Settings, Error> {
 }
 
 pub fn config_owner() -> Result<Settings, Error> {
-    let answer = ask("owner", "Git username:", "Please enter a Git username.")?;
-    let owner = match answer {
-        Answer::String(owner) => owner,
-        _ => return devmode::error("Owner is required."),
-    };
-    let current = Settings::current();
-    let settings = match current {
-        None => Settings {
-            owner,
-            ..Default::default()
-        },
-        Some(mut settings) => {
-            settings.owner = owner;
-            settings
-        }
-    };
+    let owner = input("owner", "Git username:", "Please enter a Git username.")?;
+    let mut settings = Settings::current().unwrap_or_default();
+    settings.owner = owner;
     Ok(settings)
 }
 
 pub fn config_host() -> Result<Settings, Error> {
-    let answer = pick("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
-    let host = match answer {
-        Answer::ListItem(item) => Host::from(&item.text).to_string(),
-        _ => return devmode::error("Host is required."),
-    };
-    let current = Settings::current();
-    let settings = match current {
-        None => Settings {
-            host,
-            ..Default::default()
-        },
-        Some(mut settings) => {
-            settings.host = host;
-            settings
-        }
-    };
+    let host = select("host", "Choose your Git host:", vec!["GitHub", "GitLab"])?;
+    let mut settings = Settings::current().unwrap_or_default();
+    settings.host = host;
     Ok(settings)
 }
 
 pub fn config_editor() -> Result<Settings, Error> {
-    let answer = pick(
+    let editor = select(
         "editor",
         "Choose your favorite editor:",
-        vec!["Vim", "VSCode", "Custom"],
+        vec![VIM_NAME, VSCODE_NAME, CUSTOM_NAME],
     )?;
-    let editor = match answer {
-        Answer::ListItem(item) => {
-            if item.text.to_lowercase() == "custom" {
-                let answer = ask(
-                    "command",
-                    "Editor command:",
-                    "Please enter a editor command.",
-                )?;
-                if let Answer::String(name) = answer {
-                    Editor::custom(name)
-                } else {
-                    return devmode::error("Editor name is required.");
-                }
-            } else {
-                Editor::new(Application::from(&item.text))
-            }
-        }
-        _ => return devmode::error("Editor must be picked."),
+    let editor = if editor.eq(CUSTOM_NAME) {
+        let command = input(
+            "command",
+            "Editor command:",
+            "Please enter a editor command.",
+        )?;
+        Editor::custom(command)
+    } else {
+        Editor::new(Application::from(&editor))
     };
     let current = Settings::current();
     let settings = match current {
@@ -169,37 +148,29 @@ pub fn config_editor() -> Result<Settings, Error> {
     Ok(settings)
 }
 
-pub fn select_repo(paths: Vec<&str>) -> Result<String, Error> {
-    let answer = pick("repo", "Select the repository you want to open:", paths)?;
-    let repo = match answer {
-        Answer::ListItem(item) => item.text,
-        _ => return devmode::error("Repository must be picked."),
+pub fn select_repo(project: &str, workspace: Option<&str>) -> Result<PathBuf, Error> {
+    let paths = if let Some(workspace) = workspace {
+        find_paths(project)?
+            .iter()
+            .filter(|path| path.display().to_string().contains(&workspace))
+            .map(|path| path.display().to_string().to_owned())
+            .collect::<Vec<String>>()
+    } else {
+        find_paths(project)?
+            .iter()
+            .map(|path| path.display().to_string().to_owned())
+            .collect::<Vec<String>>()
     };
-    Ok(repo)
+    let repo = select("repo", "Select the repository you want to open:", paths)?;
+    Ok(PathBuf::from(repo))
 }
 
-pub fn ask(key: &str, message: &str, err: &str) -> Result<Answer, Error> {
-    requestty::prompt_one(
-        Question::input(key)
-            .message(message)
-            .validate(|owner, _previous| {
-                if owner.is_empty() {
-                    Err(err.into())
-                } else {
-                    Ok(())
-                }
-            })
-            .build(),
-    )
-    .map_err(|e| Error::String(e.to_string()))
+pub fn create_workspace() -> Result<bool, Error> {
+    let create = confirm("workspace", "Would you like to create this workspace?")?;
+    Ok(create)
 }
 
-pub fn pick(key: &str, message: &str, options: Vec<&str>) -> Result<Answer, Error> {
-    requestty::prompt_one(
-        Question::select(key)
-            .message(message)
-            .choices(options)
-            .build(),
-    )
-    .map_err(|e| Error::String(e.to_string()))
+pub fn overwrite() -> Result<bool, Error> {
+    let overwrite = confirm("overwrite", "Found existing repository, overwrite it?")?;
+    Ok(overwrite)
 }

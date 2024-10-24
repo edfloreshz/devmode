@@ -26,6 +26,8 @@ pub enum Error {
     Generic(&'static str),
     #[error("String error: {0}")]
     String(String),
+    #[error("An unknown error ocurred")]
+    Unknown,
 }
 
 pub fn error<T>(msg: &'static str) -> Result<T, Error> {
@@ -52,4 +54,12 @@ pub enum DevmodeError {
     FailedToSetRemote,
     #[error("Failed to get branch")]
     FailedToGetBranch,
+    #[error("Failed to find workspace")]
+    WorkspaceMissing,
+    #[error("Failed to find project")]
+    ProjectNotFound,
+    #[error("Multiple projects found. Please specify the project name.")]
+    MultipleProjectsFound,
+    #[error("Path not found")]
+    PathNotFound,
 }

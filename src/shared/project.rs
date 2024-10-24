@@ -1,7 +1,7 @@
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 use cmd_lib::*;
@@ -24,12 +24,12 @@ impl OpenAction {
         }
     }
 
-    pub fn open(&self, paths: Vec<String>) -> Result<(), Error> {
+    pub fn open(&self, paths: PathBuf) -> Result<(), Error> {
         open_project(paths)
     }
 
-    pub fn update(&self, paths: Vec<String>) -> Result<(), Error> {
-        update_project(&self.name, paths)
+    pub fn update(&self, path: PathBuf) -> Result<(), Error> {
+        update_project(&self.name, path)
     }
 
     pub fn make_dev_paths() -> Result<(), Error> {
@@ -70,8 +70,8 @@ impl OpenAction {
                 })
                 .last()
                 .unwrap();
-            if (entry.depth() == 3 && !settings.workspaces.names.contains(&repo.to_string()))
-                || (entry.depth() == 4
+            if (entry.depth().eq(&3) && !settings.workspaces.names.contains(&repo.to_string()))
+                || (entry.depth().eq(&4)
                     && settings.workspaces.names.contains(&workspace.to_string()))
                     && entry.path().is_dir()
             {
@@ -85,13 +85,12 @@ impl OpenAction {
     }
 }
 
-pub fn open_project(paths: Vec<String>) -> Result<(), Error> {
-    let path = &paths[0];
+pub fn open_project(path: PathBuf) -> Result<(), Error> {
     let options = Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
-    println!("Opening {} in {}...", path, options.editor.app.to_string(),);
+    let route = path.display().to_string();
+    println!("Opening {} in {}...", route, options.editor.app.to_string(),);
     if let Application::Custom = options.editor.app {
         let command_editor = options.editor.command;
-        let route = path.replace('\\', "/");
         if cfg!(target_os = "windows") {
             Command::new("cmd")
                 .args(["/C", format!("{command_editor} {route}").as_str()])
@@ -105,13 +104,13 @@ pub fn open_project(paths: Vec<String>) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn update_project(name: &str, paths: Vec<String>) -> Result<(), Error> {
+pub fn update_project(name: &str, path: PathBuf) -> Result<(), Error> {
     crate::report(DevmodeStatus::RepositoryUpdated(name.to_string()));
-    let path = &paths[0];
-    git_pull::pull(Path::new(path))
+    git_pull::pull(path.as_path())
 }
 
-pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>, Error> {
+pub fn find_paths(path: &str) -> Result<Vec<PathBuf>, Error> {
+    let reader = BufReader::new(File::open(data().join("devmode/devpaths"))?);
     let paths = reader
         .lines()
         .filter_map(|e| {
@@ -123,16 +122,12 @@ pub fn find_paths(reader: BufReader<File>, path: &str) -> Result<Vec<String>, Er
                         "/"
                     })
                     .collect();
-                if split.last().unwrap() == &path {
-                    return Some(line);
+                if split.last().unwrap().eq(&path) {
+                    return Some(PathBuf::from(line));
                 }
             }
             None
         })
-        .collect::<Vec<String>>();
+        .collect::<Vec<PathBuf>>();
     Ok(paths)
-}
-
-pub fn create_paths_reader() -> Result<BufReader<File>, Error> {
-    Ok(BufReader::new(File::open(data().join("devmode/devpaths"))?))
 }

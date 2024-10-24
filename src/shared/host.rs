@@ -20,9 +20,9 @@ impl Host {
     }
     pub fn from(text: &str) -> Self {
         let text = text.to_lowercase();
-        if text.contains("github") || text == "gh" {
+        if text.contains("github") || text.eq(&"gh") {
             Host::GitHub
-        } else if text.contains("gitlab") || text == "gl" {
+        } else if text.contains("gitlab") || text.eq(&"gl") {
             Host::GitLab
         } else {
             Host::None

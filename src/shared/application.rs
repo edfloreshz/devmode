@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use std::process::Command;
 
 use crate::{DevmodeStatus, Error};
@@ -24,7 +25,8 @@ impl Application {
             _ => "",
         })
     }
-    pub fn run(&self, arg: String) -> Result<(), Error> {
+    pub fn run(&self, path: PathBuf) -> Result<(), Error> {
+        let arg = path.display().to_string();
         match self {
             Application::VSCode => {
                 if cfg!(target_os = "windows") {
