@@ -9,11 +9,12 @@ use serde::{Deserialize, Serialize};
 use crate::constants::commands::*;
 use crate::constants::names::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Default, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum Application {
     VSCode,
     Vim,
     Custom,
+    #[default]
     None,
 }
 
@@ -59,19 +60,13 @@ impl Application {
     }
 }
 
-impl Default for Application {
-    fn default() -> Self {
-        Application::None
-    }
-}
-
 impl Display for Application {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Application::VSCode => write!(f, "{}", VSCODE_NAME),
             Application::Vim => write!(f, "{}", VIM_NAME),
             Application::Custom => write!(f, "{}", CUSTOM_NAME),
-            _ => write!(f, "{}", DevmodeStatus::NoEditorSet.to_string()),
+            _ => write!(f, "{}", DevmodeStatus::NoEditorSet),
         }
     }
 }

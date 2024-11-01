@@ -9,7 +9,6 @@ use libset::routes::home;
 
 use crate::action::Action;
 use crate::host::Host;
-use crate::project::OpenAction;
 use crate::{error, git_pull, Error};
 
 #[derive(Debug, Default, Clone, Setters)]
@@ -51,7 +50,7 @@ impl CloneAction {
                     if let Some(parent) = path.parent() {
                         let children: Vec<_> = std::fs::read_dir(parent)?.collect();
                         if children.is_empty() {
-                            remove_dir_all(&parent)?;
+                            remove_dir_all(parent)?;
                         }
                     }
                 }
@@ -60,7 +59,6 @@ impl CloneAction {
         }
 
         git_pull::status_short(path.to_str().unwrap().to_string())?;
-        OpenAction::make_dev_paths()?;
         Ok(())
     }
 

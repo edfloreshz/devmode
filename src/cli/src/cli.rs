@@ -12,11 +12,11 @@ use url_builder::URLBuilder;
 
 use crate::input::{
     clone_setup, config_all, config_editor, config_host, config_owner, create_workspace,
-    fork_setup, overwrite, select_repo,
+    fork_setup, overwrite, select, select_repo,
 };
 use devmode::fork::ForkAction;
 use devmode::host::Host;
-use devmode::project::{find_paths, OpenAction};
+use devmode::project::{matching_paths_for, OpenAction};
 use devmode::settings::Settings;
 use devmode::{clone::CloneAction, constants::patterns::GIT_URL};
 
@@ -93,8 +93,6 @@ pub enum Commands {
         arg_required_else_help = true
     )]
     Config {
-        #[clap(help = "Map your project paths.", short = 'm', long = "map")]
-        map: bool,
         #[clap(help = "Show the current configuration.", short = 's', long = "show")]
         show: bool,
         #[clap(help = "Configure your settings.", short = 'a', long = "all")]
@@ -141,6 +139,8 @@ pub enum Commands {
         remove: Option<String>,
         #[clap(help = "List all workspaces", short = 'l', long = "list")]
         list: bool,
+        #[clap(help = "Show information about a workspace", long = "info")]
+        info: bool,
     },
 }
 
@@ -153,20 +153,18 @@ impl Cli {
             Commands::Update { project } => Cli::update(project),
             Commands::Fork { args, upstream } => Cli::fork(args, upstream, rx),
             Commands::Config {
-                map,
                 show,
                 all,
                 editor,
                 owner,
                 host,
             } => Cli::config(Config {
-                map: *map,
                 show: *show,
                 all: *all,
                 editor: *editor,
                 owner: *owner,
                 host: *host,
-                none: !map && !show && !all && !editor && !owner && !host,
+                none: !show && !all && !editor && !owner && !host,
             }),
             Commands::Workspace {
                 name,
@@ -176,6 +174,7 @@ impl Cli {
                 include,
                 remove,
                 list,
+                info,
             } => Cli::workspace(WorkspaceOptions {
                 name: name.to_owned(),
                 add: *add,
@@ -184,6 +183,7 @@ impl Cli {
                 include: include.to_owned(),
                 remove: remove.to_owned(),
                 list: *list,
+                info: *info,
             }),
         }
     }
@@ -253,11 +253,11 @@ impl Cli {
     }
 
     fn open(project: &str) -> Result<(), Error> {
-        let paths = find_paths(project)?;
+        let paths = matching_paths_for(project)?;
         if paths.is_empty() {
             Err(Error::Devmode(DevmodeError::NoProjectFound))
         } else if paths.len() > 1 {
-            let path = select_repo(project, None)?;
+            let path = select_repo(paths)?;
             OpenAction::new(project).open(path)
         } else {
             OpenAction::new(project).open(
@@ -270,11 +270,11 @@ impl Cli {
     }
 
     fn update(project: &str) -> Result<(), Error> {
-        let paths = find_paths(project)?;
+        let paths = matching_paths_for(project)?;
         if paths.is_empty() {
             Err(Error::Devmode(DevmodeError::NoProjectFound))
         } else if paths.len() > 1 {
-            let path = select_repo(project, None)?;
+            let path = select_repo(paths)?;
             OpenAction::new(project).update(path)
         } else {
             OpenAction::new(project).update(
@@ -323,9 +323,6 @@ impl Cli {
             let settings = config_all()?;
             settings.write(false)?;
         }
-        if config.map {
-            OpenAction::make_dev_paths()?
-        }
         if config.editor {
             let settings = config_editor()?;
             settings.write(false)?
@@ -349,31 +346,56 @@ impl Cli {
         let mut settings =
             Settings::current().ok_or(Error::Devmode(DevmodeError::AppSettingsNotFound))?;
         let Some(ref workspace_name) = arguments.name else {
-            let workspaces = settings.workspaces.names;
-            println!("Currently available workspaces: {workspaces:?}");
-            return Ok(());
+            return if arguments.list {
+                let workspaces = settings.workspaces.names;
+                println!("Currently available workspaces:");
+                for workspace in workspaces {
+                    println!("- {}", workspace);
+                }
+                Ok(())
+            } else {
+                Err(Error::Devmode(DevmodeError::WorkspaceRequired))
+            };
         };
-        let mut workspace = Workspace::new(&workspace_name);
-        if settings.workspaces.names.contains(workspace_name) {
+        if arguments.add {
+            if settings.workspaces.names.contains(workspace_name) {
+                return Err(Error::Devmode(DevmodeError::WorkspaceExists(
+                    workspace_name.clone(),
+                )));
+            }
+            let create = create_workspace()?;
+            if create {
+                settings.workspaces.names.push(workspace_name.clone());
+                settings.write(true)?;
+                println!("Workspace {workspace_name} was added.")
+            }
+        } else if settings.workspaces.names.contains(workspace_name) {
+            let mut workspace = Workspace::new(&workspace_name);
             if arguments.delete {
                 workspace.delete()?;
                 println!("Workspace {workspace_name} was successfully deleted.");
             } else if let Some(ref to) = arguments.rename {
                 workspace.rename(to)?;
                 println!("Workspace renamed from {workspace_name} to {to}.");
-            } else if let Some(ref project) = arguments.include {
-                let paths: Vec<PathBuf> = find_paths(project)?
+            } else if let Some(ref project_name) = arguments.include {
+                let paths: Vec<PathBuf> = matching_paths_for(project_name)?
                     .iter()
+                    .cloned()
                     .filter(|path| !path.display().to_string().contains(workspace_name))
-                    .map(PathBuf::from)
                     .collect();
-                let project = if paths.len() > 0 {
-                    select_repo(project, Some(workspace_name))?
+
+                let project = if paths.len() == 0 {
+                    return Err(Error::Devmode(DevmodeError::ProjectNotFound));
+                } else if paths.len() > 1 {
+                    let paths: Vec<String> =
+                        paths.iter().map(|s| s.display().to_string()).collect();
+                    PathBuf::from(select(
+                        "repo",
+                        "Select the repository you want to open:",
+                        paths,
+                    )?)
                 } else {
-                    paths
-                        .get(0)
-                        .ok_or(Error::Devmode(DevmodeError::ProjectNotFound))?
-                        .clone()
+                    paths[0].clone()
                 };
                 let mut options = CopyOptions::new();
                 let destination = project
@@ -381,24 +403,33 @@ impl Cli {
                     .ok_or(Error::Devmode(DevmodeError::PathNotFound))?
                     .join(&workspace_name);
 
-                if destination.exists() {
+                if destination.join(project_name).exists() {
                     options.overwrite = overwrite()?;
+                }
+
+                if !destination.exists() {
+                    std::fs::create_dir_all(&destination)?;
                 }
 
                 move_items(&[project], destination, &options)?;
             } else if let Some(ref project_name) = arguments.remove {
-                let paths: Vec<PathBuf> = find_paths(project_name)?
+                let paths: Vec<PathBuf> = matching_paths_for(project_name)?
                     .iter()
-                    .filter(|path| !path.display().to_string().contains(workspace_name))
-                    .map(PathBuf::from)
+                    .cloned()
+                    .filter(|path| path.display().to_string().contains(workspace_name))
                     .collect();
-                let project = if paths.len() > 0 {
-                    select_repo(project_name, Some(workspace_name))?
+                let project = if paths.len() == 0 {
+                    return Err(Error::Devmode(DevmodeError::ProjectNotFound));
+                } else if paths.len() > 1 {
+                    let paths: Vec<String> =
+                        paths.iter().map(|s| s.display().to_string()).collect();
+                    PathBuf::from(select(
+                        "repo",
+                        "Select the repository you want to open:",
+                        paths,
+                    )?)
                 } else {
-                    paths
-                        .get(0)
-                        .ok_or(Error::Devmode(DevmodeError::ProjectNotFound))?
-                        .clone()
+                    paths[0].clone()
                 };
                 let mut options = dir::CopyOptions::new();
                 let to = project
@@ -407,26 +438,15 @@ impl Cli {
                     .parent()
                     .ok_or(Error::Devmode(DevmodeError::PathNotFound))?;
 
-                if to.join(&project).exists() {
+                if to.join(project_name).exists() {
                     options.overwrite = overwrite()?;
                 }
 
                 move_items(&[project.clone()], to, &options)?;
+            } else if arguments.info {
+                workspace.info()?;
             } else {
                 println!("Workspace `{workspace_name}` found.");
-            }
-        } else if arguments.delete || arguments.rename.is_some() {
-            return devmode::error("Couldn't find a workspace that matches {name}.");
-        } else if arguments.add {
-            settings.workspaces.names.push(workspace_name.clone());
-            settings.write(true)?;
-            println!("Workspace {workspace_name} was added.")
-        } else {
-            let create = create_workspace()?;
-            if create {
-                settings.workspaces.names.push(workspace_name.clone());
-                settings.write(true)?;
-                println!("Workspace {workspace_name} was added.")
             }
         }
         Ok(())

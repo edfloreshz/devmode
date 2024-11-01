@@ -5,7 +5,6 @@ use libset::routes::home;
 use regex::bytes::Regex;
 
 use crate::host::Host;
-use crate::project::OpenAction;
 use crate::{error, Error};
 
 pub struct ForkAction {
@@ -45,7 +44,7 @@ impl ForkAction {
         format!("{}/{}/{}", self.host.url(), self.owner, self.repo)
     }
     pub fn run(&self) -> Result<(), Error> {
-        return if let Host::None = self.host {
+        if let Host::None = self.host {
             error::error(
                 "You can't do this unless you set your configuration with ` dm config -a`\n\
                     In the meantime, you can clone by specifying <host> <owner> <repo>",
@@ -61,13 +60,10 @@ impl ForkAction {
             )
         } else {
             match self.clone_repo() {
-                Ok(path) => {
-                    OpenAction::make_dev_paths()?;
-                    self.set_upstream(path)
-                }
+                Ok(path) => self.set_upstream(path),
                 Err(e) => Err(e),
             }
-        };
+        }
     }
     pub fn clone_repo(&self) -> Result<String, Error> {
         let path = format!(

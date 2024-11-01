@@ -4,6 +4,12 @@ pub mod patterns {
     pub const ORG_GIT_URL: &str = r#"(?:git@|https://)(?P<host>gitlab[.][^\s]+[.][^\s]+)[:/](?P<owner>[^\s]+)[/](?P<repo>[^\s,.]+)([.]git)?"#;
 }
 
+pub const OS_SLASH: &str = if cfg!(target_os = "windows") {
+    "\\"
+} else {
+    "/"
+};
+
 pub mod names {
     pub const VSCODE_NAME: &str = "Visual Studio Code";
     pub const VIM_NAME: &str = "Vim";

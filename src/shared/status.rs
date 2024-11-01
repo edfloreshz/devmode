@@ -26,5 +26,5 @@ impl Display for DevmodeStatus {
 }
 
 pub fn report(status: DevmodeStatus) {
-    println!("{}", status.to_string());
+    println!("{}", status);
 }

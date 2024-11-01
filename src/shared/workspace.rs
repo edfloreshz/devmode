@@ -1,6 +1,6 @@
 use libset::routes::home;
 
-use super::{settings::Settings, DevmodeError, Error};
+use super::{project::project_paths, settings::Settings, DevmodeError, Error};
 
 #[derive(Debug)]
 pub struct WorkspaceOptions {
@@ -11,6 +11,7 @@ pub struct WorkspaceOptions {
     pub include: Option<String>,
     pub remove: Option<String>,
     pub list: bool,
+    pub info: bool,
 }
 
 pub struct Workspace {
@@ -33,6 +34,24 @@ impl Workspace {
             index,
             settings,
         }
+    }
+
+    pub fn info(&self) -> Result<(), Error> {
+        let paths = project_paths()?;
+        println!("Repositories in workspace {}:", self.name);
+        paths
+            .iter()
+            .filter_map(|path| {
+                let parent_name = path.parent()?.file_name()?.to_str()?;
+                if parent_name == self.name {
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+            .for_each(|path| println!("{:?}", path));
+
+        Ok(())
     }
 
     pub fn delete(&mut self) -> Result<(), Error> {

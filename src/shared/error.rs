@@ -56,10 +56,16 @@ pub enum DevmodeError {
     FailedToGetBranch,
     #[error("Failed to find workspace")]
     WorkspaceMissing,
+    #[error("Please provide a workspace")]
+    WorkspaceRequired,
+    #[error("Workspace {0} already exists")]
+    WorkspaceExists(String),
     #[error("Failed to find project")]
     ProjectNotFound,
     #[error("Multiple projects found. Please specify the project name.")]
     MultipleProjectsFound,
     #[error("Path not found")]
     PathNotFound,
+    #[error("File name not found")]
+    FileNameNotFound,
 }

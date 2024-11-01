@@ -5,7 +5,6 @@ use devmode::constants::names::{CUSTOM_NAME, NONE, VIM_NAME, VSCODE_NAME};
 use devmode::editor::Editor;
 use devmode::fork::ForkAction;
 use devmode::host::Host;
-use devmode::project::find_paths;
 use devmode::settings::Settings;
 use devmode::DevmodeError;
 use devmode::{application::Application, Error};
@@ -148,29 +147,23 @@ pub fn config_editor() -> Result<Settings, Error> {
     Ok(settings)
 }
 
-pub fn select_repo(project: &str, workspace: Option<&str>) -> Result<PathBuf, Error> {
-    let paths = if let Some(workspace) = workspace {
-        find_paths(project)?
-            .iter()
-            .filter(|path| path.display().to_string().contains(&workspace))
-            .map(|path| path.display().to_string().to_owned())
-            .collect::<Vec<String>>()
+pub fn select_repo(paths: Vec<PathBuf>) -> Result<PathBuf, Error> {
+    let paths: Vec<String> = paths.iter().map(|s| s.display().to_string()).collect();
+    let repo = if paths.len() > 1 {
+        select("repo", "Select the repository you want to open:", paths)?
     } else {
-        find_paths(project)?
-            .iter()
-            .map(|path| path.display().to_string().to_owned())
-            .collect::<Vec<String>>()
+        paths[0].clone()
     };
-    let repo = select("repo", "Select the repository you want to open:", paths)?;
+
     Ok(PathBuf::from(repo))
 }
 
 pub fn create_workspace() -> Result<bool, Error> {
-    let create = confirm("workspace", "Would you like to create this workspace?")?;
+    let create = confirm("Would you like to create this workspace?", "workspace")?;
     Ok(create)
 }
 
 pub fn overwrite() -> Result<bool, Error> {
-    let overwrite = confirm("overwrite", "Found existing repository, overwrite it?")?;
+    let overwrite = confirm("Found existing repository, overwrite it?", "overwrite")?;
     Ok(overwrite)
 }
