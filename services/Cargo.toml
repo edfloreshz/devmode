@@ -1,0 +1,19 @@
+[package]
+name = "services"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+exclude.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+git2 = { workspace = true }
+git2_credentials = { workspace = true }
+git-url-parse = { workspace = true }
+dirs = { workspace = true }
+log = { workspace = true }
