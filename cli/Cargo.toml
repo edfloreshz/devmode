@@ -18,10 +18,9 @@ path = "src/main.rs"
 
 [dependencies]
 thiserror = { workspace = true }
-log = { workspace = true }
-pretty_env_logger = "0.5.0"
 clap = { version = "4.5.23", features = ["derive", "cargo"] }
 git2 = { workspace = true }
 git2_credentials = { workspace = true }
 git-url-parse = { workspace = true }
 dirs = { workspace = true }
+colored = "3.0.0"

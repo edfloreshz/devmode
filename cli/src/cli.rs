@@ -1,5 +1,6 @@
 use crate::Error;
 use clap::{Parser, Subcommand};
+use colored::*;
 use devmode::{services, CliError};
 
 #[derive(Parser, Debug)]
@@ -28,16 +29,32 @@ impl Cli {
         match &self.commands {
             Commands::Clone { url } => match services::clone(&url) {
                 Ok(_) => {
-                    log::info!("Repository cloned to {}", url);
+                    println!(
+                        "{} {}",
+                        "success:".green().bold(),
+                        format!("Repository cloned to {}", url).green()
+                    );
                     Ok(())
                 }
                 Err(services::Error::Clone(services::CloneError::PathExists(path))) => {
                     if overwrite() {
                         std::fs::remove_dir_all(&path)?;
-                        log::info!("Removing existing repository at {}", path.display());
-                        log::info!("Cloning {}...", url.to_string());
+                        println!(
+                            "{} {}",
+                            "info:".cyan().bold(),
+                            format!("Removing existing repository at {}", path.display()).cyan()
+                        );
+                        println!(
+                            "{} {}",
+                            "info:".cyan().bold(),
+                            format!("Cloning {}...", url).cyan()
+                        );
                         services::clone(&url)?;
-                        log::info!("Repository cloned to {}", path.display());
+                        println!(
+                            "{} {}",
+                            "success:".green().bold(),
+                            format!("Repository cloned to {}", path.display()).green()
+                        );
                         Ok(())
                     } else {
                         Err(CliError::RepositoryExists.into())
@@ -50,7 +67,10 @@ impl Cli {
 }
 
 fn overwrite() -> bool {
-    println!("Found existing repository, overwrite it? y/n");
+    println!(
+        "{} Found existing repository, overwrite it? y/n",
+        "prompt:".yellow().bold()
+    );
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
     matches!(input.trim(), "y" | "Y")
