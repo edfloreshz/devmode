@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
-    Services(#[from] crate::services::Error),
+    Commands(#[from] crate::commands::Error),
     #[error("{0}")]
     Parse(#[from] clap::Error),
     #[error("{0}")]

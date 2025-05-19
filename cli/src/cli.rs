@@ -1,7 +1,7 @@
 use crate::Error;
 use clap::{Parser, Subcommand};
 use colored::*;
-use devmode::{services, CliError};
+use devmode::commands;
 
 #[derive(Parser, Debug)]
 #[clap(name = "Devmode")]
@@ -27,7 +27,7 @@ pub enum Commands {
 impl Cli {
     pub fn run(&self) -> Result<(), Error> {
         match &self.commands {
-            Commands::Clone { url } => match services::clone(&url) {
+            Commands::Clone { url } => match commands::clone::run(&url) {
                 Ok(_) => {
                     println!(
                         "{} {}",
@@ -36,7 +36,7 @@ impl Cli {
                     );
                     Ok(())
                 }
-                Err(services::Error::Clone(services::CloneError::PathExists(path))) => {
+                Err(commands::Error::Clone(commands::CloneError::PathExists(path))) => {
                     if overwrite() {
                         std::fs::remove_dir_all(&path)?;
                         println!(
@@ -49,7 +49,7 @@ impl Cli {
                             "info:".cyan().bold(),
                             format!("Cloning {}...", url).cyan()
                         );
-                        services::clone(&url)?;
+                        commands::clone::run(&url)?;
                         println!(
                             "{} {}",
                             "success:".green().bold(),
@@ -57,7 +57,7 @@ impl Cli {
                         );
                         Ok(())
                     } else {
-                        Err(CliError::RepositoryExists.into())
+                        Err(devmode::CliError::RepositoryExists.into())
                     }
                 }
                 Err(e) => Err(e.into()),
