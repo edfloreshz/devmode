@@ -11,20 +11,16 @@ fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     if let Err(e) = cli.run() {
         log::error(&e.to_string());
-        if let Some(suggestion) = get_suggestion(&e) {
-            log::warning(suggestion);
+        match e {
+            Error::CliError(CliError::RepositoryExists) => {
+                log::warning("Try removing the existing directory or use a different path.")
+            }
+            Error::CliError(CliError::InvalidUsage) => {
+                log::warning("Run 'dm help' for usage information.")
+            }
+            Error::CliError(CliError::CancelledByUser) => log::warning("No changes were made."),
+            _ => {}
         }
     }
     Ok(())
-}
-
-fn get_suggestion(e: &Error) -> Option<&'static str> {
-    match e {
-        Error::CliError(CliError::RepositoryExists) => {
-            Some("Try removing the existing directory or use a different path.")
-        }
-        Error::CliError(CliError::InvalidUsage) => Some("Run 'dm help' for usage information."),
-        Error::CliError(CliError::CancelledByUser) => Some("No changes were made."),
-        _ => None,
-    }
 }
