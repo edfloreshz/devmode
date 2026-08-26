@@ -21,6 +21,14 @@ pub fn run(command: ConfigCommand) -> Result<()> {
                 );
             }
         }
+        ConfigCommand::Show { json } => {
+            let config = Config::load()?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&config).unwrap());
+            } else {
+                print!("{}", toml::to_string_pretty(&config).unwrap());
+            }
+        }
     }
     Ok(())
 }
