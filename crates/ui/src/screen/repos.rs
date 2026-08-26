@@ -577,7 +577,8 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
         let visible = filter(snapshot, &app.repos.query);
 
         let body = row![
-            design::pane(list(app, snapshot, &visible), 320.0),
+            container(design::pane(list(app, snapshot, &visible), 320.0))
+                .padding(iced::Padding::default().left(design::XL)),
             container(rule::horizontal(0.0)).width(1).height(Fill),
             container(detail(app, snapshot)).width(Fill).height(Fill),
         ]
@@ -609,7 +610,7 @@ fn header<'a>() -> Element<'a, AppMessage> {
         Some("Clone, create, or track the repositories devmode manages.".to_string()),
         None,
     ))
-    .padding(iced::Padding::from([design::MD, design::LG]).bottom(0))
+    .padding(iced::Padding::from([design::XL, design::XL]).bottom(0))
     .into()
 }
 
@@ -638,7 +639,7 @@ fn toolbar(app: &App) -> Element<'_, AppMessage> {
         .spacing(design::SM)
         .align_y(Center),
     )
-    .padding(iced::Padding::from([0.0, design::LG]))
+    .padding(iced::Padding::from([0.0, design::XL]))
     .into()
 }
 
@@ -671,7 +672,7 @@ fn drift_banner<'a>(snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
             ..container::Style::default()
         }),
     )
-    .padding(iced::Padding::from([0.0, design::LG]))
+    .padding(iced::Padding::from([0.0, design::XL]))
     .into()
 }
 
