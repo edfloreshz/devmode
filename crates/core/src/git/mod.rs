@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use git2::{build::RepoBuilder, Repository};
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// Clones `url` into `dest`, creating parent directories as needed.
 pub fn clone(url: &str, dest: &Path) -> Result<()> {
@@ -20,7 +20,27 @@ pub fn clone(url: &str, dest: &Path) -> Result<()> {
     }
     let mut builder = RepoBuilder::new();
     builder.fetch_options(credentials::fetch_options());
-    builder.clone(url, dest)?;
+    builder.clone(url, dest).map_err(|err| {
+        // Fixed fallback messages once every credential strategy (SSH
+        // agent/key, git credential helper) is exhausted with nothing
+        // usable — from git2_credentials itself, or from libgit2's own
+        // credential-helper invocation. libgit2 doesn't let us distinguish
+        // "wrong credentials" from "repo doesn't exist" here (both look
+        // like an auth failure over HTTPS), so give the best actionable
+        // guess instead of surfacing either raw string.
+        let is_auth_exhausted = matches!(
+            err.message(),
+            "no valid authentication available"
+                | "failed to acquire username/password from local configuration"
+        );
+        if is_auth_exhausted {
+            Error::CloneAuthFailed {
+                url: url.to_string(),
+            }
+        } else {
+            Error::Git2(err)
+        }
+    })?;
     Ok(())
 }
 

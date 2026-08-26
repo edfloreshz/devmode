@@ -56,6 +56,10 @@ pub enum Error {
     #[error("git error: {0}")]
     Git2(#[from] git2::Error),
 
+    #[error("could not authenticate with '{url}' — the repo may not exist, may be private, \
+             or you may need to configure a credential helper or an SSH key in your ssh-agent")]
+    CloneAuthFailed { url: String },
+
     #[error("invalid git url '{url}': {reason}")]
     InvalidGitUrl { url: String, reason: String },
 
