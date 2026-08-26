@@ -791,7 +791,7 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
 
     let actions = row![
         design::primary_button("Open project", wrap(Message::OpenProject)),
-        design::secondary_button("Remove…", wrap(Message::OpenRemove(repo.id))),
+        design::destructive_button("Remove…", wrap(Message::OpenRemove(repo.id))),
     ]
     .spacing(design::SM);
 
@@ -1105,7 +1105,7 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
     let is_destructive = matches!(dialog, Dialog::Remove { .. });
 
     let confirm_button = if is_destructive {
-        design::danger_button(confirm, wrap(Message::DialogSubmit))
+        design::destructive_button(confirm, wrap(Message::DialogSubmit))
     } else {
         design::primary_button(confirm, wrap(Message::DialogSubmit))
     };
