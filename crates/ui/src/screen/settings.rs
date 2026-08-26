@@ -1,13 +1,13 @@
 //! The Settings screen: devmode's `config.toml`, with a live preview of what
 //! the chosen layout actually does to a path.
 
-use iced::widget::{checkbox, column, pick_list, row, space, text, text_input};
+use iced::widget::{checkbox, column, pick_list, row, space, text};
 use iced::{Center, Element, Fill, Task, Theme};
 
 use dm_core::config::{Config, ThemeMode};
 use dm_core::layout::PathLayout;
 
-use crate::app::{self, App, Message as AppMessage};
+use crate::app::{App, Message as AppMessage};
 use crate::design::{self, Tone};
 
 /// The layout choices offered in the picker. `Custom` carries its template in
@@ -291,8 +291,8 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
 
     if state.is_dirty() {
         body = body.push(design::button_row(vec![
-            design::small_button("Revert", wrap(Message::Revert)),
-            app::primary_button("Save changes", wrap(Message::Save)),
+            design::secondary_button("Revert", wrap(Message::Revert)),
+            design::primary_button("Save changes", wrap(Message::Save)),
         ]));
     }
 
@@ -328,8 +328,8 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
         pick_list(LayoutChoice::ALL, state.layout, |choice| {
             wrap(Message::LayoutChanged(choice))
         })
-        .padding(design::SM)
-        .text_size(design::TEXT_MD)
+        .padding(design::CONTROL_PADDING)
+        .text_size(design::CONTROL_TEXT)
         .width(Fill)
         .into(),
     );
@@ -385,7 +385,7 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
                     ))
                     .size(design::TEXT_SM),
                     space::horizontal(),
-                    design::small_button("Move them", wrap(Message::FixDrift)),
+                    design::secondary_button("Move them", wrap(Message::FixDrift)),
                 ]
                 .spacing(design::SM)
                 .align_y(Center),
@@ -428,8 +428,8 @@ fn appearance_section(app: &App) -> Element<'_, AppMessage> {
         pick_list(ThemeMode::ALL, Some(state.theme_mode), |mode| {
             wrap(Message::ThemeModeChanged(mode))
         })
-        .padding(design::SM)
-        .text_size(design::TEXT_MD)
+        .padding(design::CONTROL_PADDING)
+        .text_size(design::CONTROL_TEXT)
         .width(Fill)
         .into(),
     );
@@ -443,8 +443,8 @@ fn appearance_section(app: &App) -> Element<'_, AppMessage> {
             pick_list(themes_for(for_mode), theme_named(selected), move |theme| {
                 wrap(to_message(theme))
             })
-            .padding(design::SM)
-            .text_size(design::TEXT_MD)
+            .padding(design::CONTROL_PADDING)
+            .text_size(design::CONTROL_TEXT)
             .width(Fill)
             .into(),
         )
@@ -507,7 +507,7 @@ fn behaviour_section(app: &App) -> Element<'_, AppMessage> {
             ),
             checkbox(app.settings.interactive)
                 .label("Interactive prompts in the CLI")
-                .text_size(design::TEXT_MD)
+                .text_size(design::CONTROL_TEXT)
                 .on_toggle(|value| wrap(Message::InteractiveChanged(value))),
             design::muted(
                 text(
@@ -530,11 +530,9 @@ fn input<'a>(
 ) -> Element<'a, AppMessage> {
     design::field(
         label,
-        text_input(placeholder, value)
+        design::input(placeholder, value)
             .on_input(move |value| wrap(on_input(value)))
             .on_submit(wrap(Message::Save))
-            .padding(design::SM)
-            .size(design::TEXT_MD)
             .font(design::MONO)
             .width(Fill)
             .into(),

@@ -1,14 +1,14 @@
 //! The Workspaces screen: workspaces beside a detail pane holding their
 //! members, environment variables, and editor override.
 
-use iced::widget::{column, container, operation, row, rule, scrollable, space, text, text_input};
+use iced::widget::{column, container, operation, row, rule, scrollable, space, text};
 use iced::{Center, Element, Fill, Task};
 
 use dm_core::config::Config;
 use dm_core::registry::{RegistryStore, RepoId};
 use dm_core::workspace::{NewWorkspace, WorkspaceStore};
 
-use crate::app::{self, App, Message as AppMessage};
+use crate::app::{App, Message as AppMessage};
 use crate::data::{Snapshot, WorkspaceDetail};
 use crate::design::{self, Tone};
 
@@ -476,7 +476,7 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
             "No workspaces yet",
             "A workspace groups repos you work on together, with its own editor \
              and environment variables. Repos never move on disk when you group them.",
-            Some(app::primary_button(
+            Some(design::primary_button(
                 "New workspace…",
                 wrap(Message::OpenCreate),
             )),
@@ -508,7 +508,7 @@ fn toolbar<'a>() -> Element<'a, AppMessage> {
         row![
             text("Workspaces").size(design::TEXT_LG),
             space::horizontal(),
-            app::primary_button("New workspace…", wrap(Message::OpenCreate)),
+            design::primary_button("New workspace…", wrap(Message::OpenCreate)),
         ]
         .align_y(Center),
     )
@@ -549,9 +549,9 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
     };
 
     let actions = row![
-        app::primary_button("Open in editor", wrap(Message::Switch)),
-        design::small_button("Edit…", wrap(Message::StartEditing)),
-        design::small_button("Delete…", wrap(Message::OpenDelete)),
+        design::primary_button("Open in editor", wrap(Message::Switch)),
+        design::secondary_button("Edit…", wrap(Message::StartEditing)),
+        design::secondary_button("Delete…", wrap(Message::OpenDelete)),
     ]
     .spacing(design::SM);
 
@@ -596,11 +596,9 @@ fn editing_form(editing: &Editing) -> Element<'_, AppMessage> {
                  value: &str,
                  id: Option<&'static str>,
                  to_editing: Box<dyn Fn(String) -> Editing>| {
-        let mut input = text_input(placeholder, value)
+        let mut input = design::input(placeholder, value)
             .on_input(move |value| wrap(Message::EditingChanged(to_editing(value))))
             .on_submit(wrap(Message::SaveEditing))
-            .padding(design::SM)
-            .size(design::TEXT_MD)
             .width(Fill);
 
         if let Some(id) = id {
@@ -641,8 +639,8 @@ fn editing_form(editing: &Editing) -> Element<'_, AppMessage> {
                 })
             }),
             design::button_row(vec![
-                design::small_button("Cancel", wrap(Message::CancelEditing)),
-                app::primary_button("Save", wrap(Message::SaveEditing)),
+                design::secondary_button("Cancel", wrap(Message::CancelEditing)),
+                design::primary_button("Save", wrap(Message::SaveEditing)),
             ]),
         ]
         .spacing(design::MD),
@@ -650,7 +648,7 @@ fn editing_form(editing: &Editing) -> Element<'_, AppMessage> {
 }
 
 fn members_section<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
-    let add = design::small_button("Add repo…", wrap(Message::OpenAddMember));
+    let add = design::secondary_button("Add repo…", wrap(Message::OpenAddMember));
 
     let Some(detail) = &app.workspaces.detail else {
         return design::section(
@@ -693,7 +691,7 @@ fn members_section<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppM
                 .spacing(1.0)
                 .width(Fill),
                 drift,
-                design::small_button("Remove", wrap(Message::RemoveMember(repo.id))),
+                design::secondary_button("Remove", wrap(Message::RemoveMember(repo.id))),
             ]
             .spacing(design::SM)
             .align_y(Center),
@@ -707,7 +705,7 @@ fn members_section<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppM
 }
 
 fn env_section(app: &App) -> Element<'_, AppMessage> {
-    let add = design::small_button("Add variable…", wrap(Message::OpenSetEnv));
+    let add = design::secondary_button("Add variable…", wrap(Message::OpenSetEnv));
 
     let Some(detail) = &app.workspaces.detail else {
         return design::section(
@@ -740,7 +738,7 @@ fn env_section(app: &App) -> Element<'_, AppMessage> {
                     .font(design::MONO)
                     .size(design::TEXT_MD)
                     .width(Fill),
-                design::small_button("Unset", wrap(Message::UnsetEnv(key.clone()))),
+                design::secondary_button("Unset", wrap(Message::UnsetEnv(key.clone()))),
             ]
             .spacing(design::SM)
             .align_y(Center),
@@ -948,14 +946,11 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
             ),
         };
 
-    let confirm_button = iced::widget::button(text(confirm).size(design::TEXT_SM))
-        .padding(iced::Padding::from([design::XS, design::MD]))
-        .on_press(wrap(Message::DialogSubmit))
-        .style(if destructive {
-            iced::widget::button::danger
-        } else {
-            iced::widget::button::primary
-        });
+    let confirm_button = if destructive {
+        design::danger_button(confirm, wrap(Message::DialogSubmit))
+    } else {
+        design::primary_button(confirm, wrap(Message::DialogSubmit))
+    };
 
     container(
         column![
@@ -966,8 +961,8 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
             .spacing(design::XS),
             fields,
             design::button_row(vec![
-                design::small_button("Cancel", wrap(Message::DialogCancel)),
-                confirm_button.into(),
+                design::secondary_button("Cancel", wrap(Message::DialogCancel)),
+                confirm_button,
             ]),
         ]
         .spacing(design::LG),
@@ -985,11 +980,9 @@ fn dialog_field<'a>(
     id: Option<&'static str>,
     to_dialog: Box<dyn Fn(String) -> Dialog + 'a>,
 ) -> Element<'a, AppMessage> {
-    let mut input = text_input(placeholder, value)
+    let mut input = design::input(placeholder, value)
         .on_input(move |value| wrap(Message::DialogChanged(to_dialog(value))))
         .on_submit(wrap(Message::DialogSubmit))
-        .padding(design::SM)
-        .size(design::TEXT_MD)
         .width(Fill);
 
     if let Some(id) = id {

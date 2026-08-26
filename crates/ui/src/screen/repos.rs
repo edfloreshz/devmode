@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use iced::widget::{
-    checkbox, column, container, operation, row, rule, scrollable, space, text, text_input,
+    checkbox, column, container, operation, row, rule, scrollable, space, text,
 };
 use iced::{Center, Element, Fill, Task};
 
@@ -17,7 +17,7 @@ use dm_core::paths;
 use dm_core::registry::{NewRepo, RegistryStore, RepoId};
 use dm_core::relayout;
 
-use crate::app::{self, App, Message as AppMessage};
+use crate::app::{App, Message as AppMessage};
 use crate::data::Snapshot;
 use crate::design::{self, Tone};
 
@@ -356,9 +356,9 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
              you already have. Discovery can also find repos already on disk.",
             Some(
                 row![
-                    app::primary_button("Clone…", wrap(Message::OpenClone)),
-                    design::small_button("Create…", wrap(Message::OpenCreate)),
-                    design::small_button("Track a folder…", wrap(Message::OpenTrack)),
+                    design::primary_button("Clone…", wrap(Message::OpenClone)),
+                    design::secondary_button("Create…", wrap(Message::OpenCreate)),
+                    design::secondary_button("Track a folder…", wrap(Message::OpenTrack)),
                 ]
                 .spacing(design::SM)
                 .into(),
@@ -399,19 +399,17 @@ fn loading<'a>() -> Element<'a, AppMessage> {
 }
 
 fn toolbar(app: &App) -> Element<'_, AppMessage> {
-    let search = text_input("Search repos…", &app.repos.query)
+    let search = design::input("Search repos…", &app.repos.query)
         .id(SEARCH_ID)
         .on_input(|query| wrap(Message::Search(query)))
-        .padding(design::SM)
-        .size(design::TEXT_MD)
         .width(Fill);
 
     container(
         row![
             search,
-            app::primary_button("Clone…", wrap(Message::OpenClone)),
-            design::small_button("Create…", wrap(Message::OpenCreate)),
-            design::small_button("Track…", wrap(Message::OpenTrack)),
+            design::primary_button("Clone…", wrap(Message::OpenClone)),
+            design::secondary_button("Create…", wrap(Message::OpenCreate)),
+            design::secondary_button("Track…", wrap(Message::OpenTrack)),
         ]
         .spacing(design::SM)
         .align_y(Center),
@@ -436,7 +434,7 @@ fn drift_banner<'a>(snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
                 design::badge("Layout", Tone::Warning),
                 text(message).size(design::TEXT_SM),
                 space::horizontal(),
-                design::small_button("Move them", wrap(Message::FixDrift)),
+                design::secondary_button("Move them", wrap(Message::FixDrift)),
             ]
             .spacing(design::SM)
             .align_y(Center),
@@ -543,7 +541,7 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
                         .size(design::TEXT_SM)
                 ),
                 design::mono_field("Would move to", candidate.to.display()),
-                design::button_row(vec![design::small_button(
+                design::button_row(vec![design::secondary_button(
                     "Move it",
                     wrap(Message::FixDrift),
                 )]),
@@ -553,11 +551,11 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
     }
 
     let actions = row![
-        design::small_button(
+        design::secondary_button(
             "Copy path",
             wrap(Message::CopyPath(repo.path.display().to_string())),
         ),
-        design::small_button("Remove…", wrap(Message::OpenRemove(repo.id))),
+        design::secondary_button("Remove…", wrap(Message::OpenRemove(repo.id))),
     ]
     .spacing(design::SM);
 
@@ -650,7 +648,7 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                 }),
                 checkbox(*git)
                     .label("Initialise a git repository")
-                    .text_size(design::TEXT_MD)
+                    .text_size(design::CONTROL_TEXT)
                     .on_toggle({
                         let (name, path) = (name.clone(), path.clone());
                         move |git| {
@@ -686,7 +684,7 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                 text(format!("“{name}” will no longer be tracked.")).size(design::TEXT_MD),
                 checkbox(*delete)
                     .label("Also delete the folder from disk")
-                    .text_size(design::TEXT_MD)
+                    .text_size(design::CONTROL_TEXT)
                     .style(checkbox::danger)
                     .on_toggle({
                         let (id, name) = (*id, name.clone());
@@ -707,14 +705,11 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
 
     let is_destructive = matches!(dialog, Dialog::Remove { .. });
 
-    let confirm_button = iced::widget::button(text(confirm).size(design::TEXT_SM))
-        .padding(iced::Padding::from([design::XS, design::MD]))
-        .on_press(wrap(Message::DialogSubmit))
-        .style(if is_destructive {
-            iced::widget::button::danger
-        } else {
-            iced::widget::button::primary
-        });
+    let confirm_button = if is_destructive {
+        design::danger_button(confirm, wrap(Message::DialogSubmit))
+    } else {
+        design::primary_button(confirm, wrap(Message::DialogSubmit))
+    };
 
     container(
         column![
@@ -725,8 +720,8 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
             .spacing(design::XS),
             fields,
             design::button_row(vec![
-                design::small_button("Cancel", wrap(Message::DialogCancel)),
-                confirm_button.into(),
+                design::secondary_button("Cancel", wrap(Message::DialogCancel)),
+                confirm_button,
             ]),
         ]
         .spacing(design::LG),
@@ -746,11 +741,9 @@ fn labelled<'a>(
     first: bool,
     to_dialog: impl Fn(String) -> Dialog + 'a,
 ) -> Element<'a, AppMessage> {
-    let mut input = text_input(placeholder, value)
+    let mut input = design::input(placeholder, value)
         .on_input(move |value| wrap(Message::DialogChanged(to_dialog(value))))
         .on_submit(wrap(Message::DialogSubmit))
-        .padding(design::SM)
-        .size(design::TEXT_MD)
         .font(design::MONO)
         .width(Fill);
 
