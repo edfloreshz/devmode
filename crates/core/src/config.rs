@@ -21,6 +21,11 @@ fn dirs_home() -> PathBuf {
 pub struct Config {
     pub repo: RepoConfig,
     pub editor: Option<String>,
+    /// When `false`, the CLI never uses TTY-requiring interactive prompts
+    /// (`inquire::Confirm`/`Select`) — confirmations fall back to a plain
+    /// stdin read and ambiguous repo lookups error instead of offering a
+    /// picker, so devmode stays usable from scripts and pipes.
+    pub interactive: bool,
 }
 
 impl Default for Config {
@@ -28,6 +33,7 @@ impl Default for Config {
         Self {
             repo: RepoConfig::default(),
             editor: None,
+            interactive: true,
         }
     }
 }
@@ -77,6 +83,7 @@ impl Config {
             "repo.host" => Ok(self.repo.host.clone()),
             "repo.layout" => Ok(self.repo.layout.to_config_string()),
             "editor" => Ok(self.editor.clone().unwrap_or_default()),
+            "interactive" => Ok(self.interactive.to_string()),
             other => Err(Error::UnknownConfigKey(other.to_string())),
         }
     }
@@ -90,6 +97,15 @@ impl Config {
             "repo.host" => self.repo.host = value.to_string(),
             "repo.layout" => self.repo.layout = PathLayout::parse(value)?,
             "editor" => self.editor = Some(value.to_string()),
+            "interactive" => {
+                self.interactive =
+                    value
+                        .parse::<bool>()
+                        .map_err(|_| Error::InvalidConfigValue {
+                            key: key.to_string(),
+                            value: value.to_string(),
+                        })?
+            }
             other => return Err(Error::UnknownConfigKey(other.to_string())),
         }
         Ok(())
