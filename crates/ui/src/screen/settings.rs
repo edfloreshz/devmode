@@ -1,6 +1,8 @@
 //! The Settings screen: devmode's `config.toml`, with a live preview of what
 //! the chosen layout actually does to a path.
 
+use std::path::PathBuf;
+
 use iced::widget::{checkbox, column, pick_list, row, space, text};
 use iced::{Center, Element, Fill, Task, Theme};
 
@@ -133,6 +135,8 @@ impl State {
 #[derive(Debug, Clone)]
 pub enum Message {
     RootChanged(String),
+    BrowseRoot,
+    RootPicked(Option<PathBuf>),
     HostChanged(String),
     EditorChanged(String),
     InteractiveChanged(bool),
@@ -152,6 +156,19 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             app.settings.root = root;
             Task::none()
         }
+        Message::BrowseRoot => {
+            let current = app.settings.root.trim();
+            let starting = (!current.is_empty()).then(|| PathBuf::from(current));
+
+            Task::perform(crate::task::pick_folder("Choose a folder", starting), |picked| {
+                wrap(Message::RootPicked(picked))
+            })
+        }
+        Message::RootPicked(Some(picked)) => {
+            app.settings.root = picked.display().to_string();
+            Task::none()
+        }
+        Message::RootPicked(None) => Task::none(),
         Message::HostChanged(host) => {
             app.settings.host = host;
             Task::none()
@@ -303,11 +320,12 @@ fn repo_section(app: &App) -> Element<'_, AppMessage> {
     design::section(
         "Repositories",
         column![
-            input(
+            path_input(
                 "Repo root",
                 "Where clones and new repos land",
                 &app.settings.root,
                 Message::RootChanged,
+                Message::BrowseRoot,
             ),
             input(
                 "Default host",
@@ -536,6 +554,29 @@ fn input<'a>(
             .font(design::MONO)
             .width(Fill)
             .into(),
+    )
+}
+
+fn path_input<'a>(
+    label: &'a str,
+    placeholder: &'a str,
+    value: &'a str,
+    on_input: impl Fn(String) -> Message + 'a,
+    on_browse: Message,
+) -> Element<'a, AppMessage> {
+    design::field(
+        label,
+        row![
+            design::input(placeholder, value)
+                .on_input(move |value| wrap(on_input(value)))
+                .on_submit(wrap(Message::Save))
+                .font(design::MONO)
+                .width(Fill),
+            design::secondary_button("Browse…", wrap(on_browse)),
+        ]
+        .spacing(design::SM)
+        .align_y(Center)
+        .into(),
     )
 }
 
