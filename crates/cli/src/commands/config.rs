@@ -15,7 +15,7 @@ pub fn run(command: ConfigCommand) -> Result<()> {
             config.set(&key, &value)?;
             config.save()?;
 
-            if key == "clone.layout" && relayout::has_relayout_candidates()? {
+            if key == "repo.layout" && relayout::has_relayout_candidates()? {
                 println!(
                     "note: some tracked repos no longer match this layout — run `dm repo relayout` to preview moving them"
                 );
