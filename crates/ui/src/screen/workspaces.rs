@@ -484,7 +484,7 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
     } else {
         let body = row![
             container(design::pane(list(app, snapshot), 280.0))
-                .padding(iced::Padding::default().left(design::XL)),
+                .padding(iced::Padding::default().left(design::MD)),
             container(rule::horizontal(0.0)).width(1).height(Fill),
             container(detail(app, snapshot)).width(Fill).height(Fill),
         ]
@@ -523,9 +523,7 @@ fn header<'a>(actions: impl Into<Option<Element<'a, AppMessage>>>) -> Element<'a
 }
 
 fn list<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
-    let mut items = column![]
-        .spacing(2.0)
-        .padding(iced::Padding::from([0.0, design::SM]));
+    let mut items = column![].spacing(2.0);
 
     for workspace in &snapshot.workspaces {
         let label = column![
