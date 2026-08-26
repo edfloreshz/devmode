@@ -566,7 +566,7 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
 // -- dialogs ------------------------------------------------------------------
 
 /// Overlays `content` with a centred dialog card, dimming what's behind it.
-fn modal<'a>(
+pub fn modal<'a>(
     base: Element<'a, AppMessage>,
     dialog: Element<'a, AppMessage>,
 ) -> Element<'a, AppMessage> {
