@@ -578,7 +578,7 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
 
         let body = row![
             container(design::pane(list(app, snapshot, &visible), 320.0))
-                .padding(iced::Padding::default().left(design::MD)),
+                .padding(iced::Padding::default().left(design::XL)),
             container(rule::horizontal(0.0)).width(1).height(Fill),
             container(detail(app, snapshot)).width(Fill).height(Fill),
         ]
