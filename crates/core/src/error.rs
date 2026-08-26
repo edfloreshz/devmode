@@ -34,6 +34,18 @@ pub enum Error {
 
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("database error: {0}")]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("path does not exist or is not a directory: {0}")]
+    NotADirectory(PathBuf),
+
+    #[error("repo is already tracked: {0}")]
+    AlreadyTracked(PathBuf),
+
+    #[error("no tracked repo found matching: {0}")]
+    RepoNotFound(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
