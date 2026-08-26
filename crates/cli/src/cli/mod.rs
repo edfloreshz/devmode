@@ -31,6 +31,41 @@ pub enum ConfigCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum RepoCommand {
+    /// Clone a repo from a URL (HTTP(S) or SSH) and track it.
+    Clone {
+        /// The URL to clone.
+        url: String,
+        /// Exact destination directory (overrides the configured layout).
+        #[arg(long)]
+        path: Option<std::path::PathBuf>,
+    },
+    /// Create a new local repo and track it.
+    Create {
+        /// Name for the new repo.
+        name: String,
+        /// Exact destination directory (overrides the default local placement).
+        #[arg(long)]
+        path: Option<std::path::PathBuf>,
+        /// Don't run `git init` — just create the directory.
+        #[arg(long)]
+        no_git: bool,
+    },
+    /// Show details about a tracked repo.
+    Show {
+        /// Repo name or path.
+        repo: String,
+    },
+    /// Untrack (and optionally delete) a repo.
+    Remove {
+        /// Repo name or path.
+        repo: String,
+        /// Also delete the repo directory from disk.
+        #[arg(long)]
+        delete: bool,
+        /// Skip the delete confirmation prompt.
+        #[arg(short, long)]
+        force: bool,
+    },
     /// Register an existing on-disk repo into devmode's registry.
     Track {
         /// Path to the repo directory.

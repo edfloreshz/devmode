@@ -52,6 +52,18 @@ pub enum Error {
 
     #[error("cannot relayout {path}: target {target} already exists")]
     RelayoutTargetExists { path: PathBuf, target: PathBuf },
+
+    #[error("git error: {0}")]
+    Git2(#[from] git2::Error),
+
+    #[error("invalid git url '{url}': {reason}")]
+    InvalidGitUrl { url: String, reason: String },
+
+    #[error("destination already exists: {0}")]
+    DestinationExists(PathBuf),
+
+    #[error("'{0}' matches more than one tracked repo — try specifying the full path instead")]
+    AmbiguousRepo(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
