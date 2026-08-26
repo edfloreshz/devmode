@@ -326,6 +326,10 @@ impl App {
         Task::perform(blocking(f), Message::Completed)
     }
 
+    pub fn toast_success(&mut self, body: impl Into<String>) {
+        self.toast = Some(Toast::success(body));
+    }
+
     pub fn toast_error(&mut self, error: impl Into<String>) {
         self.toast = Some(Toast::error(error));
     }

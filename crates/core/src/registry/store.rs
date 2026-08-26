@@ -142,6 +142,25 @@ impl RegistryStore {
         Ok(())
     }
 
+    /// Updates a tracked repo's remote URL along with the host/owner parsed
+    /// from it, so editing the remote also keeps layout checks accurate.
+    pub fn update_remote_details(
+        &self,
+        id: RepoId,
+        remote_url: &str,
+        host: Option<&str>,
+        owner: Option<&str>,
+    ) -> Result<()> {
+        let changed = self.conn.execute(
+            "UPDATE repos SET remote_url = ?1, host = ?2, owner = ?3 WHERE id = ?4",
+            params![remote_url, host, owner, id],
+        )?;
+        if changed == 0 {
+            return Err(Error::RepoNotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
     pub fn remove(&self, id: RepoId) -> Result<()> {
         let changed = self
             .conn

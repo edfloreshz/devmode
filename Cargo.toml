@@ -40,3 +40,4 @@ iced_test = "0.14"
 # Windows use their native pickers regardless.
 rfd = "0.17"
 notify-debouncer-mini = "0.4"
+open = "5.4"
