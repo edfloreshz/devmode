@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::path::PathBuf;
 
 use dm_core::config::Config;
@@ -6,6 +5,7 @@ use dm_core::error::Error as CoreError;
 use dm_core::registry::{RegistryStore, Repo};
 
 use crate::error::Result;
+use crate::prompt::confirm;
 
 struct Move {
     id: dm_core::registry::RepoId,
@@ -95,16 +95,6 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
             })
         })
         .collect()
-}
-
-fn confirm(prompt: &str) -> Result<bool> {
-    print!("{prompt} [y/N] ");
-    std::io::stdout().flush().map_err(CoreError::from)?;
-    let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .map_err(CoreError::from)?;
-    Ok(matches!(input.trim().to_lowercase().as_str(), "y" | "yes"))
 }
 
 /// Whether any tracked repos have host/owner metadata that could drift from
