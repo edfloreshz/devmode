@@ -349,8 +349,8 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
         return loading();
     };
 
-    if snapshot.repos.is_empty() {
-        return design::empty_state(
+    let content: Element<'_, AppMessage> = if snapshot.repos.is_empty() {
+        design::empty_state(
             "No repos tracked yet",
             "Clone a repository, create a new one, or point devmode at a folder \
              you already have. Discovery can also find repos already on disk.",
@@ -363,25 +363,29 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
                 .spacing(design::SM)
                 .into(),
             ),
-        );
-    }
+        )
+    } else {
+        let visible = filter(snapshot, &app.repos.query);
 
-    let visible = filter(snapshot, &app.repos.query);
-
-    let body = row![
-        design::pane(list(app, snapshot, &visible), 320.0),
-        container(rule::horizontal(0.0)).width(1).height(Fill),
-        container(detail(app, snapshot)).width(Fill).height(Fill),
-    ]
-    .height(Fill);
-
-    let content = column![toolbar(app), drift_banner(snapshot), body]
-        .spacing(design::MD)
+        let body = row![
+            design::pane(list(app, snapshot, &visible), 320.0),
+            container(rule::horizontal(0.0)).width(1).height(Fill),
+            container(detail(app, snapshot)).width(Fill).height(Fill),
+        ]
         .height(Fill);
 
+        column![toolbar(app), drift_banner(snapshot), body]
+            .spacing(design::MD)
+            .height(Fill)
+            .into()
+    };
+
+    // Applied to whatever the screen rendered: the empty state is the only
+    // way to start a clone when nothing is tracked, so its dialogs have to
+    // show over it too.
     match &app.repos.dialog {
-        Some(dialog) => modal(content.into(), dialog_view(dialog)),
-        None => content.into(),
+        Some(dialog) => modal(content, dialog_view(dialog)),
+        None => content,
     }
 }
 

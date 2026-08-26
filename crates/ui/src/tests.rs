@@ -312,3 +312,31 @@ fn navigating_switches_the_visible_screen() {
     let mut ui = simulator(app.view());
     assert!(ui.find("Find untracked repos").is_ok());
 }
+
+#[test]
+fn a_dialog_opened_from_the_empty_state_is_visible() {
+    // The empty state is the *only* place to start a clone when nothing is
+    // tracked yet, so the dialog has to render over it.
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+
+    let _ = repos::update(&mut app, repos::Message::OpenClone);
+
+    let mut ui = simulator(repos::view(&app));
+    assert!(
+        ui.find("Clone a repository").is_ok(),
+        "the clone dialog should render over the empty state"
+    );
+}
+
+#[test]
+fn a_workspace_dialog_opened_from_the_empty_state_is_visible() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+
+    let _ = workspaces::update(&mut app, workspaces::Message::OpenCreate);
+
+    let mut ui = simulator(workspaces::view(&app));
+    assert!(
+        ui.find("New workspace").is_ok(),
+        "the create dialog should render over the empty state"
+    );
+}
