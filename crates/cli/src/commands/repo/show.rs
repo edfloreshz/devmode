@@ -3,9 +3,14 @@ use dm_core::registry::RegistryStore;
 use crate::error::Result;
 use crate::resolve::resolve_repo;
 
-pub fn run(identifier: String) -> Result<()> {
+pub fn run(identifier: String, json: bool) -> Result<()> {
     let store = RegistryStore::open_default()?;
     let repo = resolve_repo(&store, &identifier)?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&repo).unwrap());
+        return Ok(());
+    }
 
     println!("name:   {}", repo.name);
     println!("path:   {}", repo.path.display());

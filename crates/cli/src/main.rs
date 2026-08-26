@@ -4,8 +4,9 @@ mod error;
 mod prompt;
 mod resolve;
 
-use clap::Parser;
-use cli::{Cli, Command};
+use clap::{CommandFactory, Parser};
+use colored::Colorize;
+use cli::{Cli, Command, RepoCommand};
 
 fn main() {
     let cli = Cli::parse();
@@ -14,10 +15,25 @@ fn main() {
         Command::Config { command } => commands::config::run(command),
         Command::Repo { command } => commands::repo::run(command),
         Command::Workspace { command } => commands::workspace::run(command),
+        Command::Clone { url, path } => commands::repo::run(RepoCommand::Clone { url, path }),
+        Command::Ls { tag, host, json } => {
+            commands::repo::run(RepoCommand::List { tag, host, json })
+        }
+        Command::Find { query } => commands::repo::run(RepoCommand::Find { query }),
+        Command::Completions { shell } => {
+            let mut command = Cli::command();
+            let name = command.get_name().to_string();
+            clap_complete::generate(shell, &mut command, name, &mut std::io::stdout());
+            Ok(())
+        }
     };
 
     if let Err(err) = result {
-        eprintln!("error: {err}");
+        if dm_util::output::use_color_stderr() {
+            eprintln!("{} {err}", "error:".red().bold());
+        } else {
+            eprintln!("error: {err}");
+        }
         std::process::exit(1);
     }
 }

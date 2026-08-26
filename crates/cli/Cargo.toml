@@ -13,7 +13,14 @@ path = "src/main.rs"
 dm-core.workspace = true
 dm-util.workspace = true
 clap.workspace = true
+clap_complete.workspace = true
 thiserror.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 inquire.workspace = true
+colored.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+predicates.workspace = true
+tempfile.workspace = true

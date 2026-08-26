@@ -2,9 +2,14 @@ use dm_core::workspace::WorkspaceStore;
 
 use crate::error::Result;
 
-pub fn run() -> Result<()> {
+pub fn run(json: bool) -> Result<()> {
     let store = WorkspaceStore::open_default()?;
     let workspaces = store.list()?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&workspaces).unwrap());
+        return Ok(());
+    }
 
     if workspaces.is_empty() {
         println!("no workspaces yet — run `dm workspace create <id>` to add one");
