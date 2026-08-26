@@ -20,18 +20,34 @@ fn dirs_home() -> PathBuf {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
-    pub clone_root: PathBuf,
-    pub default_host: String,
+    pub clone: CloneConfig,
     pub editor: Option<String>,
-    pub path_layout: PathLayout,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            clone_root: default_clone_root(),
-            default_host: "github.com".to_string(),
+            clone: CloneConfig::default(),
             editor: None,
+        }
+    }
+}
+
+/// Settings under the `[clone]` table: where repos land and how their
+/// destination directory is laid out.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CloneConfig {
+    pub root: PathBuf,
+    pub default_host: String,
+    pub path_layout: PathLayout,
+}
+
+impl Default for CloneConfig {
+    fn default() -> Self {
+        Self {
+            root: default_clone_root(),
+            default_host: "github.com".to_string(),
             path_layout: PathLayout::default(),
         }
     }
@@ -58,28 +74,28 @@ impl Config {
 
     pub fn get(&self, key: &str) -> Result<String> {
         match key {
-            "clone_root" => Ok(self.clone_root.display().to_string()),
-            "default_host" => Ok(self.default_host.clone()),
+            "clone.root" => Ok(self.clone.root.display().to_string()),
+            "clone.default_host" => Ok(self.clone.default_host.clone()),
+            "clone.path_layout" => Ok(self.clone.path_layout.to_config_string()),
             "editor" => Ok(self.editor.clone().unwrap_or_default()),
-            "path_layout" => Ok(self.path_layout.to_config_string()),
             other => Err(Error::UnknownConfigKey(other.to_string())),
         }
     }
 
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
         match key {
-            "clone_root" => {
+            "clone.root" => {
                 let path = PathBuf::from(value);
                 // Canonicalize so this matches the canonicalized paths repos
                 // are tracked under — otherwise a symlinked ancestor (e.g.
                 // /tmp -> /private/tmp on macOS) makes every repo look
                 // mismatched even when nothing has moved. Fall back to the
                 // raw path if it doesn't exist yet.
-                self.clone_root = path.canonicalize().unwrap_or(path);
+                self.clone.root = path.canonicalize().unwrap_or(path);
             }
-            "default_host" => self.default_host = value.to_string(),
+            "clone.default_host" => self.clone.default_host = value.to_string(),
+            "clone.path_layout" => self.clone.path_layout = PathLayout::parse(value)?,
             "editor" => self.editor = Some(value.to_string()),
-            "path_layout" => self.path_layout = PathLayout::parse(value)?,
             other => return Err(Error::UnknownConfigKey(other.to_string())),
         }
         Ok(())
