@@ -1,5 +1,6 @@
 use dm_core::error::Error as CoreError;
 use dm_core::registry::RegistryStore;
+use dm_core::workspace::WorkspaceStore;
 
 use crate::error::Result;
 use crate::prompt::confirm;
@@ -7,6 +8,24 @@ use crate::prompt::confirm;
 pub fn run(identifier: String, delete: bool, force: bool) -> Result<()> {
     let store = RegistryStore::open_default()?;
     let repo = store.find(&identifier)?;
+
+    let workspaces = WorkspaceStore::open_default()?;
+    let member_of = workspaces.workspaces_containing(repo.id)?;
+    if !member_of.is_empty() && !force {
+        let names = member_of
+            .iter()
+            .map(|w| w.id.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        if !confirm(&format!(
+            "{} is in {} workspace(s) ({names}) — untrack it anyway? (it will be removed from them too)",
+            repo.name,
+            member_of.len()
+        ))? {
+            println!("aborted, nothing changed");
+            return Ok(());
+        }
+    }
 
     if delete
         && !force

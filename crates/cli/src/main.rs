@@ -12,6 +12,7 @@ fn main() {
     let result = match cli.command {
         Command::Config { command } => commands::config::run(command),
         Command::Repo { command } => commands::repo::run(command),
+        Command::Workspace { command } => commands::workspace::run(command),
     };
 
     if let Err(err) = result {

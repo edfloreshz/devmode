@@ -15,19 +15,7 @@ pub struct RegistryStore {
 impl RegistryStore {
     pub fn open(db_path: &Path) -> Result<Self> {
         let conn = Connection::open(db_path)?;
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS repos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                path TEXT NOT NULL UNIQUE,
-                name TEXT NOT NULL,
-                remote_url TEXT,
-                host TEXT,
-                owner TEXT,
-                tags TEXT NOT NULL DEFAULT '',
-                added_at INTEGER NOT NULL,
-                last_opened_at INTEGER
-            );",
-        )?;
+        crate::db::init_schema(&conn)?;
         Ok(Self { conn })
     }
 
