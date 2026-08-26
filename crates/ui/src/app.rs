@@ -101,7 +101,9 @@ pub struct App {
     screen: Screen,
     snapshot: Option<Snapshot>,
     toast: Option<Toast>,
-    loading: bool,
+    /// `Some(description)` while a reload or mutation is running, shown in
+    /// the status bar instead of a bare "Working…".
+    loading: Option<String>,
     fingerprint: Option<(SystemTime, SystemTime)>,
     /// The desktop's current preference, kept live by `theme_changes`.
     system_mode: iced::theme::Mode,
@@ -117,7 +119,7 @@ impl App {
             screen: Screen::Repos,
             snapshot: None,
             toast: None,
-            loading: true,
+            loading: Some("Loading…".to_string()),
             fingerprint: None,
             system_mode: iced::theme::Mode::default(),
             repos: repos::State::default(),
@@ -174,7 +176,7 @@ impl App {
             }
             Message::Reload => self.reload(),
             Message::Loaded(Ok(snapshot)) => {
-                self.loading = false;
+                self.loading = None;
                 self.settings.sync_from(&snapshot.config);
                 self.repos.reconcile(&snapshot);
                 self.workspaces.reconcile(&snapshot);
@@ -192,7 +194,7 @@ impl App {
                 ])
             }
             Message::Loaded(Err(error)) => {
-                self.loading = false;
+                self.loading = None;
                 self.toast = Some(Toast::error(error));
                 Task::none()
             }
@@ -218,7 +220,7 @@ impl App {
             }
             Message::Completed(Err(error)) => {
                 self.toast = Some(Toast::error(error));
-                self.loading = false;
+                self.loading = None;
                 Task::none()
             }
             Message::DismissToast => {
@@ -265,7 +267,7 @@ impl App {
             screen: Screen::Repos,
             snapshot: None,
             toast: None,
-            loading: false,
+            loading: None,
             fingerprint: None,
             system_mode: iced::theme::Mode::Light,
             repos: repos::State::default(),
@@ -279,7 +281,7 @@ impl App {
     /// follow-up task, so tests can seed a snapshot directly.
     #[cfg(test)]
     pub fn apply_snapshot(&mut self, snapshot: Snapshot) {
-        self.loading = false;
+        self.loading = None;
         self.settings.sync_from(&snapshot.config);
         self.repos.reconcile(&snapshot);
         self.workspaces.reconcile(&snapshot);
@@ -287,7 +289,7 @@ impl App {
     }
 
     pub fn reload(&mut self) -> Task<Message> {
-        self.loading = true;
+        self.loading = Some("Loading…".to_string());
         Task::perform(blocking(data::load), Message::Loaded)
     }
 
@@ -318,12 +320,14 @@ impl App {
     }
 
     /// Runs a mutation on a worker thread, reporting either a success message
-    /// (which triggers a reload) or the error's `Display`.
-    pub fn run<F>(&mut self, f: F) -> Task<Message>
+    /// (which triggers a reload) or the error's `Display`. `label` describes
+    /// what's happening (e.g. "Cloning devmode…") and is shown in the status
+    /// bar for as long as it runs.
+    pub fn run<F>(&mut self, label: impl Into<String>, f: F) -> Task<Message>
     where
         F: FnOnce() -> Result<String, String> + Send + 'static,
     {
-        self.loading = true;
+        self.loading = Some(label.into());
         Task::perform(blocking(f), Message::Completed)
     }
 
@@ -348,7 +352,7 @@ impl App {
                 .push(iced::time::every(Duration::from_millis(500)).map(|_| Message::ToastTick));
         }
 
-        if !self.loading {
+        if self.loading.is_none() {
             subscriptions.push(
                 iced::time::every(Duration::from_secs(2))
                     .map(|_| Message::StateChanged(data::state_fingerprint())),
@@ -444,8 +448,9 @@ impl App {
             .spacing(design::SM)
             .align_y(Center)
             .into(),
-            None if self.loading => {
-                row![text("Working…").size(design::TEXT_SM), space::horizontal(),]
+            None if self.loading.is_some() => {
+                let label = self.loading.as_deref().unwrap_or("Working…");
+                row![text(label).size(design::TEXT_SM), space::horizontal(),]
                     .align_y(Center)
                     .into()
             }

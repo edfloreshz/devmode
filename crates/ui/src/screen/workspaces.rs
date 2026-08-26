@@ -208,14 +208,20 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 return Task::none();
             }
 
-            app.run(move || save_config(&id, editing))
+            let label = format!("Saving {}…", editing.name);
+            app.run(label, move || save_config(&id, editing))
         }
         Message::RemoveMember(repo) => {
             let Some(id) = app.workspaces.selected() else {
                 return Task::none();
             };
 
-            app.run(move || {
+            let label = match app.snapshot().and_then(|s| s.repo(repo)) {
+                Some(r) => format!("Removing {}…", r.name),
+                None => "Removing from workspace…".to_string(),
+            };
+
+            app.run(label, move || {
                 let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
                 store.remove_member(&id, repo).map_err(|e| e.to_string())?;
 
@@ -227,7 +233,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 return Task::none();
             };
 
-            app.run(move || {
+            let label = format!("Unsetting {key}…");
+            app.run(label, move || {
                 let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
                 store.env_unset(&id, &key).map_err(|e| e.to_string())?;
 
@@ -239,7 +246,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 return Task::none();
             };
 
-            app.run(move || switch(&id))
+            let label = format!("Opening {id}…");
+            app.run(label, move || switch(&id))
         }
     }
 }
@@ -278,7 +286,8 @@ fn submit_dialog(app: &mut App) -> Task<AppMessage> {
             };
 
             app.workspaces.selected = Some(new.id.clone());
-            app.run(move || {
+            let label = format!("Creating {}…", new.id);
+            app.run(label, move || {
                 let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
                 let workspace = store.create(new).map_err(|e| e.to_string())?;
 
@@ -300,7 +309,8 @@ fn submit_dialog(app: &mut App) -> Task<AppMessage> {
 
             let (repo_id, repo_name) = repo;
 
-            app.run(move || {
+            let label = format!("Adding {repo_name} to {workspace}…");
+            app.run(label, move || {
                 let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
 
                 match store.add_member(&workspace, repo_id) {
@@ -324,7 +334,8 @@ fn submit_dialog(app: &mut App) -> Task<AppMessage> {
                 return Task::none();
             }
 
-            app.run(move || {
+            let label = format!("Setting {key}…");
+            app.run(label, move || {
                 let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
                 store
                     .env_set(&workspace, &key, &value)
@@ -333,7 +344,7 @@ fn submit_dialog(app: &mut App) -> Task<AppMessage> {
                 Ok(format!("Set {key}."))
             })
         }
-        Dialog::Delete { id, .. } => app.run(move || {
+        Dialog::Delete { id, .. } => app.run(format!("Deleting {id}…"), move || {
             let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
             store.delete(&id).map_err(|e| e.to_string())?;
 
