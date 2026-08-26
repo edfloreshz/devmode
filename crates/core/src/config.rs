@@ -7,7 +7,7 @@ use crate::layout::PathLayout;
 use crate::paths;
 
 fn default_clone_root() -> PathBuf {
-    paths::canonicalize_best_effort(&dirs_home().join("Developer"))
+    paths::normalize_path(&dirs_home().join("Developer"))
 }
 
 fn dirs_home() -> PathBuf {
@@ -83,14 +83,10 @@ impl Config {
 
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
         match key {
-            "repo.root" => {
-                // Canonicalize (best-effort, since the directory may not
-                // exist yet) so this matches the canonicalized paths repos
-                // are tracked under — otherwise a symlinked ancestor (e.g.
-                // /tmp -> /private/tmp on macOS) makes every repo look
-                // mismatched even when nothing has moved.
-                self.repo.root = paths::canonicalize_best_effort(&PathBuf::from(value));
-            }
+            // Normalize (not canonicalize — see paths::normalize_path) so
+            // this matches how repo paths are stored, regardless of whether
+            // the directory exists yet or any ancestor is a symlink.
+            "repo.root" => self.repo.root = paths::normalize_path(&PathBuf::from(value)),
             "repo.host" => self.repo.host = value.to_string(),
             "repo.layout" => self.repo.layout = PathLayout::parse(value)?,
             "editor" => self.editor = Some(value.to_string()),

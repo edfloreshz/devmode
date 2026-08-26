@@ -101,12 +101,11 @@ impl RegistryStore {
     }
 
     /// Resolves a user-supplied `repo` argument to a single tracked repo:
-    /// first as a path (canonicalized and matched exactly), then as a name.
+    /// first as a path (normalized and matched exactly), then as a name.
     pub fn find(&self, identifier: &str) -> Result<Repo> {
-        if let Ok(canonical) = Path::new(identifier).canonicalize() {
-            if let Some(repo) = self.find_by_path(&canonical)? {
-                return Ok(repo);
-            }
+        let normalized = crate::paths::normalize_path(Path::new(identifier));
+        if let Some(repo) = self.find_by_path(&normalized)? {
+            return Ok(repo);
         }
 
         let mut matches = self

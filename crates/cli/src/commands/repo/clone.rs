@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use dm_core::config::Config;
 use dm_core::error::Error as CoreError;
 use dm_core::git;
+use dm_core::paths;
 use dm_core::registry::{NewRepo, RegistryStore};
 
 use crate::error::Result;
@@ -20,6 +21,7 @@ pub fn run(url: String, path: Option<PathBuf>) -> Result<()> {
             &parsed.name,
         )),
     };
+    let dest = paths::normalize_path(&dest);
 
     if dest.exists() {
         return Err(CoreError::DestinationExists(dest).into());
@@ -27,9 +29,8 @@ pub fn run(url: String, path: Option<PathBuf>) -> Result<()> {
 
     git::clone(&url, &dest)?;
 
-    let canonical = dest.canonicalize().map_err(CoreError::from)?;
     let repo = store.track(NewRepo {
-        path: canonical,
+        path: dest,
         name: parsed.name,
         remote_url: Some(url),
         host: Some(parsed.host),

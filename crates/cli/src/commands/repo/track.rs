@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use dm_core::error::Error as CoreError;
+use dm_core::paths;
 use dm_core::registry::{NewRepo, RegistryStore};
 
 use crate::error::Result;
@@ -11,12 +12,10 @@ pub fn run(
     host: Option<String>,
     owner: Option<String>,
 ) -> Result<()> {
-    let path = path
-        .canonicalize()
-        .map_err(|_| CoreError::NotADirectory(path.clone()))?;
     if !path.is_dir() {
         return Err(CoreError::NotADirectory(path).into());
     }
+    let path = paths::normalize_path(&path);
     let name = path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
