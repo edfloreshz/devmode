@@ -22,7 +22,7 @@ pub fn on_enter(app: &mut App, screen: Screen) -> Task<Message> {
     match screen {
         Screen::Repos => repos::on_enter(app),
         Screen::Workspaces => workspaces::on_enter(app),
-        Screen::Discovery => Task::none(),
+        Screen::Discovery => discovery::on_enter(app),
         Screen::Settings => Task::none(),
     }
 }
