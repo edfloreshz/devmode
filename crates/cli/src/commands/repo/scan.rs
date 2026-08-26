@@ -4,11 +4,12 @@ use dm_core::config::Config;
 use dm_core::git;
 use dm_core::paths;
 use dm_core::registry::{NewRepo, RegistryStore};
+use dm_core::relayout;
 
 use crate::error::Result;
 use crate::prompt::confirm;
 
-use super::relayout;
+use super::relayout::print_candidates;
 
 pub fn run(root: Option<PathBuf>, yes: bool) -> Result<()> {
     let config = Config::load()?;
@@ -69,9 +70,12 @@ fn report_layout_drift(yes: bool) -> Result<()> {
     }
 
     println!();
-    relayout::print_candidates(&candidates, &config);
+    print_candidates(&candidates, &config);
     if yes || confirm("run `dm repo relayout` now to fix this?")? {
-        let moved = relayout::apply_candidates(candidates)?;
+        let (moved, skipped) = relayout::apply_candidates(candidates)?;
+        for name in &skipped {
+            eprintln!("skipping {name}: target already exists");
+        }
         println!("moved {moved} repo(s)");
     } else {
         println!("skipped — run `dm repo relayout` any time to fix this later");
