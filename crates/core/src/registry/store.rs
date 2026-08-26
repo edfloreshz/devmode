@@ -134,6 +134,19 @@ impl RegistryStore {
         Ok(())
     }
 
+    /// Updates a tracked repo's recorded remote URL, e.g. after `dm repo
+    /// sync` notices the on-disk `origin` no longer matches.
+    pub fn update_remote(&self, id: RepoId, remote_url: &str) -> Result<()> {
+        let changed = self.conn.execute(
+            "UPDATE repos SET remote_url = ?1 WHERE id = ?2",
+            params![remote_url, id],
+        )?;
+        if changed == 0 {
+            return Err(Error::RepoNotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
     pub fn remove(&self, id: RepoId) -> Result<()> {
         let changed = self
             .conn
