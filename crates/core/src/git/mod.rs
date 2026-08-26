@@ -7,7 +7,7 @@ mod url;
 
 pub use url::{parse_url, ParsedUrl};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use git2::{build::RepoBuilder, Repository};
 
@@ -36,4 +36,45 @@ pub fn read_origin_url(path: &Path) -> Option<String> {
     let repo = Repository::open(path).ok()?;
     let remote = repo.find_remote("origin").ok()?;
     remote.url().map(str::to_string)
+}
+
+/// Recursively finds git repositories under `root`, for `dm repo scan`.
+/// Doesn't descend into a directory once it's identified as a repo (so
+/// nested/vendored repos and submodules aren't reported as separate finds),
+/// and skips common large non-repo trees and hidden directories to keep the
+/// walk fast.
+pub fn find_repos(root: &Path) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    walk(root, &mut found);
+    found
+}
+
+const SKIP_DIRS: &[&str] = &["node_modules", "target", ".git"];
+
+fn walk(dir: &Path, found: &mut Vec<PathBuf>) {
+    if dir.join(".git").exists() {
+        found.push(dir.to_path_buf());
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let is_hidden = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.starts_with('.'));
+        let is_skipped = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| SKIP_DIRS.contains(&n));
+        if is_hidden || is_skipped {
+            continue;
+        }
+        walk(&path, found);
+    }
 }

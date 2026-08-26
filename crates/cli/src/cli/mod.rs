@@ -101,4 +101,24 @@ pub enum RepoCommand {
         #[arg(short, long)]
         yes: bool,
     },
+    /// Scan a directory tree for untracked repos and offer to track them.
+    Scan {
+        /// Directory to scan (defaults to repo.root).
+        root: Option<std::path::PathBuf>,
+        /// Track every repo found without asking.
+        #[arg(short, long)]
+        yes: bool,
+    },
+    /// Check tracked repos against disk: still exist? remote changed?
+    #[command(alias = "doctor")]
+    Sync {
+        /// Apply fixes (untrack missing, update changed remotes) without asking.
+        #[arg(short, long)]
+        yes: bool,
+    },
+    /// Search tracked repos by name.
+    Find {
+        /// Text to match against repo names.
+        query: String,
+    },
 }

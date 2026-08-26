@@ -1,9 +1,12 @@
 mod clone;
 mod create;
+mod find;
 mod list;
 pub mod relayout;
 mod remove;
+mod scan;
 mod show;
+mod sync;
 mod track;
 
 use crate::cli::RepoCommand;
@@ -27,5 +30,8 @@ pub fn run(command: RepoCommand) -> Result<()> {
         } => track::run(path, tag, host, owner),
         RepoCommand::List { tag, host, json } => list::run(tag, host, json),
         RepoCommand::Relayout { apply, yes } => relayout::run(apply, yes),
+        RepoCommand::Scan { root, yes } => scan::run(root, yes),
+        RepoCommand::Sync { yes } => sync::run(yes),
+        RepoCommand::Find { query } => find::run(query),
     }
 }

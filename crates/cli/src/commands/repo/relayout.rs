@@ -2,26 +2,23 @@ use std::path::PathBuf;
 
 use dm_core::config::Config;
 use dm_core::error::Error as CoreError;
-use dm_core::registry::{RegistryStore, Repo};
+use dm_core::registry::{RegistryStore, Repo, RepoId};
 
 use crate::error::Result;
 use crate::prompt::confirm;
 
-struct Move {
-    id: dm_core::registry::RepoId,
-    name: String,
-    from: PathBuf,
-    to: PathBuf,
+pub struct Candidate {
+    pub id: RepoId,
+    pub name: String,
+    pub from: PathBuf,
+    pub to: PathBuf,
 }
 
 pub fn run(apply: bool, yes: bool) -> Result<()> {
     let config = Config::load()?;
-    let store = RegistryStore::open_default()?;
-    let repos = store.list(None, None)?;
+    let candidates = plan()?;
 
-    let moves = plan_moves(&repos, &config);
-
-    if moves.is_empty() {
+    if candidates.is_empty() {
         println!(
             "all tracked repos already match the current layout ({})",
             config.repo.layout.to_config_string()
@@ -29,19 +26,7 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!(
-        "{} repo(s) would move to match layout {}:",
-        moves.len(),
-        config.repo.layout.to_config_string()
-    );
-    for mv in &moves {
-        println!(
-            "  {}: {} -> {}",
-            mv.name,
-            mv.from.display(),
-            mv.to.display()
-        );
-    }
+    print_candidates(&candidates, &config);
 
     if !apply {
         println!("\nthis was a preview — re-run with --apply to move these repos and update the registry");
@@ -53,28 +38,53 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
         return Ok(());
     }
 
-    let mut moved = 0;
-    for mv in moves {
-        if mv.to.exists() {
-            eprintln!(
-                "skipping {}: target already exists ({})",
-                mv.name,
-                mv.to.display()
-            );
-            continue;
-        }
-        if let Some(parent) = mv.to.parent() {
-            std::fs::create_dir_all(parent).map_err(CoreError::from)?;
-        }
-        std::fs::rename(&mv.from, &mv.to).map_err(CoreError::from)?;
-        store.update_path(mv.id, &mv.to)?;
-        moved += 1;
-    }
+    let moved = apply_candidates(candidates)?;
     println!("moved {moved} repo(s)");
     Ok(())
 }
 
-fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
+pub fn print_candidates(candidates: &[Candidate], config: &Config) {
+    println!(
+        "{} repo(s) would move to match layout {}:",
+        candidates.len(),
+        config.repo.layout.to_config_string()
+    );
+    for c in candidates {
+        println!("  {}: {} -> {}", c.name, c.from.display(), c.to.display());
+    }
+}
+
+/// Computes which tracked repos (with known host/owner) don't match the
+/// current layout, and where they'd move to.
+pub fn plan() -> Result<Vec<Candidate>> {
+    let config = Config::load()?;
+    let store = RegistryStore::open_default()?;
+    let repos = store.list(None, None)?;
+    Ok(plan_moves(&repos, &config))
+}
+
+/// Moves each candidate on disk and updates its registry entry, skipping
+/// (and warning about) any target that already exists. Returns how many
+/// were actually moved.
+pub fn apply_candidates(candidates: Vec<Candidate>) -> Result<usize> {
+    let store = RegistryStore::open_default()?;
+    let mut moved = 0;
+    for c in candidates {
+        if c.to.exists() {
+            eprintln!("skipping {}: target already exists ({})", c.name, c.to.display());
+            continue;
+        }
+        if let Some(parent) = c.to.parent() {
+            std::fs::create_dir_all(parent).map_err(CoreError::from)?;
+        }
+        std::fs::rename(&c.from, &c.to).map_err(CoreError::from)?;
+        store.update_path(c.id, &c.to)?;
+        moved += 1;
+    }
+    Ok(moved)
+}
+
+fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Candidate> {
     repos
         .iter()
         .filter_map(|repo| {
@@ -87,7 +97,7 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
             if target == repo.path {
                 return None;
             }
-            Some(Move {
+            Some(Candidate {
                 id: repo.id,
                 name: repo.name.clone(),
                 from: repo.path.clone(),
@@ -101,8 +111,5 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
 /// the current layout — used to decide whether to suggest `dm repo
 /// relayout` after `dm config set layout`.
 pub fn has_relayout_candidates() -> Result<bool> {
-    let config = Config::load()?;
-    let store = RegistryStore::open_default()?;
-    let repos = store.list(None, None)?;
-    Ok(!plan_moves(&repos, &config).is_empty())
+    Ok(!plan()?.is_empty())
 }
