@@ -471,8 +471,8 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
             .into();
     };
 
-    if snapshot.workspaces.is_empty() {
-        return design::empty_state(
+    let content: Element<'_, AppMessage> = if snapshot.workspaces.is_empty() {
+        design::empty_state(
             "No workspaces yet",
             "A workspace groups repos you work on together, with its own editor \
              and environment variables. Repos never move on disk when you group them.",
@@ -480,21 +480,26 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
                 "New workspace…",
                 wrap(Message::OpenCreate),
             )),
-        );
-    }
+        )
+    } else {
+        let body = row![
+            design::pane(list(app, snapshot), 280.0),
+            container(rule::horizontal(0.0)).width(1).height(Fill),
+            container(detail(app, snapshot)).width(Fill).height(Fill),
+        ]
+        .height(Fill);
 
-    let body = row![
-        design::pane(list(app, snapshot), 280.0),
-        container(rule::horizontal(0.0)).width(1).height(Fill),
-        container(detail(app, snapshot)).width(Fill).height(Fill),
-    ]
-    .height(Fill);
+        column![toolbar(), body]
+            .spacing(design::MD)
+            .height(Fill)
+            .into()
+    };
 
-    let content = column![toolbar(), body].spacing(design::MD).height(Fill);
-
+    // The empty state offers the only "New workspace" button when there are
+    // none, so its dialog has to render over it.
     match &app.workspaces.dialog {
-        Some(dialog) => crate::screen::repos::modal(content.into(), dialog_view(app, dialog)),
-        None => content.into(),
+        Some(dialog) => crate::screen::repos::modal(content, dialog_view(app, dialog)),
+        None => content,
     }
 }
 
