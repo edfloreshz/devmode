@@ -54,13 +54,14 @@ pub fn run(root: Option<PathBuf>, yes: bool) -> Result<()> {
     }
 
     println!("tracked {tracked} new repo(s), skipped {skipped}");
-    report_layout_drift()
+    report_layout_drift(yes)
 }
 
 /// After scanning, also surface repos that don't match the current layout —
 /// not just ones just found, but any already-tracked repo that never
-/// matched it — and offer to fix it right here.
-fn report_layout_drift() -> Result<()> {
+/// matched it — and offer to fix it right here. Honors `scan`'s own --yes
+/// so this stays usable non-interactively (inquire's prompts require a TTY).
+fn report_layout_drift(yes: bool) -> Result<()> {
     let config = Config::load()?;
     let candidates = relayout::plan()?;
     if candidates.is_empty() {
@@ -69,7 +70,7 @@ fn report_layout_drift() -> Result<()> {
 
     println!();
     relayout::print_candidates(&candidates, &config);
-    if confirm("run `dm repo relayout` now to fix this?")? {
+    if yes || confirm("run `dm repo relayout` now to fix this?")? {
         let moved = relayout::apply_candidates(candidates)?;
         println!("moved {moved} repo(s)");
     } else {

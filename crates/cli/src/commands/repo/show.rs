@@ -1,10 +1,11 @@
 use dm_core::registry::RegistryStore;
 
 use crate::error::Result;
+use crate::resolve::resolve_repo;
 
 pub fn run(identifier: String) -> Result<()> {
     let store = RegistryStore::open_default()?;
-    let repo = store.find(&identifier)?;
+    let repo = resolve_repo(&store, &identifier)?;
 
     println!("name:   {}", repo.name);
     println!("path:   {}", repo.path.display());

@@ -88,20 +88,27 @@ impl RegistryStore {
         Ok(repos)
     }
 
+    /// All tracked repos matching a user-supplied `repo` argument: first by
+    /// normalized path (exact), then by name (possibly several). Lets a
+    /// caller offer interactive disambiguation instead of hard-erroring —
+    /// see `find` for the non-interactive, single-match version.
+    pub fn find_matches(&self, identifier: &str) -> Result<Vec<Repo>> {
+        let normalized = crate::paths::normalize_path(Path::new(identifier));
+        if let Some(repo) = self.find_by_path(&normalized)? {
+            return Ok(vec![repo]);
+        }
+        Ok(self
+            .list(None, None)?
+            .into_iter()
+            .filter(|repo| repo.name == identifier)
+            .collect())
+    }
+
     /// Resolves a user-supplied `repo` argument to a single tracked repo:
     /// first as a path (normalized and matched exactly), then as a name.
     pub fn find(&self, identifier: &str) -> Result<Repo> {
-        let normalized = crate::paths::normalize_path(Path::new(identifier));
-        if let Some(repo) = self.find_by_path(&normalized)? {
-            return Ok(repo);
-        }
-
-        let mut matches = self
-            .list(None, None)?
-            .into_iter()
-            .filter(|repo| repo.name == identifier);
-        let first = matches.next();
-        match (first, matches.next()) {
+        let mut matches = self.find_matches(identifier)?.into_iter();
+        match (matches.next(), matches.next()) {
             (Some(repo), None) => Ok(repo),
             (Some(_), Some(_)) => Err(Error::AmbiguousRepo(identifier.to_string())),
             (None, _) => Err(Error::RepoNotFound(identifier.to_string())),

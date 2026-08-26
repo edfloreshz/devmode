@@ -2,6 +2,7 @@ mod cli;
 mod commands;
 mod error;
 mod prompt;
+mod resolve;
 
 use clap::Parser;
 use cli::{Cli, Command};

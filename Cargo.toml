@@ -22,3 +22,4 @@ git2_credentials = "0.15"
 git-url-parse = "0.4"
 rusqlite = { version = "0.32", features = ["bundled"] }
 colored = "3.0"
+inquire = "0.7"
