@@ -8,6 +8,7 @@
 //! painting during long operations.
 
 use std::future::Future;
+use std::path::PathBuf;
 
 use iced::futures::channel::oneshot;
 
@@ -34,4 +35,21 @@ where
             .await
             .expect("dm-core worker thread panicked before sending a result")
     }
+}
+
+/// Opens the OS's native folder picker, resolving to `None` if the user
+/// cancels.
+///
+/// `rfd`'s default features give each platform its real picker: Explorer on
+/// Windows, NSOpenPanel on macOS, and — via `xdg-portal` — the desktop's own
+/// xdg-desktop-portal chooser on Linux, so this respects Flatpak/sandboxed
+/// environments instead of shelling out to a bundled GTK dialog.
+pub async fn pick_folder(title: &'static str, starting: Option<PathBuf>) -> Option<PathBuf> {
+    let mut dialog = rfd::AsyncFileDialog::new().set_title(title);
+
+    if let Some(starting) = starting.filter(|path| path.is_dir()) {
+        dialog = dialog.set_directory(starting);
+    }
+
+    dialog.pick_folder().await.map(|handle| handle.path().to_path_buf())
 }

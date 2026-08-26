@@ -61,6 +61,8 @@ impl Default for State {
 #[derive(Debug, Clone)]
 pub enum Message {
     RootChanged(String),
+    BrowseRoot,
+    RootPicked(Option<PathBuf>),
     StartScan,
     ScanFinished(Result<Vec<Discovered>, String>),
     ToggleFound(usize, bool),
@@ -91,6 +93,19 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             app.discovery.root = root;
             Task::none()
         }
+        Message::BrowseRoot => {
+            let current = app.discovery.root.trim();
+            let starting = (!current.is_empty()).then(|| PathBuf::from(current));
+
+            Task::perform(crate::task::pick_folder("Choose a folder", starting), |picked| {
+                wrap(Message::RootPicked(picked))
+            })
+        }
+        Message::RootPicked(Some(picked)) => {
+            app.discovery.root = picked.display().to_string();
+            Task::none()
+        }
+        Message::RootPicked(None) => Task::none(),
         Message::StartScan => {
             let root = PathBuf::from(app.discovery.root.trim());
 
@@ -254,6 +269,7 @@ fn scan_section(app: &App) -> Element<'_, AppMessage> {
             .on_submit(wrap(Message::StartScan))
             .font(design::MONO)
             .width(Fill),
+        design::secondary_button("Browse…", wrap(Message::BrowseRoot)),
         if is_running {
             design::secondary_button("Scanning…", None)
         } else {

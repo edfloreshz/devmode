@@ -65,6 +65,8 @@ pub enum Message {
     DialogChanged(Dialog),
     DialogCancel,
     DialogSubmit,
+    BrowsePath,
+    PathPicked(Option<PathBuf>),
     CopyPath(String),
     FixDrift,
 }
@@ -173,6 +175,27 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 }
             }
         }
+        Message::BrowsePath => {
+            let Some(current) = app.repos.dialog.as_ref().and_then(dialog_path) else {
+                return Task::none();
+            };
+
+            let starting = (!current.trim().is_empty()).then(|| PathBuf::from(current.trim()));
+
+            Task::perform(crate::task::pick_folder("Choose a folder", starting), |picked| {
+                wrap(Message::PathPicked(picked))
+            })
+        }
+        Message::PathPicked(Some(picked)) => {
+            if let Some(dialog) = app.repos.dialog.as_mut() {
+                if let Some(path) = dialog_path_mut(dialog) {
+                    *path = picked.display().to_string();
+                }
+            }
+
+            Task::none()
+        }
+        Message::PathPicked(None) => Task::none(),
         Message::CopyPath(path) => iced::clipboard::write(path),
         Message::FixDrift => app.run(fix_drift),
     }
@@ -312,6 +335,21 @@ fn fix_drift() -> Result<String, String> {
         })
     })()
     .map_err(|e| e.to_string())
+}
+
+/// The path field of whichever dialog is open, if it has one.
+fn dialog_path(dialog: &Dialog) -> Option<&str> {
+    match dialog {
+        Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => Some(path),
+        Dialog::Remove { .. } => None,
+    }
+}
+
+fn dialog_path_mut(dialog: &mut Dialog) -> Option<&mut String> {
+    match dialog {
+        Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => Some(path),
+        Dialog::Remove { .. } => None,
+    }
 }
 
 fn optional_path(value: &str) -> Option<PathBuf> {
@@ -614,7 +652,7 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                         }
                     },
                 ),
-                labelled("Destination (optional)", "Leave blank to use your layout", path, false, {
+                labelled_path("Destination (optional)", "Leave blank to use your layout", path, false, {
                     let url = url.clone();
                     move |path| Dialog::Clone {
                         url: url.clone(),
@@ -638,7 +676,7 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                         git,
                     }
                 }),
-                labelled("Path (optional)", "Leave blank for the default", path, false, {
+                labelled_path("Path (optional)", "Leave blank for the default", path, false, {
                     let (name, git) = (name.clone(), *git);
                     move |path| Dialog::Create {
                         name: name.clone(),
@@ -667,7 +705,7 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
         Dialog::Track { path } => (
             "Track an existing folder",
             "devmode reads the folder's origin remote to fill in host and owner.",
-            column![labelled(
+            column![labelled_path(
                 "Path",
                 "/path/to/repo",
                 path,
@@ -752,6 +790,34 @@ fn labelled<'a>(
     }
 
     design::field(label, input.into())
+}
+
+/// A labelled path field paired with a "Browse…" button that opens the
+/// native folder picker.
+fn labelled_path<'a>(
+    label: &'a str,
+    placeholder: &'a str,
+    value: &'a str,
+    first: bool,
+    to_dialog: impl Fn(String) -> Dialog + 'a,
+) -> Element<'a, AppMessage> {
+    let mut input = design::input(placeholder, value)
+        .on_input(move |value| wrap(Message::DialogChanged(to_dialog(value))))
+        .on_submit(wrap(Message::DialogSubmit))
+        .font(design::MONO)
+        .width(Fill);
+
+    if first {
+        input = input.id("dialog-first");
+    }
+
+    design::field(
+        label,
+        row![input, design::secondary_button("Browse…", wrap(Message::BrowsePath))]
+            .spacing(design::SM)
+            .align_y(Center)
+            .into(),
+    )
 }
 
 fn wrap(message: Message) -> AppMessage {
