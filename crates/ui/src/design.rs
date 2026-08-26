@@ -356,7 +356,9 @@ fn darken_for_contrast(color: Color, target: f32) -> Color {
 }
 
 /// An action that destroys something: removing, deleting, untracking.
-pub fn danger_button<'a, Message: Clone + 'a>(
+/// Use it both for a destructive action's trigger and its confirmation, so
+/// the warning color is visible before the user commits, not just after.
+pub fn destructive_button<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: impl Into<Option<Message>>,
 ) -> Element<'a, Message> {

@@ -551,7 +551,7 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
     let actions = row![
         design::primary_button("Open in editor", wrap(Message::Switch)),
         design::secondary_button("Edit…", wrap(Message::StartEditing)),
-        design::secondary_button("Delete…", wrap(Message::OpenDelete)),
+        design::destructive_button("Delete…", wrap(Message::OpenDelete)),
     ]
     .spacing(design::SM);
 
@@ -947,7 +947,7 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
         };
 
     let confirm_button = if destructive {
-        design::danger_button(confirm, wrap(Message::DialogSubmit))
+        design::destructive_button(confirm, wrap(Message::DialogSubmit))
     } else {
         design::primary_button(confirm, wrap(Message::DialogSubmit))
     };
