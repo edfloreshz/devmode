@@ -100,6 +100,20 @@ impl RegistryStore {
         Ok(repos)
     }
 
+    /// Updates a tracked repo's recorded path, e.g. after it was moved on
+    /// disk (see `dm repo relayout`). Does not touch the filesystem itself.
+    pub fn update_path(&self, id: RepoId, new_path: &Path) -> Result<()> {
+        let path_str = new_path.to_string_lossy().to_string();
+        let changed = self.conn.execute(
+            "UPDATE repos SET path = ?1 WHERE id = ?2",
+            params![path_str, id],
+        )?;
+        if changed == 0 {
+            return Err(Error::RepoNotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
     pub fn remove(&self, id: RepoId) -> Result<()> {
         let changed = self
             .conn

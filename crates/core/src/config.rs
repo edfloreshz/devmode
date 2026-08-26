@@ -3,10 +3,12 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::layout::PathLayout;
 use crate::paths;
 
 fn default_clone_root() -> PathBuf {
-    dirs_home().join("Developer")
+    let path = dirs_home().join("Developer");
+    path.canonicalize().unwrap_or(path)
 }
 
 fn dirs_home() -> PathBuf {
@@ -21,6 +23,7 @@ pub struct Config {
     pub clone_root: PathBuf,
     pub default_host: String,
     pub editor: Option<String>,
+    pub path_layout: PathLayout,
 }
 
 impl Default for Config {
@@ -29,6 +32,7 @@ impl Default for Config {
             clone_root: default_clone_root(),
             default_host: "github.com".to_string(),
             editor: None,
+            path_layout: PathLayout::default(),
         }
     }
 }
@@ -57,15 +61,25 @@ impl Config {
             "clone_root" => Ok(self.clone_root.display().to_string()),
             "default_host" => Ok(self.default_host.clone()),
             "editor" => Ok(self.editor.clone().unwrap_or_default()),
+            "path_layout" => Ok(self.path_layout.to_config_string()),
             other => Err(Error::UnknownConfigKey(other.to_string())),
         }
     }
 
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
         match key {
-            "clone_root" => self.clone_root = PathBuf::from(value),
+            "clone_root" => {
+                let path = PathBuf::from(value);
+                // Canonicalize so this matches the canonicalized paths repos
+                // are tracked under — otherwise a symlinked ancestor (e.g.
+                // /tmp -> /private/tmp on macOS) makes every repo look
+                // mismatched even when nothing has moved. Fall back to the
+                // raw path if it doesn't exist yet.
+                self.clone_root = path.canonicalize().unwrap_or(path);
+            }
             "default_host" => self.default_host = value.to_string(),
             "editor" => self.editor = Some(value.to_string()),
+            "path_layout" => self.path_layout = PathLayout::parse(value)?,
             other => return Err(Error::UnknownConfigKey(other.to_string())),
         }
         Ok(())

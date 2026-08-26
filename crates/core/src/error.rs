@@ -46,6 +46,12 @@ pub enum Error {
 
     #[error("no tracked repo found matching: {0}")]
     RepoNotFound(String),
+
+    #[error("invalid path layout: {0} (expected host_owner_repo, owner_repo, flat, or custom:<template>)")]
+    InvalidPathLayout(String),
+
+    #[error("cannot relayout {path}: target {target} already exists")]
+    RelayoutTargetExists { path: PathBuf, target: PathBuf },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
