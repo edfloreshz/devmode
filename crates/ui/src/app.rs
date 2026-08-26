@@ -87,6 +87,9 @@ pub enum Message {
     DismissToast,
     ToastTick,
     StateChanged(Option<(SystemTime, SystemTime)>),
+    /// Fires while the Repos screen is open with a repo selected, so the
+    /// git panel reflects commits/edits made outside devmode.
+    GitActivityDetected,
     SystemTheme(iced::theme::Mode),
     Repos(repos::Message),
     Workspaces(workspaces::Message),
@@ -185,13 +188,7 @@ impl App {
                         .selected()
                         .map(|id| self.load_workspace_detail(id))
                         .unwrap_or(Task::none()),
-                    self.repos
-                        .selected
-                        .and_then(|id| {
-                            let path = self.snapshot.as_ref()?.repo(id)?.path.clone();
-                            Some(self.load_repo_status(id, path))
-                        })
-                        .unwrap_or(Task::none()),
+                    self.refresh_repo_status(),
                 ])
             }
             Message::Loaded(Err(error)) => {
@@ -249,6 +246,7 @@ impl App {
 
                 Task::none()
             }
+            Message::GitActivityDetected => self.refresh_repo_status(),
             Message::SystemTheme(mode) => {
                 self.system_mode = mode;
                 Task::none()
@@ -306,6 +304,18 @@ impl App {
         })
     }
 
+    /// Re-reads git status for whichever repo is currently selected, or does
+    /// nothing if none is.
+    pub fn refresh_repo_status(&self) -> Task<Message> {
+        self.repos
+            .selected
+            .and_then(|id| {
+                let path = self.snapshot.as_ref()?.repo(id)?.path.clone();
+                Some(self.load_repo_status(id, path))
+            })
+            .unwrap_or(Task::none())
+    }
+
     /// Runs a mutation on a worker thread, reporting either a success message
     /// (which triggers a reload) or the error's `Display`.
     pub fn run<F>(&mut self, f: F) -> Task<Message>
@@ -338,6 +348,23 @@ impl App {
                 iced::time::every(Duration::from_secs(2))
                     .map(|_| Message::StateChanged(data::state_fingerprint())),
             );
+        }
+
+        // Watches the selected repo's working tree for changes instead of
+        // polling it, so the git panel updates the moment a commit, edit,
+        // or checkout happens outside devmode. `run_with` re-runs the
+        // stream (dropping the old watcher) whenever `path` changes, which
+        // is exactly "watch a different repo" or "stop watching" (`None`).
+        if self.screen == Screen::Repos {
+            let path = self
+                .repos
+                .selected
+                .and_then(|id| self.snapshot.as_ref()?.repo(id))
+                .map(|repo| repo.path.clone());
+
+            if let Some(path) = path {
+                subscriptions.push(Subscription::run_with(path, watch_repo));
+            }
         }
 
         Subscription::batch(subscriptions)
@@ -480,6 +507,54 @@ fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
                 Some(Message::Repos(repos::Message::FocusSearch))
             }
             _ => None,
+        }
+    })
+}
+
+/// Watches `path` for filesystem changes and asks the app to re-read git
+/// status each time activity settles, without ever polling.
+///
+/// `notify`'s own callback runs on a thread it owns and can't `.await`, so
+/// it's bridged into this async stream with a plain channel: the callback
+/// sends into a `std::mpsc`, a dedicated thread blocks on that and forwards
+/// into the `futures::mpsc` channel the stream can actually poll.
+// `&PathBuf` (clippy would rather `&Path`) because `Subscription::run_with`
+// requires a `fn(&D) -> S` matching the `PathBuf` data it was given.
+#[allow(clippy::ptr_arg)]
+fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> {
+    use iced::futures::{SinkExt, StreamExt, channel::mpsc};
+    use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};
+
+    let path = path.clone();
+
+    iced::stream::channel(8, async move |mut sender| {
+        let (events_tx, events_rx) = std::sync::mpsc::channel();
+
+        // The 500ms debounce timeout coalesces the burst of file writes a
+        // single commit or checkout produces into one refresh.
+        let Ok(mut debouncer) = new_debouncer(Duration::from_millis(500), move |result| {
+            let _ = events_tx.send(result);
+        }) else {
+            return;
+        };
+
+        if debouncer.watcher().watch(&path, RecursiveMode::Recursive).is_err() {
+            return;
+        }
+
+        let (mut bridge_tx, mut bridge_rx) = mpsc::channel(8);
+        std::thread::spawn(move || {
+            while events_rx.recv().is_ok() {
+                if bridge_tx.try_send(()).is_err() {
+                    break;
+                }
+            }
+        });
+
+        while bridge_rx.next().await.is_some() {
+            if sender.send(Message::GitActivityDetected).await.is_err() {
+                break;
+            }
         }
     })
 }
