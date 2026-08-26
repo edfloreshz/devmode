@@ -1,39 +1,40 @@
-use dm_core::git;
+use dm_core::discovery::{self, Issue};
 use dm_core::registry::RegistryStore;
 
 use crate::error::Result;
 use crate::prompt::confirm;
 
 pub fn run(yes: bool) -> Result<()> {
-    let store = RegistryStore::open_default()?;
-    let mut ok = 0;
+    let tracked = RegistryStore::open_default()?.list(None, None)?.len();
+    let issues = discovery::check()?;
 
-    for repo in store.list(None, None)? {
-        if !repo.path.is_dir() {
-            println!("missing: {} ({})", repo.name, repo.path.display());
-            if yes || confirm("  untrack it?")? {
-                store.remove(repo.id)?;
-                println!("  untracked");
+    // Counted before resolving, since untracking a missing repo would
+    // otherwise shrink the total it's measured against.
+    let ok = tracked.saturating_sub(issues.len());
+
+    for issue in &issues {
+        match issue {
+            Issue::Missing { repo } => {
+                println!("missing: {} ({})", repo.name, repo.path.display());
+
+                if yes || confirm("  untrack it?")? {
+                    discovery::resolve(issue)?;
+                    println!("  untracked");
+                }
             }
-            continue;
-        }
-
-        if let Some(current_url) = git::read_origin_url(&repo.path) {
-            if repo.remote_url.as_deref() != Some(current_url.as_str()) {
+            Issue::RemoteChanged { repo, current } => {
                 println!(
-                    "remote changed: {} ({} -> {current_url})",
+                    "remote changed: {} ({} -> {current})",
                     repo.name,
                     repo.remote_url.as_deref().unwrap_or("-"),
                 );
+
                 if yes || confirm("  update recorded remote?")? {
-                    store.update_remote(repo.id, &current_url)?;
+                    discovery::resolve(issue)?;
                     println!("  updated");
                 }
-                continue;
             }
         }
-
-        ok += 1;
     }
 
     println!("{ok} repo(s) ok");

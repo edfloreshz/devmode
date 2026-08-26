@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
 use dm_core::config::Config;
-use dm_core::git;
+use dm_core::discovery;
 use dm_core::paths;
-use dm_core::registry::{NewRepo, RegistryStore};
 use dm_core::relayout;
 
 use crate::error::Result;
@@ -13,46 +12,25 @@ use super::relayout::print_candidates;
 
 pub fn run(root: Option<PathBuf>, yes: bool) -> Result<()> {
     let config = Config::load()?;
-    let store = RegistryStore::open_default()?;
     let root = paths::normalize_path(&root.unwrap_or_else(|| config.repo.root.clone()));
 
-    let mut tracked = 0;
+    let mut to_track = Vec::new();
     let mut skipped = 0;
 
-    for path in git::find_repos(&root) {
-        if store.find_by_path(&path)?.is_some() {
-            continue;
-        }
-
-        let remote_url = git::read_origin_url(&path);
-        let (host, owner) = match remote_url.as_deref().map(git::parse_url) {
-            Some(Ok(parsed)) => (Some(parsed.host), Some(parsed.owner)),
-            _ => (None, None),
-        };
-
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| path.display().to_string());
-
+    for found in discovery::find_untracked(&root)? {
         if !yes {
-            let label = remote_url.as_deref().unwrap_or("no remote");
-            if !confirm(&format!("track {} ({label})?", path.display()))? {
+            let label = found.remote_url.as_deref().unwrap_or("no remote");
+
+            if !confirm(&format!("track {} ({label})?", found.path.display()))? {
                 skipped += 1;
                 continue;
             }
         }
 
-        store.track(NewRepo {
-            path,
-            name,
-            remote_url,
-            host,
-            owner,
-            tags: Vec::new(),
-        })?;
-        tracked += 1;
+        to_track.push(found);
     }
+
+    let tracked = discovery::track_all(to_track)?;
 
     println!("tracked {tracked} new repo(s), skipped {skipped}");
     report_layout_drift(yes)
