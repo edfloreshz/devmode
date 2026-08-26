@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 use directories::ProjectDirs;
 
@@ -32,30 +32,68 @@ pub fn registry_db_file() -> Result<PathBuf> {
     Ok(data_dir()?.join("registry.sqlite3"))
 }
 
-/// Canonicalizes `path`, falling back to canonicalizing the closest existing
-/// ancestor and re-appending the rest when `path` itself doesn't exist yet
-/// (e.g. a clone root configured before its directory has been created).
-/// This still resolves ancestor symlinks (like macOS's `/tmp` ->
-/// `/private/tmp`), which a plain "fall back to the raw path" approach would
-/// miss — leaving two different-looking paths that actually refer to the
-/// same directory, and confusing anything that compares paths by equality
-/// (e.g. `dm repo relayout`'s drift detection).
-pub fn canonicalize_best_effort(path: &std::path::Path) -> PathBuf {
-    if let Ok(canonical) = path.canonicalize() {
-        return canonical;
-    }
-    let mut suffix = Vec::new();
-    let mut current = path;
-    while let Some(parent) = current.parent() {
-        suffix.push(current.file_name().unwrap_or_default().to_os_string());
-        if let Ok(canonical_parent) = parent.canonicalize() {
-            let mut result = canonical_parent;
-            for component in suffix.iter().rev() {
-                result.push(component);
-            }
-            return result;
+/// Makes `path` absolute (joining the current directory if it's relative)
+/// and lexically cleans up `.`/`..` components — but deliberately does
+/// **not** resolve symlinks. devmode always derives repo/workspace paths
+/// from one stored root via plain string joining, so as long as every path
+/// of record goes through this same normalization, they compare equal by
+/// construction — regardless of what any ancestor directory happens to be a
+/// symlink to (macOS's `/tmp` -> `/private/tmp`, a repo root pointed at an
+/// external drive, a symlinked `$HOME`, etc). Resolving symlinks instead
+/// (via `fs::canonicalize`) would require the path to already exist and
+/// would make two equivalent-looking paths compare unequal whenever they
+/// were canonicalized at different times relative to their directories
+/// being created — which is exactly the bug this replaces.
+pub fn normalize_path(path: &Path) -> PathBuf {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(path))
+            .unwrap_or_else(|_| path.to_path_buf())
+    };
+
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => match normalized.components().next_back() {
+                Some(Component::Normal(_)) => {
+                    normalized.pop();
+                }
+                _ => normalized.push(component),
+            },
+            other => normalized.push(other),
         }
-        current = parent;
     }
-    path.to_path_buf()
+    normalized
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_dot_and_dotdot_components() {
+        assert_eq!(
+            normalize_path(Path::new("/a/b/../c/./d")),
+            PathBuf::from("/a/c/d")
+        );
+    }
+
+    #[test]
+    fn leaves_clean_absolute_paths_untouched() {
+        assert_eq!(
+            normalize_path(Path::new("/a/b/c")),
+            PathBuf::from("/a/b/c")
+        );
+    }
+
+    #[test]
+    fn does_not_require_the_path_to_exist() {
+        assert_eq!(
+            normalize_path(Path::new("/does/not/exist/../exist")),
+            PathBuf::from("/does/not/exist")
+        );
+    }
 }
