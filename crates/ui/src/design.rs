@@ -5,9 +5,9 @@
 //! moves the whole app at once and the four screens can't quietly drift apart.
 
 use iced::widget::{
-    Column, Row, button, column, container, row, rule, scrollable, space, text, text_input,
+    Column, Row, button, column, container, row, rule, scrollable, space, text,
 };
-use iced::{Center, Element, Fill, Font, Left, Padding, Shrink, Theme};
+use iced::{Center, Element, Fill, Font, Left, Padding, Theme};
 
 /// A 4px-based spacing scale. Using named steps instead of magic numbers is
 /// what keeps rhythm consistent across screens.
@@ -159,38 +159,7 @@ pub enum Tone {
     Danger,
 }
 
-/// The search field that sits above every filterable list.
-pub fn search_input<'a, Message: Clone + 'a>(
-    placeholder: &'a str,
-    value: &'a str,
-    on_input: impl Fn(String) -> Message + 'a,
-) -> Element<'a, Message> {
-    text_input(placeholder, value)
-        .on_input(on_input)
-        .padding(SM)
-        .size(TEXT_MD)
-        .width(Fill)
-        .into()
-}
 
-/// A labelled text field for forms and settings.
-pub fn labelled_input<'a, Message: Clone + 'a>(
-    label: &'a str,
-    placeholder: &'a str,
-    value: &'a str,
-    on_input: impl Fn(String) -> Message + 'a,
-) -> Element<'a, Message> {
-    field(
-        label,
-        text_input(placeholder, value)
-            .on_input(on_input)
-            .padding(SM)
-            .size(TEXT_MD)
-            .font(MONO)
-            .width(Fill)
-            .into(),
-    )
-}
 
 /// A row of buttons, right-aligned — the standard footer for dialogs.
 pub fn button_row<'a, Message: 'a>(
@@ -272,7 +241,3 @@ pub fn pane<'a, Message: 'a>(
         .into()
 }
 
-/// Sizes a widget to its own content rather than filling its parent.
-pub fn shrink<'a, Message: 'a>(content: impl Into<Element<'a, Message>>) -> Element<'a, Message> {
-    container(content).width(Shrink).into()
-}

@@ -134,10 +134,6 @@ impl App {
         self.snapshot.as_ref()
     }
 
-    pub fn is_loading(&self) -> bool {
-        self.loading
-    }
-
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Navigate(screen) => {
