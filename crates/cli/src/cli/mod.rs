@@ -38,6 +38,12 @@ pub enum RepoCommand {
         /// Tags to attach to this repo.
         #[arg(long)]
         tag: Vec<String>,
+        /// Host this repo belongs to (e.g. github.com) — needed for `dm repo relayout` to manage it.
+        #[arg(long)]
+        host: Option<String>,
+        /// Owner/org this repo belongs to — needed for `dm repo relayout` to manage it.
+        #[arg(long)]
+        owner: Option<String>,
     },
     /// List tracked repos.
     List {
@@ -50,5 +56,14 @@ pub enum RepoCommand {
         /// Output as JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Preview or apply moving tracked repos to match the current path_layout.
+    Relayout {
+        /// Actually move repos on disk and update the registry (default is a dry-run preview).
+        #[arg(long)]
+        apply: bool,
+        /// Skip the confirmation prompt when applying.
+        #[arg(short, long)]
+        yes: bool,
     },
 }

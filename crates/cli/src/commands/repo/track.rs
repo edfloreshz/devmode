@@ -5,7 +5,12 @@ use dm_core::registry::{NewRepo, RegistryStore};
 
 use crate::error::Result;
 
-pub fn run(path: PathBuf, tags: Vec<String>) -> Result<()> {
+pub fn run(
+    path: PathBuf,
+    tags: Vec<String>,
+    host: Option<String>,
+    owner: Option<String>,
+) -> Result<()> {
     let path = path
         .canonicalize()
         .map_err(|_| CoreError::NotADirectory(path.clone()))?;
@@ -22,6 +27,8 @@ pub fn run(path: PathBuf, tags: Vec<String>) -> Result<()> {
         path,
         name,
         tags,
+        host,
+        owner,
         ..Default::default()
     })?;
     println!("tracked {} ({})", repo.name, repo.path.display());
