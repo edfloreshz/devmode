@@ -7,7 +7,8 @@
 use iced::widget::{
     Column, Row, button, column, container, row, rule, scrollable, space, text, text_input,
 };
-use iced::{Center, Element, Fill, Font, Left, Padding, Theme};
+use iced::border;
+use iced::{Center, Color, Element, Fill, Font, Left, Padding, Theme};
 
 /// A 4px-based spacing scale. Using named steps instead of magic numbers is
 /// what keeps rhythm consistent across screens.
@@ -217,13 +218,103 @@ pub fn primary_button<'a, Message: Clone + 'a>(
 }
 
 /// A supporting action, alongside a primary one.
+///
+/// iced's own `button::secondary` pairs its gray background with dark text —
+/// readable, but a flat gray-on-gray that doesn't read as clickable next to
+/// a colored primary button. This keeps the gray but switches to white text,
+/// darkening the background just enough to stay legible: `secondary.base` is
+/// only ~0.59 gray in the Light theme, and white text on that is under 3:1
+/// contrast — noticeably harder to read than iced's own dark-on-gray pairing.
 pub fn secondary_button<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: impl Into<Option<Message>>,
 ) -> Element<'a, Message> {
     control(label, on_press.into())
-        .style(button::secondary)
+        .style(|theme: &Theme, status| {
+            let palette = theme.extended_palette();
+            let readable = darken_for_contrast(palette.secondary.base.color, WHITE_TEXT_TARGET);
+
+            let background = match status {
+                button::Status::Hovered => darken(readable, 0.15),
+                _ => readable,
+            };
+
+            let mut style = button::Style {
+                background: Some(background.into()),
+                text_color: Color::WHITE,
+                border: border::rounded(2),
+                ..button::Style::default()
+            };
+
+            if status == button::Status::Disabled {
+                style.background = style.background.map(|bg| bg.scale_alpha(0.5));
+                style.text_color = style.text_color.scale_alpha(0.5);
+            }
+
+            style
+        })
         .into()
+}
+
+/// The contrast ratio white text needs against a secondary button's
+/// background to stay comfortably readable (WCAG AA for normal-size text).
+const WHITE_TEXT_TARGET: f32 = 4.5;
+
+/// Mixes `color` toward black by `amount` (0 = unchanged, 1 = black).
+fn darken(color: Color, amount: f32) -> Color {
+    Color {
+        r: color.r * (1.0 - amount),
+        g: color.g * (1.0 - amount),
+        b: color.b * (1.0 - amount),
+        a: color.a,
+    }
+}
+
+/// Relative luminance per WCAG, used to compute contrast ratios.
+fn luminance(color: Color) -> f32 {
+    fn channel(value: f32) -> f32 {
+        if value <= 0.03928 {
+            value / 12.92
+        } else {
+            ((value + 0.055) / 1.055).powf(2.4)
+        }
+    }
+
+    0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b)
+}
+
+fn contrast(a: Color, b: Color) -> f32 {
+    let (lighter, darker) = {
+        let (la, lb) = (luminance(a), luminance(b));
+        if la > lb { (la, lb) } else { (lb, la) }
+    };
+
+    (lighter + 0.05) / (darker + 0.05)
+}
+
+/// Darkens `color` by binary search until white text on top reaches `target`
+/// contrast, so this holds for any theme's palette — built-in or custom —
+/// rather than a fixed darkening amount that happens to work for the themes
+/// tested against.
+fn darken_for_contrast(color: Color, target: f32) -> Color {
+    if contrast(Color::WHITE, color) >= target {
+        return color;
+    }
+
+    let (mut low, mut high) = (0.0_f32, 1.0_f32);
+
+    for _ in 0..16 {
+        let mid = (low + high) / 2.0;
+        let candidate = darken(color, mid);
+
+        if contrast(Color::WHITE, candidate) >= target {
+            high = mid;
+        } else {
+            low = mid;
+        }
+    }
+
+    darken(color, high)
 }
 
 /// An action that destroys something: removing, deleting, untracking.
@@ -288,5 +379,56 @@ pub fn pane<'a, Message: 'a>(
         .height(Fill)
         .align_x(Left)
         .into()
+}
+
+#[cfg(test)]
+mod contrast_tests {
+    use super::*;
+    use iced::Theme;
+
+    /// Every built-in theme's secondary-button background, after darkening,
+    /// must keep white text at least at the WCAG AA threshold for normal
+    /// text. This is the guarantee `secondary_button` exists to make.
+    #[test]
+    fn white_text_stays_readable_on_every_built_in_theme() {
+        for theme in Theme::ALL {
+            let palette = theme.extended_palette();
+            let background = darken_for_contrast(palette.secondary.base.color, WHITE_TEXT_TARGET);
+            let ratio = contrast(Color::WHITE, background);
+
+            assert!(
+                ratio >= WHITE_TEXT_TARGET - 0.01,
+                "{theme}: white-on-secondary contrast is {ratio:.2}:1, below {WHITE_TEXT_TARGET}:1"
+            );
+        }
+    }
+
+    #[test]
+    fn a_background_that_already_passes_is_left_alone() {
+        // A background already darker than needed shouldn't be darkened
+        // further — that would needlessly flatten a theme's own gray.
+        let already_dark = Color::from_rgb(0.1, 0.1, 0.1);
+
+        assert_eq!(
+            darken_for_contrast(already_dark, WHITE_TEXT_TARGET),
+            already_dark
+        );
+    }
+
+    #[test]
+    fn hover_stays_readable_too() {
+        // The hover state darkens further for feedback; confirm that step
+        // doesn't undo the readability the base darkening established.
+        for theme in Theme::ALL {
+            let palette = theme.extended_palette();
+            let base = darken_for_contrast(palette.secondary.base.color, WHITE_TEXT_TARGET);
+            let hovered = darken(base, 0.15);
+
+            assert!(
+                contrast(Color::WHITE, hovered) >= WHITE_TEXT_TARGET - 0.01,
+                "{theme}: hover state drops white text below {WHITE_TEXT_TARGET}:1"
+            );
+        }
+    }
 }
 
