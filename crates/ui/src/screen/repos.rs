@@ -74,6 +74,7 @@ pub enum Message {
     BrowsePath,
     PathPicked(Option<PathBuf>),
     CopyPath(String),
+    OpenPath(PathBuf),
     OpenProject,
     OpenUrl(String),
     FixDrift,
@@ -235,6 +236,12 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
         Message::CopyPath(path) => {
             app.toast_success("Copied path to clipboard.");
             iced::clipboard::write(path)
+        }
+        Message::OpenPath(path) => {
+            if let Err(error) = open::that(&path) {
+                app.toast_error(format!("Couldn't open {}: {error}", path.display()));
+            }
+            Task::none()
         }
         Message::OpenProject => {
             let Some(id) = app.repos.selected else {
@@ -665,8 +672,9 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
     let path_string = repo.path.display().to_string();
     let path_field = design::field(
         "Path",
-        design::link(
+        design::split_click(
             design::link_text(&path_string, design::TEXT_MD, true),
+            wrap(Message::OpenPath(repo.path.clone())),
             wrap(Message::CopyPath(path_string.clone())),
         ),
     );
