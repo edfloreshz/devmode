@@ -176,7 +176,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
             app.discovery.scan = Scan::Idle;
 
-            app.run(move || {
+            let label = format!("Tracking {} repo(s)…", batch.len());
+            app.run(label, move || {
                 let tracked = discovery::track_all(batch).map_err(|e| e.to_string())?;
 
                 Ok(format!("Tracked {tracked} repo(s)."))
@@ -210,7 +211,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
             app.discovery.check = Check::Idle;
 
-            app.run(move || {
+            let label = format!("Resolving: {}…", issue.describe());
+            app.run(label, move || {
                 discovery::resolve(&issue).map_err(|e| e.to_string())?;
 
                 Ok(format!("Resolved: {}", issue.describe()))
@@ -229,7 +231,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
             app.discovery.check = Check::Idle;
 
-            app.run(move || {
+            let label = format!("Resolving {} issue(s)…", issues.len());
+            app.run(label, move || {
                 let total = issues.len();
 
                 for issue in &issues {

@@ -190,7 +190,11 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                         return Task::none();
                     }
 
-                    app.run(move || clone(&url, optional_path(&path)))
+                    let label = git::parse_url(&url)
+                        .map(|parsed| format!("Cloning {}…", parsed.name))
+                        .unwrap_or_else(|_| "Cloning…".to_string());
+
+                    app.run(label, move || clone(&url, optional_path(&path)))
                 }
                 Dialog::Create { name, path, git } => {
                     if name.trim().is_empty() {
@@ -198,7 +202,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                         return Task::none();
                     }
 
-                    app.run(move || create(&name, optional_path(&path), git))
+                    let label = format!("Creating {name}…");
+                    app.run(label, move || create(&name, optional_path(&path), git))
                 }
                 Dialog::Track { path } => {
                     let Some(path) = optional_path(&path) else {
@@ -206,7 +211,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                         return Task::none();
                     };
 
-                    app.run(move || track(path))
+                    let label = format!("Tracking {}…", path.display());
+                    app.run(label, move || track(path))
                 }
                 Dialog::EditRemote { id, url, .. } => {
                     if url.trim().is_empty() {
@@ -214,10 +220,11 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                         return Task::none();
                     }
 
-                    app.run(move || set_remote(id, &url))
+                    app.run("Updating remote…", move || set_remote(id, &url))
                 }
                 Dialog::Remove { id, name, delete } => {
-                    app.run(move || remove(id, &name, delete))
+                    let label = format!("Removing {name}…");
+                    app.run(label, move || remove(id, &name, delete))
                 }
             }
         }
@@ -256,12 +263,12 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             let Some(id) = app.repos.selected else {
                 return Task::none();
             };
-            let Some(path) = app.snapshot().and_then(|s| s.repo(id)).map(|repo| repo.path.clone())
-            else {
+            let Some(repo) = app.snapshot().and_then(|s| s.repo(id)) else {
                 return Task::none();
             };
+            let (name, path) = (repo.name.clone(), repo.path.clone());
 
-            app.run(move || open_project(&path))
+            app.run(format!("Opening {name}…"), move || open_project(&path))
         }
         Message::OpenUrl(url) => {
             if let Err(error) = open::that(&url) {
@@ -269,7 +276,7 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             }
             Task::none()
         }
-        Message::FixDrift => app.run(fix_drift),
+        Message::FixDrift => app.run("Moving repos to match layout…", fix_drift),
     }
 }
 

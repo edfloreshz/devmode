@@ -236,9 +236,11 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             // Let the reload re-adopt the saved values.
             app.settings.saved = None;
 
-            app.run(move || save(root, host, editor, interactive, layout, appearance))
+            app.run("Saving settings…", move || {
+                save(root, host, editor, interactive, layout, appearance)
+            })
         }
-        Message::FixDrift => app.run(|| {
+        Message::FixDrift => app.run("Moving repos to match layout…", || {
             let (moved, skipped) = dm_core::relayout::apply_candidates(
                 dm_core::relayout::plan().map_err(|e| e.to_string())?,
             )
