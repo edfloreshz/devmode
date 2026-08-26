@@ -22,14 +22,14 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
     let moves = plan_moves(&repos, &config);
 
     if moves.is_empty() {
-        println!("all tracked repos already match the current path_layout ({})", config.clone.path_layout.to_config_string());
+        println!("all tracked repos already match the current layout ({})", config.clone.layout.to_config_string());
         return Ok(());
     }
 
     println!(
-        "{} repo(s) would move to match path_layout {}:",
+        "{} repo(s) would move to match layout {}:",
         moves.len(),
-        config.clone.path_layout.to_config_string()
+        config.clone.layout.to_config_string()
     );
     for mv in &moves {
         println!("  {}: {} -> {}", mv.name, mv.from.display(), mv.to.display());
@@ -75,7 +75,7 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
             let target = config
                 .clone
                 .root
-                .join(config.clone.path_layout.render(host, owner, &repo.name));
+                .join(config.clone.layout.render(host, owner, &repo.name));
             if target == repo.path {
                 return None;
             }
@@ -100,8 +100,8 @@ fn confirm(prompt: &str) -> Result<bool> {
 }
 
 /// Whether any tracked repos have host/owner metadata that could drift from
-/// the current path_layout — used to decide whether to suggest `dm repo
-/// relayout` after `dm config set path_layout`.
+/// the current layout — used to decide whether to suggest `dm repo
+/// relayout` after `dm config set layout`.
 pub fn has_relayout_candidates() -> Result<bool> {
     let config = Config::load()?;
     let store = RegistryStore::open_default()?;
