@@ -19,6 +19,11 @@ pub enum Command {
         #[command(subcommand)]
         command: RepoCommand,
     },
+    /// Manage workspaces — named, non-destructive groups of repos.
+    Workspace {
+        #[command(subcommand)]
+        command: WorkspaceCommand,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -121,4 +126,86 @@ pub enum RepoCommand {
         /// Text to match against repo names.
         query: String,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum WorkspaceCommand {
+    /// Create a new workspace.
+    Create {
+        /// Slug identifying the workspace (used everywhere else as `<workspace>`).
+        id: String,
+        /// Display name (defaults to the id).
+        #[arg(long)]
+        name: Option<String>,
+        #[arg(long)]
+        description: Option<String>,
+        /// Command used to open member repos on `switch`, e.g. "code -n".
+        #[arg(long)]
+        editor: Option<String>,
+    },
+    /// Add repo(s) (by name or path) to a workspace.
+    Add {
+        workspace: String,
+        repos: Vec<String>,
+    },
+    /// Remove repo(s) (by name or path) from a workspace.
+    Remove {
+        workspace: String,
+        repos: Vec<String>,
+    },
+    /// List workspaces.
+    List,
+    /// Show a workspace's details, members, and env vars.
+    Show { workspace: String },
+    /// Get/set a workspace's name, description, or editor.
+    Config {
+        #[command(subcommand)]
+        command: WorkspaceConfigCommand,
+    },
+    /// Get/set/list per-workspace environment variables, applied on `switch`.
+    Env {
+        #[command(subcommand)]
+        command: WorkspaceEnvCommand,
+    },
+    /// Open the workspace's editor with all member repos, with its env vars applied.
+    Switch {
+        workspace: String,
+        /// Print `cd <path>` for the first member instead of opening an editor
+        /// (for `eval "$(dm workspace switch <id> --cd)"`).
+        #[arg(long)]
+        cd: bool,
+    },
+    /// Delete a workspace. Member repos themselves are not affected.
+    Delete {
+        workspace: String,
+        /// Skip the confirmation prompt.
+        #[arg(short, long)]
+        force: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum WorkspaceConfigCommand {
+    /// Print the value of a workspace config key (name, description, editor).
+    Get { workspace: String, key: String },
+    /// Set a workspace config key (name, description, editor).
+    Set {
+        workspace: String,
+        key: String,
+        value: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum WorkspaceEnvCommand {
+    /// Set an environment variable for a workspace.
+    Set {
+        workspace: String,
+        key: String,
+        value: String,
+    },
+    /// Unset an environment variable for a workspace.
+    Unset { workspace: String, key: String },
+    /// List a workspace's environment variables.
+    List { workspace: String },
 }

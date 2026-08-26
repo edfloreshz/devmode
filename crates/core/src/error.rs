@@ -64,6 +64,18 @@ pub enum Error {
 
     #[error("'{0}' matches more than one tracked repo — try specifying the full path instead")]
     AmbiguousRepo(String),
+
+    #[error("no workspace named '{0}'")]
+    WorkspaceNotFound(String),
+
+    #[error("a workspace named '{0}' already exists")]
+    WorkspaceAlreadyExists(String),
+
+    #[error("'{repo}' is already in workspace '{workspace}'")]
+    AlreadyInWorkspace { workspace: String, repo: String },
+
+    #[error("'{repo}' is not in workspace '{workspace}'")]
+    NotInWorkspace { workspace: String, repo: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
