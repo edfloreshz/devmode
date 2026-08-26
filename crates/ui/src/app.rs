@@ -5,6 +5,8 @@ use std::time::{Duration, SystemTime};
 use iced::widget::{button, column, container, row, rule, space, text};
 use iced::{Center, Element, Fill, Subscription, Task, Theme};
 
+use dm_core::config::ThemeMode;
+
 use crate::data::{self, Snapshot, WorkspaceDetail};
 use crate::design::{self, Tone};
 use crate::screen::{self, discovery, repos, settings, workspaces};
@@ -92,7 +94,8 @@ pub struct App {
     toast: Option<Toast>,
     loading: bool,
     fingerprint: Option<(SystemTime, SystemTime)>,
-    theme_mode: iced::theme::Mode,
+    /// The desktop's current preference, kept live by `theme_changes`.
+    system_mode: iced::theme::Mode,
     pub repos: repos::State,
     pub workspaces: workspaces::State,
     pub discovery: discovery::State,
@@ -107,7 +110,7 @@ impl App {
             toast: None,
             loading: true,
             fingerprint: None,
-            theme_mode: iced::theme::Mode::default(),
+            system_mode: iced::theme::Mode::default(),
             repos: repos::State::default(),
             workspaces: workspaces::State::default(),
             discovery: discovery::State::default(),
@@ -128,13 +131,26 @@ impl App {
         format!("Devmode — {}", self.screen.title())
     }
 
-    /// Tracks the desktop's light/dark preference in real time. Going through
-    /// `theme::Base::default` (rather than picking variants directly) also
-    /// honours an `ICED_THEME` override for free.
+    /// Resolves the theme from the user's settings and, when they've chosen
+    /// to follow the system, its live light/dark preference.
+    ///
+    /// Reads the Settings screen's working copy rather than the saved config
+    /// so picking a theme previews immediately, and reverting puts it back.
     pub fn theme(&self) -> Theme {
         use iced::theme::Base;
 
-        Theme::default(self.theme_mode)
+        let mode = match self.settings.theme_mode {
+            ThemeMode::Light => iced::theme::Mode::Light,
+            ThemeMode::Dark => iced::theme::Mode::Dark,
+            ThemeMode::System => self.system_mode,
+        };
+
+        let name = match mode {
+            iced::theme::Mode::Dark => &self.settings.dark_theme,
+            _ => &self.settings.light_theme,
+        };
+
+        settings::theme_named(name).unwrap_or_else(|| Theme::default(mode))
     }
 
     pub fn snapshot(&self) -> Option<&Snapshot> {
@@ -211,7 +227,7 @@ impl App {
                 Task::none()
             }
             Message::SystemTheme(mode) => {
-                self.theme_mode = mode;
+                self.system_mode = mode;
                 Task::none()
             }
             Message::Repos(message) => repos::update(self, message),
@@ -230,7 +246,7 @@ impl App {
             toast: None,
             loading: false,
             fingerprint: None,
-            theme_mode: iced::theme::Mode::Light,
+            system_mode: iced::theme::Mode::Light,
             repos: repos::State::default(),
             workspaces: workspaces::State::default(),
             discovery: discovery::State::default(),

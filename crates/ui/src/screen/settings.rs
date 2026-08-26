@@ -2,9 +2,9 @@
 //! the chosen layout actually does to a path.
 
 use iced::widget::{checkbox, column, pick_list, row, space, text, text_input};
-use iced::{Center, Element, Fill, Task};
+use iced::{Center, Element, Fill, Task, Theme};
 
-use dm_core::config::Config;
+use dm_core::config::{Config, ThemeMode};
 use dm_core::layout::PathLayout;
 
 use crate::app::{self, App, Message as AppMessage};
@@ -59,6 +59,9 @@ pub struct State {
     pub interactive: bool,
     pub layout: Option<LayoutChoice>,
     pub template: String,
+    pub theme_mode: ThemeMode,
+    pub light_theme: String,
+    pub dark_theme: String,
     /// The config as last loaded, to detect unsaved edits.
     saved: Option<Config>,
 }
@@ -80,6 +83,9 @@ impl State {
             PathLayout::Custom { template } => template.clone(),
             other => other.to_config_string(),
         };
+        self.theme_mode = config.ui.theme_mode;
+        self.light_theme = config.ui.light_theme.clone();
+        self.dark_theme = config.ui.dark_theme.clone();
         self.saved = Some(config.clone());
     }
 
@@ -93,6 +99,9 @@ impl State {
             || self.editor != saved.editor.clone().unwrap_or_default()
             || self.interactive != saved.interactive
             || self.layout != Some(LayoutChoice::from_layout(&saved.repo.layout))
+            || self.theme_mode != saved.ui.theme_mode
+            || self.light_theme != saved.ui.light_theme
+            || self.dark_theme != saved.ui.dark_theme
             || (self.layout == Some(LayoutChoice::Custom)
                 && !matches!(
                     &saved.repo.layout,
@@ -129,6 +138,9 @@ pub enum Message {
     InteractiveChanged(bool),
     LayoutChanged(LayoutChoice),
     TemplateChanged(String),
+    ThemeModeChanged(ThemeMode),
+    LightThemeChanged(Theme),
+    DarkThemeChanged(Theme),
     Save,
     Revert,
     FixDrift,
@@ -160,6 +172,18 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             app.settings.template = template;
             Task::none()
         }
+        Message::ThemeModeChanged(mode) => {
+            app.settings.theme_mode = mode;
+            Task::none()
+        }
+        Message::LightThemeChanged(theme) => {
+            app.settings.light_theme = theme.to_string();
+            Task::none()
+        }
+        Message::DarkThemeChanged(theme) => {
+            app.settings.dark_theme = theme.to_string();
+            Task::none()
+        }
         Message::Revert => {
             // Drop the edits, then adopt the saved config again.
             let saved = app.settings.saved.clone();
@@ -186,11 +210,16 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 app.settings.editor.clone(),
                 app.settings.interactive,
             );
+            let appearance = (
+                app.settings.theme_mode,
+                app.settings.light_theme.clone(),
+                app.settings.dark_theme.clone(),
+            );
 
             // Let the reload re-adopt the saved values.
             app.settings.saved = None;
 
-            app.run(move || save(root, host, editor, interactive, layout))
+            app.run(move || save(root, host, editor, interactive, layout, appearance))
         }
         Message::FixDrift => app.run(|| {
             let (moved, skipped) = dm_core::relayout::apply_candidates(
@@ -216,6 +245,7 @@ fn save(
     editor: String,
     interactive: bool,
     layout: PathLayout,
+    appearance: (ThemeMode, String, String),
 ) -> Result<String, String> {
     (|| -> dm_core::Result<String> {
         let mut config = Config::load()?;
@@ -224,6 +254,11 @@ fn save(
         config.set("repo.host", host.trim())?;
         config.set("repo.layout", &layout.to_config_string())?;
         config.set("interactive", &interactive.to_string())?;
+
+        let (theme_mode, light_theme, dark_theme) = appearance;
+        config.set("ui.theme_mode", theme_mode.as_str())?;
+        config.set("ui.light_theme", &light_theme)?;
+        config.set("ui.dark_theme", &dark_theme)?;
 
         // `Config::set` has no way to clear the editor back to unset, so
         // assign the field directly for the empty case.
@@ -250,6 +285,7 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
         ),
         repo_section(app),
         layout_section(app),
+        appearance_section(app),
         behaviour_section(app),
     ];
 
@@ -358,6 +394,98 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
     }
 
     design::section("Layout", body)
+}
+
+/// The built-in theme matching `name`, if there is one.
+///
+/// Theme names live in the config as plain strings, so an unrecognised one
+/// (a hand-edited typo, or a theme from a newer iced) resolves to `None` and
+/// the caller falls back rather than failing to start.
+pub fn theme_named(name: &str) -> Option<Theme> {
+    Theme::ALL.iter().find(|theme| theme.to_string() == name).cloned()
+}
+
+/// The built-in themes with light palettes, and the ones with dark palettes.
+///
+/// Splitting them means each picker only offers themes that make sense for
+/// the slot, so "follow system" can't end up showing a dark theme in light
+/// mode because of a mismatched pick.
+fn themes_for(mode: iced::theme::Mode) -> Vec<Theme> {
+    use iced::theme::Base;
+
+    Theme::ALL
+        .iter()
+        .filter(|theme| theme.mode() == mode)
+        .cloned()
+        .collect()
+}
+
+fn appearance_section(app: &App) -> Element<'_, AppMessage> {
+    let state = &app.settings;
+
+    let mode = design::field(
+        "Theme",
+        pick_list(ThemeMode::ALL, Some(state.theme_mode), |mode| {
+            wrap(Message::ThemeModeChanged(mode))
+        })
+        .padding(design::SM)
+        .text_size(design::TEXT_MD)
+        .width(Fill)
+        .into(),
+    );
+
+    let variant = |label: &'static str,
+                   selected: &str,
+                   for_mode: iced::theme::Mode,
+                   to_message: fn(Theme) -> Message| {
+        design::field(
+            label,
+            pick_list(themes_for(for_mode), theme_named(selected), move |theme| {
+                wrap(to_message(theme))
+            })
+            .padding(design::SM)
+            .text_size(design::TEXT_MD)
+            .width(Fill)
+            .into(),
+        )
+    };
+
+    let hint = match state.theme_mode {
+        ThemeMode::System => {
+            "Devmode follows your desktop's light and dark setting, switching \
+             between these two themes as it changes."
+        }
+        ThemeMode::Light => "Devmode always uses the light theme below.",
+        ThemeMode::Dark => "Devmode always uses the dark theme below.",
+    };
+
+    design::section(
+        "Appearance",
+        column![
+            design::muted(text(hint).size(design::TEXT_SM)),
+            mode,
+            row![
+                variant(
+                    "Light theme",
+                    &state.light_theme,
+                    iced::theme::Mode::Light,
+                    Message::LightThemeChanged,
+                ),
+                variant(
+                    "Dark theme",
+                    &state.dark_theme,
+                    iced::theme::Mode::Dark,
+                    Message::DarkThemeChanged,
+                ),
+            ]
+            .spacing(design::MD),
+            design::muted(
+                text("Changes preview straight away; Save keeps them.")
+                    .size(design::TEXT_SM)
+            ),
+        ]
+        .spacing(design::MD),
+    )
 }
 
 fn behaviour_section(app: &App) -> Element<'_, AppMessage> {
