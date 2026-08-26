@@ -490,13 +490,13 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
         ]
         .height(Fill);
 
-        column![toolbar(), body]
-            .spacing(design::MD)
-            .height(Fill)
-            .into()
+        body.into()
     };
 
-    let page: Element<'_, AppMessage> = column![header(), content]
+    let actions = (!snapshot.workspaces.is_empty())
+        .then(|| design::primary_button("New workspace…", wrap(Message::OpenCreate)));
+
+    let page: Element<'_, AppMessage> = column![header(actions), content]
         .spacing(design::MD)
         .height(Fill)
         .into();
@@ -509,28 +509,16 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
     }
 }
 
-fn header<'a>() -> Element<'a, AppMessage> {
+fn header<'a>(actions: impl Into<Option<Element<'a, AppMessage>>>) -> Element<'a, AppMessage> {
     container(design::page_header(
         "Workspaces",
         Some(
             "Group repos you work on together, with a shared editor and environment."
                 .to_string(),
         ),
-        None,
+        actions,
     ))
     .padding(iced::Padding::from([design::XL, design::XL]).bottom(0))
-    .into()
-}
-
-fn toolbar<'a>() -> Element<'a, AppMessage> {
-    container(
-        row![
-            space::horizontal(),
-            design::primary_button("New workspace…", wrap(Message::OpenCreate)),
-        ]
-        .align_y(Center),
-    )
-    .padding(iced::Padding::from([0.0, design::XL]))
     .into()
 }
 

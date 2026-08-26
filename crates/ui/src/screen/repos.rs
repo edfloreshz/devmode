@@ -590,7 +590,17 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
             .into()
     };
 
-    let page: Element<'_, AppMessage> = column![header(), content]
+    let actions = (!snapshot.repos.is_empty()).then(|| {
+        row![
+            design::primary_button("Clone…", wrap(Message::OpenClone)),
+            design::secondary_button("Create…", wrap(Message::OpenCreate)),
+            design::secondary_button("Track…", wrap(Message::OpenTrack)),
+        ]
+        .spacing(design::SM)
+        .into()
+    });
+
+    let page: Element<'_, AppMessage> = column![header(actions), content]
         .spacing(design::MD)
         .height(Fill)
         .into();
@@ -604,11 +614,11 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
     }
 }
 
-fn header<'a>() -> Element<'a, AppMessage> {
+fn header<'a>(actions: impl Into<Option<Element<'a, AppMessage>>>) -> Element<'a, AppMessage> {
     container(design::page_header(
         "Repos",
         Some("Clone, create, or track the repositories devmode manages.".to_string()),
-        None,
+        actions,
     ))
     .padding(iced::Padding::from([design::XL, design::XL]).bottom(0))
     .into()
@@ -629,18 +639,7 @@ fn toolbar(app: &App) -> Element<'_, AppMessage> {
         .on_input(|query| wrap(Message::Search(query)))
         .width(Fill);
 
-    container(
-        row![
-            search,
-            design::primary_button("Clone…", wrap(Message::OpenClone)),
-            design::secondary_button("Create…", wrap(Message::OpenCreate)),
-            design::secondary_button("Track…", wrap(Message::OpenTrack)),
-        ]
-        .spacing(design::SM)
-        .align_y(Center),
-    )
-    .padding(iced::Padding::from([0.0, design::XL]))
-    .into()
+    container(search).padding(iced::Padding::from([0.0, design::XL])).into()
 }
 
 fn drift_banner<'a>(snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
