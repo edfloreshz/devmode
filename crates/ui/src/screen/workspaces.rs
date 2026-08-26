@@ -495,24 +495,41 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
             .into()
     };
 
+    let page: Element<'_, AppMessage> = column![header(), content]
+        .spacing(design::MD)
+        .height(Fill)
+        .into();
+
     // The empty state offers the only "New workspace" button when there are
     // none, so its dialog has to render over it.
     match &app.workspaces.dialog {
-        Some(dialog) => crate::screen::repos::modal(content, dialog_view(app, dialog)),
-        None => content,
+        Some(dialog) => crate::screen::repos::modal(page, dialog_view(app, dialog)),
+        None => page,
     }
+}
+
+fn header<'a>() -> Element<'a, AppMessage> {
+    container(design::page_header(
+        "Workspaces",
+        Some(
+            "Group repos you work on together, with a shared editor and environment."
+                .to_string(),
+        ),
+        None,
+    ))
+    .padding(iced::Padding::from([design::MD, design::LG]).bottom(0))
+    .into()
 }
 
 fn toolbar<'a>() -> Element<'a, AppMessage> {
     container(
         row![
-            text("Workspaces").size(design::TEXT_LG),
             space::horizontal(),
             design::primary_button("New workspace…", wrap(Message::OpenCreate)),
         ]
         .align_y(Center),
     )
-    .padding(iced::Padding::from([design::MD, design::LG]).bottom(0.0))
+    .padding(iced::Padding::from([0.0, design::LG]))
     .into()
 }
 
