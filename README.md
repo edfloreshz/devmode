@@ -18,13 +18,26 @@ shelling out to `git`/`gh`. All git operations run in-process via [`git2`][libgi
   variables, so `dm workspace switch <id>` opens every member repo in one command with
   the right env applied.
 
+## Three frontends, one core
+
+All of devmode's logic lives in `dm-core`; each frontend only owns how it presents
+things. Every one reads and writes the same registry and `config.toml`, so you can move
+between them freely — the GUI even refreshes itself when you change something with `dm`
+in a terminal.
+
+| Binary  | Crate         | What it's for |
+|---------|---------------|---------------|
+| `dm`    | `crates/cli`  | Scripting and quick one-off commands |
+| `dmtui` | `crates/tui`  | Browsing and editing without leaving the terminal |
+| `dmui`  | `crates/ui`   | A desktop window, for batch work and discovery |
+
 ## Install
 
 ```bash
-cargo install --path crates/cli
+cargo install --path crates/cli   # dm    — the CLI
+cargo install --path crates/tui   # dmtui — the terminal UI
+cargo install --path crates/ui    # dmui  — the desktop app
 ```
-
-This installs the `dm` binary.
 
 ## Quick start
 
@@ -37,6 +50,36 @@ dm workspace create client-x --editor "code -n"
 dm workspace add client-x repo
 dm workspace switch client-x
 ```
+
+### Scripting
+
+`dm` uses interactive prompts that need a real terminal. To use it from a script, CI, or a
+pipe, turn them off — confirmations then read plain stdin, and ambiguous names error
+instead of opening a picker:
+
+```bash
+dm config set interactive false
+echo y | dm repo scan ~/code
+```
+
+### The desktop app
+
+```bash
+dmui
+```
+
+`dmui` covers everything the CLI does for repos and workspaces, plus two things that suit
+a window better than a prompt loop:
+
+- **Discovery** scans a folder for untracked repos and shows the whole result set at once
+  with checkboxes, so you pick a batch instead of answering one prompt per repo. It also
+  checks tracked repos still exist and their remotes still match, with per-issue and
+  fix-all actions.
+- **Settings** edits the same `config.toml` as `dm config`, previewing where a repo would
+  actually land as you change the layout.
+
+It follows your system light/dark setting live, and `ICED_THEME` overrides the theme if
+you want a specific one.
 
 Run `dm --help` or `dm <command> --help` for the full command reference, and
 `dm completions <shell>` to generate shell completions.

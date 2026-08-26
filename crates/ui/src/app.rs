@@ -10,7 +10,14 @@ use crate::design::{self, Tone};
 use crate::screen::{self, discovery, repos, settings, workspaces};
 use crate::task::blocking;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// `modifiers.command()` is Cmd on macOS and Ctrl elsewhere, so the hint
+/// text has to follow suit.
+#[cfg(target_os = "macos")]
+const MODIFIER: &str = "⌘";
+#[cfg(not(target_os = "macos"))]
+const MODIFIER: &str = "Ctrl+";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Screen {
     Repos,
     Workspaces,
@@ -270,7 +277,7 @@ impl App {
 
     pub fn subscription(&self) -> Subscription<Message> {
         let mut subscriptions = vec![
-            keyboard_shortcuts(),
+            keyboard_shortcuts(self.screen),
             iced::system::theme_changes().map(Message::SystemTheme),
         ];
 
@@ -377,7 +384,10 @@ impl App {
             .into(),
             None => row![
                 design::muted(
-                    text("⌘1–4 switch · ⌘F search · ⌘R refresh").size(design::TEXT_SM)
+                    text(format!(
+                        "{MODIFIER}1–4 switch · {MODIFIER}F search · {MODIFIER}R refresh"
+                    ))
+                    .size(design::TEXT_SM)
                 ),
                 space::horizontal(),
             ]
@@ -397,10 +407,12 @@ impl App {
 
 /// Global shortcuts. `keyboard::listen` only reports events no focused widget
 /// consumed, so these can't fire while the user is typing in a text field.
-fn keyboard_shortcuts() -> Subscription<Message> {
+fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
     use iced::keyboard::{self, Key, key};
 
-    keyboard::listen().filter_map(|event| {
+    // `with` carries the screen into the closure: iced requires subscription
+    // closures to be non-capturing so it can identify them across rebuilds.
+    keyboard::listen().with(screen).filter_map(|(screen, event)| {
         let keyboard::Event::KeyPressed { key, modifiers, .. } = event else {
             return None;
         };
@@ -418,7 +430,10 @@ fn keyboard_shortcuts() -> Subscription<Message> {
             Key::Character("3") => Some(Message::Navigate(Screen::Discovery)),
             Key::Character("4") => Some(Message::Navigate(Screen::Settings)),
             Key::Character("r") => Some(Message::Reload),
-            Key::Character("f") => Some(Message::Repos(repos::Message::FocusSearch)),
+            // Only the repo list has a search field to focus.
+            Key::Character("f") if screen == Screen::Repos => {
+                Some(Message::Repos(repos::Message::FocusSearch))
+            }
             _ => None,
         }
     })
