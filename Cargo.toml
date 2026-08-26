@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/cli", "crates/tui", "crates/util"]
+members = ["crates/core", "crates/cli", "crates/tui", "crates/ui", "crates/util"]
 
 [workspace.package]
 version = "0.1.0"
@@ -31,3 +31,6 @@ ratatui = "0.29"
 crossterm = "0.28"
 fuzzy-matcher = "0.3"
 tui-input = "0.11"
+# `smol` selects the async backend that provides `iced::time::every`; the
+# default `thread-pool` backend has no timer support.
+iced = { version = "0.14", features = ["smol"] }

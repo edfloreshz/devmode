@@ -1,0 +1,16 @@
+[package]
+name = "dmui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "dmui"
+path = "src/main.rs"
+
+[dependencies]
+dm-core.workspace = true
+thiserror.workspace = true
+fuzzy-matcher.workspace = true
+iced.workspace = true
