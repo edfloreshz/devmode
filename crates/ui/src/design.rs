@@ -5,7 +5,7 @@
 //! moves the whole app at once and the four screens can't quietly drift apart.
 
 use iced::widget::{
-    Column, Row, button, column, container, row, rule, scrollable, space, text,
+    Column, Row, button, column, container, row, rule, scrollable, space, text, text_input,
 };
 use iced::{Center, Element, Fill, Font, Left, Padding, Theme};
 
@@ -173,16 +173,65 @@ pub fn button_row<'a, Message: 'a>(
     container(row).width(Fill).align_x(iced::Right).into()
 }
 
-/// A compact secondary action, sized to its label.
-pub fn small_button<'a, Message: Clone + 'a>(
+/// The metrics every interactive control shares. Buttons and text inputs
+/// both read these, so a button beside an input in a toolbar lines up with
+/// it and the two can't drift apart later.
+pub const CONTROL_TEXT: f32 = TEXT_MD;
+pub const CONTROL_PADDING: Padding = Padding {
+    top: SM,
+    right: MD,
+    bottom: SM,
+    left: MD,
+};
+
+/// A text input at the shared control size.
+///
+/// Mirrors `text_input`'s own signature: the strings are copied into the
+/// widget, so they aren't tied to the returned element's lifetime.
+pub fn input<'a, Message: Clone + 'a>(
+    placeholder: &str,
+    value: &str,
+) -> iced::widget::TextInput<'a, Message> {
+    text_input(placeholder, value)
+        .padding(CONTROL_PADDING)
+        .size(CONTROL_TEXT)
+}
+
+fn control<'a, Message: Clone + 'a>(
+    label: &'a str,
+    on_press: Option<Message>,
+) -> button::Button<'a, Message> {
+    button(text(label).size(CONTROL_TEXT).align_y(Center))
+        .padding(CONTROL_PADDING)
+        .on_press_maybe(on_press)
+}
+
+/// The main action of a screen, dialog, or section.
+pub fn primary_button<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: impl Into<Option<Message>>,
 ) -> Element<'a, Message> {
-    button(text(label).size(TEXT_SM))
-        .padding(Padding::from([XS, SM]))
-        .on_press_maybe(on_press.into())
+    control(label, on_press.into())
+        .style(button::primary)
+        .into()
+}
+
+/// A supporting action, alongside a primary one.
+pub fn secondary_button<'a, Message: Clone + 'a>(
+    label: &'a str,
+    on_press: impl Into<Option<Message>>,
+) -> Element<'a, Message> {
+    control(label, on_press.into())
         .style(button::secondary)
         .into()
+}
+
+/// An action that destroys something: removing, deleting, untracking.
+pub fn danger_button<'a, Message: Clone + 'a>(
+    label: &'a str,
+    on_press: impl Into<Option<Message>>,
+) -> Element<'a, Message> {
+    control(label, on_press.into()).style(button::danger).into()
 }
 
 /// Wraps a screen's body in the standard page padding and scroll behaviour.

@@ -9,12 +9,12 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use iced::widget::{checkbox, column, row, scrollable, space, text, text_input};
+use iced::widget::{checkbox, column, row, scrollable, space, text};
 use iced::{Center, Element, Fill, Task};
 
 use dm_core::discovery::{self, Discovered, Issue};
 
-use crate::app::{self, App, Message as AppMessage};
+use crate::app::{App, Message as AppMessage};
 use crate::design::{self, Tone};
 
 /// Where the scan half of the screen is in its lifecycle.
@@ -249,17 +249,15 @@ fn scan_section(app: &App) -> Element<'_, AppMessage> {
     let is_running = matches!(app.discovery.scan, Scan::Running);
 
     let controls = row![
-        text_input("/path/to/your/code", &app.discovery.root)
+        design::input("/path/to/your/code", &app.discovery.root)
             .on_input(|root| wrap(Message::RootChanged(root)))
             .on_submit(wrap(Message::StartScan))
-            .padding(design::SM)
-            .size(design::TEXT_MD)
             .font(design::MONO)
             .width(Fill),
         if is_running {
-            design::small_button("Scanning…", None)
+            design::secondary_button("Scanning…", None)
         } else {
-            app::primary_button("Scan", wrap(Message::StartScan))
+            design::primary_button("Scan", wrap(Message::StartScan))
         },
     ]
     .spacing(design::SM)
@@ -340,10 +338,10 @@ fn scan_section(app: &App) -> Element<'_, AppMessage> {
                                 selected.len(),
                                 found.len()
                             ))
-                            .text_size(design::TEXT_SM)
+                            .text_size(design::CONTROL_TEXT)
                             .on_toggle(|checked| wrap(Message::SelectAll(checked))),
                         space::horizontal(),
-                        app::primary_button("Track selected", wrap(Message::TrackSelected)),
+                        design::primary_button("Track selected", wrap(Message::TrackSelected)),
                     ]
                     .align_y(Center),
                     scrollable(rows).height(260.0),
@@ -367,7 +365,7 @@ fn check_section(app: &App) -> Element<'_, AppMessage> {
                 )
                 .size(design::TEXT_SM)
             ),
-            design::button_row(vec![app::primary_button(
+            design::button_row(vec![design::primary_button(
                 "Run check",
                 wrap(Message::StartCheck),
             )]),
@@ -379,7 +377,7 @@ fn check_section(app: &App) -> Element<'_, AppMessage> {
             design::badge("Healthy", Tone::Success),
             text("Every tracked repo checks out.").size(design::TEXT_SM),
             space::horizontal(),
-            design::small_button("Run again", wrap(Message::StartCheck)),
+            design::secondary_button("Run again", wrap(Message::StartCheck)),
         ]
         .spacing(design::SM)
         .align_y(Center)
@@ -409,7 +407,7 @@ fn check_section(app: &App) -> Element<'_, AppMessage> {
                         ]
                         .spacing(1.0)
                         .width(Fill),
-                        design::small_button("Fix", wrap(Message::Resolve(index))),
+                        design::secondary_button("Fix", wrap(Message::Resolve(index))),
                     ]
                     .spacing(design::SM)
                     .align_y(Center),
@@ -420,8 +418,8 @@ fn check_section(app: &App) -> Element<'_, AppMessage> {
                 row![
                     text(format!("{} issue(s) found.", issues.len())).size(design::TEXT_SM),
                     space::horizontal(),
-                    design::small_button("Run again", wrap(Message::StartCheck)),
-                    app::primary_button("Fix all", wrap(Message::ResolveAll)),
+                    design::secondary_button("Run again", wrap(Message::StartCheck)),
+                    design::primary_button("Fix all", wrap(Message::ResolveAll)),
                 ]
                 .spacing(design::SM)
                 .align_y(Center),

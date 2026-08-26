@@ -2,7 +2,7 @@
 
 use std::time::{Duration, SystemTime};
 
-use iced::widget::{button, column, container, row, rule, space, text};
+use iced::widget::{column, container, row, rule, space, text};
 use iced::{Center, Element, Fill, Subscription, Task, Theme};
 
 use dm_core::config::ThemeMode;
@@ -387,7 +387,7 @@ impl App {
                 ),
                 text(&toast.body).size(design::TEXT_SM),
                 space::horizontal(),
-                design::small_button("Dismiss", Message::DismissToast),
+                design::secondary_button("Dismiss", Message::DismissToast),
             ]
             .spacing(design::SM)
             .align_y(Center)
@@ -453,13 +453,4 @@ fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
             _ => None,
         }
     })
-}
-
-/// The button style used for a screen's primary action.
-pub fn primary_button<'a>(label: &'a str, message: Message) -> Element<'a, Message> {
-    button(text(label).size(design::TEXT_SM))
-        .padding(iced::Padding::from([design::XS, design::MD]))
-        .on_press(message)
-        .style(button::primary)
-        .into()
 }
