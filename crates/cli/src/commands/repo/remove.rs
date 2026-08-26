@@ -4,10 +4,11 @@ use dm_core::workspace::WorkspaceStore;
 
 use crate::error::Result;
 use crate::prompt::confirm;
+use crate::resolve::resolve_repo;
 
 pub fn run(identifier: String, delete: bool, force: bool) -> Result<()> {
     let store = RegistryStore::open_default()?;
-    let repo = store.find(&identifier)?;
+    let repo = resolve_repo(&store, &identifier)?;
 
     let workspaces = WorkspaceStore::open_default()?;
     let member_of = workspaces.workspaces_containing(repo.id)?;
