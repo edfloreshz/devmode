@@ -578,7 +578,7 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
 
         let body = row![
             container(design::pane(list(app, snapshot, &visible), 320.0))
-                .padding(iced::Padding::default().left(design::XL)),
+                .padding(iced::Padding::default().left(design::MD)),
             container(rule::horizontal(0.0)).width(1).height(Fill),
             container(detail(app, snapshot)).width(Fill).height(Fill),
         ]
@@ -688,7 +688,7 @@ fn list<'a>(
         .into();
     }
 
-    let mut items = column![].spacing(2.0).padding(iced::Padding::from([0.0, design::SM]));
+    let mut items = column![].spacing(2.0);
 
     for repo in visible {
         let mut label = row![text(&repo.name).size(design::TEXT_MD)]
