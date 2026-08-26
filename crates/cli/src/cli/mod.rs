@@ -19,6 +19,27 @@ pub enum Command {
         #[command(subcommand)]
         command: RepoCommand,
     },
+    /// Clone a repo from a URL and track it (shortcut for `dm repo clone`).
+    Clone {
+        url: String,
+        #[arg(long)]
+        path: Option<std::path::PathBuf>,
+    },
+    /// List tracked repos (shortcut for `dm repo list`).
+    Ls {
+        #[arg(long)]
+        tag: Option<String>,
+        #[arg(long)]
+        host: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Search tracked repos by name (shortcut for `dm repo find`).
+    Find { query: String },
+    /// Print shell completions for the given shell.
+    Completions {
+        shell: clap_complete::Shell,
+    },
     /// Manage workspaces — named, non-destructive groups of repos.
     Workspace {
         #[command(subcommand)]
@@ -59,6 +80,9 @@ pub enum RepoCommand {
     Show {
         /// Repo name or path.
         repo: String,
+        /// Output as JSON.
+        #[arg(long)]
+        json: bool,
     },
     /// Untrack (and optionally delete) a repo.
     Remove {
@@ -154,9 +178,18 @@ pub enum WorkspaceCommand {
         repos: Vec<String>,
     },
     /// List workspaces.
-    List,
+    List {
+        /// Output as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Show a workspace's details, members, and env vars.
-    Show { workspace: String },
+    Show {
+        workspace: String,
+        /// Output as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Get/set a workspace's name, description, or editor.
     Config {
         #[command(subcommand)]

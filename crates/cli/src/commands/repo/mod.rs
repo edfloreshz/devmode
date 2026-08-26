@@ -16,7 +16,7 @@ pub fn run(command: RepoCommand) -> Result<()> {
     match command {
         RepoCommand::Clone { url, path } => clone::run(url, path),
         RepoCommand::Create { name, path, no_git } => create::run(name, path, no_git),
-        RepoCommand::Show { repo } => show::run(repo),
+        RepoCommand::Show { repo, json } => show::run(repo, json),
         RepoCommand::Remove {
             repo,
             delete,
