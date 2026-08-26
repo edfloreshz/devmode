@@ -340,3 +340,121 @@ fn a_workspace_dialog_opened_from_the_empty_state_is_visible() {
         "the create dialog should render over the empty state"
     );
 }
+
+// -- appearance ---------------------------------------------------------------
+
+use dm_core::config::ThemeMode;
+use iced::Theme;
+
+/// Sets the app's idea of the desktop preference, as `theme_changes` would.
+fn with_system_mode(app: &mut App, mode: iced::theme::Mode) {
+    let _ = app.update(Message::SystemTheme(mode));
+}
+
+#[test]
+fn following_the_system_switches_between_the_two_chosen_variants() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+
+    app.settings.theme_mode = ThemeMode::System;
+    app.settings.light_theme = "Solarized Light".to_string();
+    app.settings.dark_theme = "Tokyo Night".to_string();
+
+    with_system_mode(&mut app, iced::theme::Mode::Light);
+    assert_eq!(app.theme(), Theme::SolarizedLight);
+
+    with_system_mode(&mut app, iced::theme::Mode::Dark);
+    assert_eq!(
+        app.theme(),
+        Theme::TokyoNight,
+        "a system switch to dark should use the configured dark variant"
+    );
+}
+
+#[test]
+fn an_explicit_mode_ignores_the_system_preference() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+
+    app.settings.theme_mode = ThemeMode::Dark;
+    app.settings.dark_theme = "Dracula".to_string();
+    app.settings.light_theme = "Light".to_string();
+
+    // The desktop says light; the explicit choice must win.
+    with_system_mode(&mut app, iced::theme::Mode::Light);
+    assert_eq!(app.theme(), Theme::Dracula);
+}
+
+#[test]
+fn an_unknown_theme_name_falls_back_instead_of_failing() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+
+    app.settings.theme_mode = ThemeMode::Light;
+    app.settings.light_theme = "Not A Real Theme".to_string();
+
+    assert_eq!(app.theme(), Theme::Light);
+}
+
+#[test]
+fn picking_a_theme_previews_before_saving() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+    app.settings.theme_mode = ThemeMode::Dark;
+
+    let _ = settings::update(
+        &mut app,
+        settings::Message::DarkThemeChanged(Theme::Nord),
+    );
+
+    assert_eq!(
+        app.theme(),
+        Theme::Nord,
+        "the picked theme should apply immediately, before Save"
+    );
+    assert!(app.settings.is_dirty());
+}
+
+#[test]
+fn reverting_restores_the_saved_theme() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+
+    // Whatever the saved config resolves to, before any edits.
+    let saved = app.theme();
+
+    let _ = settings::update(
+        &mut app,
+        settings::Message::ThemeModeChanged(ThemeMode::Dark),
+    );
+    let _ = settings::update(
+        &mut app,
+        settings::Message::DarkThemeChanged(Theme::Dracula),
+    );
+    assert_eq!(app.theme(), Theme::Dracula);
+
+    let _ = settings::update(&mut app, settings::Message::Revert);
+
+    assert_eq!(app.theme(), saved, "Revert should restore the saved theme");
+    assert!(!app.settings.is_dirty());
+}
+
+#[test]
+fn the_appearance_section_offers_both_variants() {
+    let app = app_with(snapshot(Vec::new(), Vec::new()));
+    let mut ui = simulator(settings::view(&app));
+
+    assert!(ui.find("Appearance").is_ok());
+    assert!(ui.find("Light theme").is_ok());
+    assert!(ui.find("Dark theme").is_ok());
+}
+
+#[test]
+fn changing_the_theme_mode_marks_settings_dirty() {
+    let mut app = app_with(snapshot(Vec::new(), Vec::new()));
+    assert!(!app.settings.is_dirty());
+
+    let _ = settings::update(
+        &mut app,
+        settings::Message::ThemeModeChanged(ThemeMode::Dark),
+    );
+
+    assert!(app.settings.is_dirty());
+    let mut ui = simulator(settings::view(&app));
+    assert!(ui.find("Save changes").is_ok());
+}
