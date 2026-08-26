@@ -34,3 +34,4 @@ tui-input = "0.11"
 # `smol` selects the async backend that provides `iced::time::every`; the
 # default `thread-pool` backend has no timer support.
 iced = { version = "0.14", features = ["smol"] }
+iced_test = "0.14"

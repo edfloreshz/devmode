@@ -101,7 +101,7 @@ impl State {
     }
 
     /// The layout the form currently describes, or an error to show inline.
-    fn current_layout(&self) -> Result<PathLayout, String> {
+    pub(crate) fn current_layout(&self) -> Result<PathLayout, String> {
         match self.layout {
             Some(LayoutChoice::HostOwnerRepo) | None => Ok(PathLayout::HostOwnerRepo),
             Some(LayoutChoice::OwnerRepo) => Ok(PathLayout::OwnerRepo),
