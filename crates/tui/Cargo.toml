@@ -1,0 +1,19 @@
+[package]
+name = "dmtui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "dmtui"
+path = "src/main.rs"
+
+[dependencies]
+dm-core.workspace = true
+dm-util.workspace = true
+thiserror.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+fuzzy-matcher.workspace = true
+tui-input.workspace = true

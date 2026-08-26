@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::error::Result;
 use crate::registry::{RegistryStore, Repo, RepoId};
 
+#[derive(Clone)]
 pub struct Candidate {
     pub id: RepoId,
     pub name: String,
