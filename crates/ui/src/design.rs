@@ -104,6 +104,20 @@ pub fn link<'a, Message: Clone + 'a>(
         .into()
 }
 
+/// Like [`link`], but with distinct left- and right-click actions — e.g. a
+/// path that opens on left-click and copies on right-click.
+pub fn split_click<'a, Message: Clone + 'a>(
+    content: impl Into<Element<'a, Message>>,
+    on_left: Message,
+    on_right: Message,
+) -> Element<'a, Message> {
+    mouse_area(content)
+        .interaction(mouse::Interaction::Pointer)
+        .on_press(on_left)
+        .on_right_press(on_right)
+        .into()
+}
+
 /// A titled, bordered group of related controls.
 pub fn section<'a, Message: 'a>(
     title: &'a str,
