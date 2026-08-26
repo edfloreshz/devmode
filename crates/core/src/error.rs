@@ -32,6 +32,9 @@ pub enum Error {
     #[error("unknown config key: {0}")]
     UnknownConfigKey(String),
 
+    #[error("invalid value '{value}' for config key '{key}' (expected true or false)")]
+    InvalidConfigValue { key: String, value: String },
+
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
