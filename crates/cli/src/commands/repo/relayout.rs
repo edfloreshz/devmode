@@ -22,14 +22,14 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
     let moves = plan_moves(&repos, &config);
 
     if moves.is_empty() {
-        println!("all tracked repos already match the current path_layout ({})", config.path_layout.to_config_string());
+        println!("all tracked repos already match the current path_layout ({})", config.clone.path_layout.to_config_string());
         return Ok(());
     }
 
     println!(
         "{} repo(s) would move to match path_layout {}:",
         moves.len(),
-        config.path_layout.to_config_string()
+        config.clone.path_layout.to_config_string()
     );
     for mv in &moves {
         println!("  {}: {} -> {}", mv.name, mv.from.display(), mv.to.display());
@@ -73,8 +73,9 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
             let host = repo.host.as_deref()?;
             let owner = repo.owner.as_deref()?;
             let target = config
-                .clone_root
-                .join(config.path_layout.render(host, owner, &repo.name));
+                .clone
+                .root
+                .join(config.clone.path_layout.render(host, owner, &repo.name));
             if target == repo.path {
                 return None;
             }
