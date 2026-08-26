@@ -7,6 +7,9 @@ mod design;
 mod screen;
 mod task;
 
+#[cfg(test)]
+mod tests;
+
 use app::App;
 
 pub fn main() -> iced::Result {

@@ -14,3 +14,6 @@ dm-core.workspace = true
 thiserror.workspace = true
 fuzzy-matcher.workspace = true
 iced.workspace = true
+
+[dev-dependencies]
+iced_test.workspace = true

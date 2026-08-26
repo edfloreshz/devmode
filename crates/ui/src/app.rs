@@ -214,6 +214,34 @@ impl App {
         }
     }
 
+    /// Builds an app without touching the real registry, for tests.
+    #[cfg(test)]
+    pub fn for_test() -> Self {
+        Self {
+            screen: Screen::Repos,
+            snapshot: None,
+            toast: None,
+            loading: false,
+            fingerprint: None,
+            theme_mode: iced::theme::Mode::Light,
+            repos: repos::State::default(),
+            workspaces: workspaces::State::default(),
+            discovery: discovery::State::default(),
+            settings: settings::State::default(),
+        }
+    }
+
+    /// The state-adoption half of handling `Message::Loaded`, without the
+    /// follow-up task, so tests can seed a snapshot directly.
+    #[cfg(test)]
+    pub fn apply_snapshot(&mut self, snapshot: Snapshot) {
+        self.loading = false;
+        self.settings.sync_from(&snapshot.config);
+        self.repos.reconcile(&snapshot);
+        self.workspaces.reconcile(&snapshot);
+        self.snapshot = Some(snapshot);
+    }
+
     pub fn reload(&mut self) -> Task<Message> {
         self.loading = true;
         Task::perform(blocking(data::load), Message::Loaded)
