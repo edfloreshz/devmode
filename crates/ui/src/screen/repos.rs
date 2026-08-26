@@ -79,7 +79,7 @@ pub fn on_enter(app: &mut App) -> Task<AppMessage> {
     // The list is already in the snapshot; only the selected repo's git
     // status is loaded on demand.
     match (app.repos.selected, app.repos.git_status.is_some()) {
-        (Some(id), false) => load_status(app, id),
+        (Some(_), false) => app.refresh_repo_status(),
         _ => Task::none(),
     }
 }
@@ -360,14 +360,7 @@ fn select(app: &mut App, id: RepoId) -> Task<AppMessage> {
 
     app.repos.selected = Some(id);
     app.repos.git_status = None;
-    load_status(app, id)
-}
-
-fn load_status(app: &App, id: RepoId) -> Task<AppMessage> {
-    match app.snapshot().and_then(|s| s.repo(id)).map(|repo| repo.path.clone()) {
-        Some(path) => app.load_repo_status(id, path),
-        None => Task::none(),
-    }
+    app.refresh_repo_status()
 }
 
 /// The path field of whichever dialog is open, if it has one.
