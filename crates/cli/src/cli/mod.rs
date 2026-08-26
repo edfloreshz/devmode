@@ -53,6 +53,12 @@ pub enum ConfigCommand {
     Get { key: String },
     /// Set the value of a config key.
     Set { key: String, value: String },
+    /// Show the full effective configuration.
+    Show {
+        /// Output as JSON instead of TOML.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]
