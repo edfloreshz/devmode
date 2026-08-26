@@ -29,7 +29,14 @@ pub enum Dialog {
     Clone { url: String, path: String },
     Create { name: String, path: String, git: bool },
     Track { path: String },
-    EditRemote { id: RepoId, url: String },
+    EditRemote {
+        id: RepoId,
+        url: String,
+        /// The last SSH host/port seen for this remote, remembered across
+        /// toggling to HTTPS and back — HTTPS has nowhere to display a port,
+        /// but switching back to SSH shouldn't have to lose it.
+        ssh_port: Option<(String, u16)>,
+    },
     Remove { id: RepoId, name: String, delete: bool },
 }
 
@@ -158,7 +165,9 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 .and_then(|repo| repo.remote_url.clone())
                 .unwrap_or_default();
 
-            app.repos.dialog = Some(Dialog::EditRemote { id, url });
+            let ssh_port = ssh_port_hint(None, &url);
+
+            app.repos.dialog = Some(Dialog::EditRemote { id, url, ssh_port });
             operation::focus("dialog-first")
         }
         Message::DialogChanged(dialog) => {
@@ -199,7 +208,7 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
                     app.run(move || track(path))
                 }
-                Dialog::EditRemote { id, url } => {
+                Dialog::EditRemote { id, url, .. } => {
                     if url.trim().is_empty() {
                         app.toast_error("A remote URL is required.");
                         return Task::none();
@@ -476,10 +485,34 @@ fn dialog_path_mut(dialog: &mut Dialog) -> Option<&mut String> {
 
 /// Re-renders `url` in the given transport, leaving it untouched if it can't
 /// be parsed (e.g. a URL the user is still in the middle of typing).
-fn reformatted(url: &str, scheme: git::Scheme) -> String {
-    git::parse_url(url)
-        .map(|parsed| parsed.format(scheme))
-        .unwrap_or_else(|_| url.to_string())
+///
+/// `port_hint`, if it's for the same host, fills in the SSH port that a
+/// prior toggle to HTTPS would otherwise have thrown away — HTTPS has
+/// nowhere to keep it, but switching back to SSH should restore it.
+fn reformatted(url: &str, scheme: git::Scheme, port_hint: Option<(String, u16)>) -> String {
+    let Ok(mut parsed) = git::parse_url(url) else {
+        return url.to_string();
+    };
+
+    if parsed.ssh_port.is_none() {
+        if let Some((host, port)) = port_hint {
+            if host == parsed.host {
+                parsed.ssh_port = Some(port);
+            }
+        }
+    }
+
+    parsed.format(scheme)
+}
+
+/// Tracks the SSH host/port worth remembering from `url`, for `reformatted`
+/// to restore later. Keeps whatever was already known unless `url` itself is
+/// an SSH URL with an explicit port, which takes over as the new hint.
+fn ssh_port_hint(current: Option<(String, u16)>, url: &str) -> Option<(String, u16)> {
+    match git::parse_url(url) {
+        Ok(parsed) if parsed.ssh_port.is_some() => parsed.ssh_port.map(|port| (parsed.host, port)),
+        _ => current,
+    }
 }
 
 /// `https://{host}/{owner}/{repo}{suffix}`, or `None` if the repo has no
@@ -1002,13 +1035,14 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
             .into(),
             "Track",
         ),
-        Dialog::EditRemote { id, url } => {
+        Dialog::EditRemote { id, url, ssh_port } => {
             let scheme = git::Scheme::detect(url);
 
             let retarget = |target: git::Scheme| {
                 let id = *id;
-                let url = reformatted(url, target);
-                wrap(Message::DialogChanged(Dialog::EditRemote { id, url }))
+                let url = reformatted(url, target, ssh_port.clone());
+                let ssh_port = ssh_port_hint(ssh_port.clone(), &url);
+                wrap(Message::DialogChanged(Dialog::EditRemote { id, url, ssh_port }))
             };
 
             let https_button = if scheme == git::Scheme::Https {
@@ -1030,7 +1064,11 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                     row![https_button, ssh_button].spacing(design::SM),
                     labelled("Remote URL", "https://github.com/owner/repo.git", url, true, {
                         let id = *id;
-                        move |url| Dialog::EditRemote { id, url }
+                        let ssh_port = ssh_port.clone();
+                        move |url| {
+                            let ssh_port = ssh_port_hint(ssh_port.clone(), &url);
+                            Dialog::EditRemote { id, url, ssh_port }
+                        }
                     }),
                 ]
                 .spacing(design::MD)
