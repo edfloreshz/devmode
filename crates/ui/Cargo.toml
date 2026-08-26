@@ -16,6 +16,7 @@ fuzzy-matcher.workspace = true
 iced.workspace = true
 rfd.workspace = true
 notify-debouncer-mini.workspace = true
+open.workspace = true
 
 [dev-dependencies]
 iced_test.workspace = true

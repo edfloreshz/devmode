@@ -7,7 +7,7 @@ mod status;
 mod url;
 
 pub use status::{repo_status, CommitSummary, RepoStatus};
-pub use url::{parse_url, ParsedUrl};
+pub use url::{parse_url, ParsedUrl, Scheme};
 
 use std::path::{Path, PathBuf};
 
@@ -58,6 +58,20 @@ pub fn read_origin_url(path: &Path) -> Option<String> {
     let repo = Repository::open(path).ok()?;
     let remote = repo.find_remote("origin").ok()?;
     remote.url().map(str::to_string)
+}
+
+/// Points the repo at `path`'s `origin` remote at `url`, creating the remote
+/// if it doesn't have one yet.
+pub fn set_remote_url(path: &Path, url: &str) -> Result<()> {
+    let repo = Repository::open(path)?;
+
+    if repo.find_remote("origin").is_ok() {
+        repo.remote_set_url("origin", url)?;
+    } else {
+        repo.remote("origin", url)?;
+    }
+
+    Ok(())
 }
 
 /// Recursively finds git repositories under `root`, for `dm repo scan`.

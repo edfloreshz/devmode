@@ -1,7 +1,7 @@
 //! The Repos screen: a filterable list of tracked repos beside a detail pane,
 //! with clone/create/track dialogs and a layout-drift banner.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -29,6 +29,7 @@ pub enum Dialog {
     Clone { url: String, path: String },
     Create { name: String, path: String, git: bool },
     Track { path: String },
+    EditRemote { id: RepoId, url: String },
     Remove { id: RepoId, name: String, delete: bool },
 }
 
@@ -66,12 +67,15 @@ pub enum Message {
     OpenCreate,
     OpenTrack,
     OpenRemove(RepoId),
+    OpenEditRemote(RepoId),
     DialogChanged(Dialog),
     DialogCancel,
     DialogSubmit,
     BrowsePath,
     PathPicked(Option<PathBuf>),
     CopyPath(String),
+    OpenProject,
+    OpenUrl(String),
     FixDrift,
 }
 
@@ -146,6 +150,16 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             });
             Task::none()
         }
+        Message::OpenEditRemote(id) => {
+            let url = app
+                .snapshot()
+                .and_then(|snapshot| snapshot.repo(id))
+                .and_then(|repo| repo.remote_url.clone())
+                .unwrap_or_default();
+
+            app.repos.dialog = Some(Dialog::EditRemote { id, url });
+            operation::focus("dialog-first")
+        }
         Message::DialogChanged(dialog) => {
             app.repos.dialog = Some(dialog);
             Task::none()
@@ -184,6 +198,14 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
                     app.run(move || track(path))
                 }
+                Dialog::EditRemote { id, url } => {
+                    if url.trim().is_empty() {
+                        app.toast_error("A remote URL is required.");
+                        return Task::none();
+                    }
+
+                    app.run(move || set_remote(id, &url))
+                }
                 Dialog::Remove { id, name, delete } => {
                     app.run(move || remove(id, &name, delete))
                 }
@@ -210,7 +232,27 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             Task::none()
         }
         Message::PathPicked(None) => Task::none(),
-        Message::CopyPath(path) => iced::clipboard::write(path),
+        Message::CopyPath(path) => {
+            app.toast_success("Copied path to clipboard.");
+            iced::clipboard::write(path)
+        }
+        Message::OpenProject => {
+            let Some(id) = app.repos.selected else {
+                return Task::none();
+            };
+            let Some(path) = app.snapshot().and_then(|s| s.repo(id)).map(|repo| repo.path.clone())
+            else {
+                return Task::none();
+            };
+
+            app.run(move || open_project(&path))
+        }
+        Message::OpenUrl(url) => {
+            if let Err(error) = open::that(&url) {
+                app.toast_error(format!("Couldn't open {url}: {error}"));
+            }
+            Task::none()
+        }
         Message::FixDrift => app.run(fix_drift),
     }
 }
@@ -335,6 +377,53 @@ fn remove(id: RepoId, name: &str, delete: bool) -> Result<String, String> {
     .map_err(|e| e.to_string())
 }
 
+/// Spawns the configured editor on `path`, detached — the same approach as
+/// opening a workspace, just for a single repo with no per-repo override.
+fn open_project(path: &Path) -> Result<String, String> {
+    (|| -> dm_core::Result<String> {
+        let Some(editor) = Config::load()?.editor else {
+            return Ok("No editor set. Add one in Settings.".to_string());
+        };
+
+        let mut parts = editor.split_whitespace();
+
+        let Some(program) = parts.next() else {
+            return Ok("The configured editor command is empty.".to_string());
+        };
+
+        let mut command = std::process::Command::new(program);
+        command.args(parts);
+        command.arg(path);
+        command.spawn()?;
+
+        Ok(format!("Opened in {editor}."))
+    })()
+    .map_err(|e| e.to_string())
+}
+
+fn set_remote(id: RepoId, url: &str) -> Result<String, String> {
+    (|| -> dm_core::Result<String> {
+        let store = RegistryStore::open_default()?;
+        let repo = store.get(id)?;
+
+        git::set_remote_url(&repo.path, url)?;
+
+        // Best-effort: an unparseable URL still gets saved verbatim, it
+        // just won't update host/owner (and so won't participate in
+        // layout checks or the "open in browser" links).
+        let parsed = git::parse_url(url).ok();
+        store.update_remote_details(
+            id,
+            url,
+            parsed.as_ref().map(|p| p.host.as_str()),
+            parsed.as_ref().map(|p| p.owner.as_str()),
+        )?;
+
+        Ok(format!("Updated {}'s remote.", repo.name))
+    })()
+    .map_err(|e| e.to_string())
+}
+
 fn fix_drift() -> Result<String, String> {
     (|| -> dm_core::Result<String> {
         let (moved, skipped) = relayout::apply_candidates(relayout::plan()?)?;
@@ -367,15 +456,31 @@ fn select(app: &mut App, id: RepoId) -> Task<AppMessage> {
 fn dialog_path(dialog: &Dialog) -> Option<&str> {
     match dialog {
         Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => Some(path),
-        Dialog::Remove { .. } => None,
+        Dialog::EditRemote { .. } | Dialog::Remove { .. } => None,
     }
 }
 
 fn dialog_path_mut(dialog: &mut Dialog) -> Option<&mut String> {
     match dialog {
         Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => Some(path),
-        Dialog::Remove { .. } => None,
+        Dialog::EditRemote { .. } | Dialog::Remove { .. } => None,
     }
+}
+
+/// Re-renders `url` in the given transport, leaving it untouched if it can't
+/// be parsed (e.g. a URL the user is still in the middle of typing).
+fn reformatted(url: &str, scheme: git::Scheme) -> String {
+    git::parse_url(url)
+        .map(|parsed| parsed.format(scheme))
+        .unwrap_or_else(|_| url.to_string())
+}
+
+/// `https://{host}/{owner}/{repo}{suffix}`, or `None` if the repo has no
+/// recorded host/owner to build one from.
+fn forge_url(repo: &dm_core::registry::Repo, suffix: &str) -> Option<String> {
+    let host = repo.host.as_deref()?;
+    let owner = repo.owner.as_deref()?;
+    Some(format!("https://{host}/{owner}/{}{suffix}", repo.name))
 }
 
 fn optional_path(value: &str) -> Option<PathBuf> {
@@ -557,27 +662,52 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
         return design::empty_state("Nothing selected", "Pick a repo to see its details.", None);
     };
 
-    let mut details = column![
-        design::mono_field("Path", repo.path.display()),
-        design::mono_field("Remote", repo.remote_url.as_deref().unwrap_or("—")),
-    ]
-    .spacing(design::MD);
+    let path_string = repo.path.display().to_string();
+    let path_field = design::field(
+        "Path",
+        design::link(
+            design::link_text(&path_string, design::TEXT_MD, true),
+            wrap(Message::CopyPath(path_string.clone())),
+        ),
+    );
+
+    let remote_field = design::field(
+        "Remote",
+        row![
+            text(repo.remote_url.as_deref().unwrap_or("—"))
+                .font(design::MONO)
+                .size(design::TEXT_MD)
+                .width(Fill),
+            design::secondary_button("Edit", wrap(Message::OpenEditRemote(repo.id))),
+        ]
+        .spacing(design::SM)
+        .align_y(Center)
+        .into(),
+    );
+
+    let mut details = column![path_field, remote_field].spacing(design::MD);
 
     if repo.host.is_some() || repo.owner.is_some() {
+        let host_value: Element<'_, AppMessage> = match repo.host.as_deref() {
+            Some(host) => design::link(
+                design::link_text(host, design::TEXT_MD, false),
+                wrap(Message::OpenUrl(format!("https://{host}"))),
+            ),
+            None => text("—").size(design::TEXT_MD).into(),
+        };
+
+        let owner_value: Element<'_, AppMessage> = match (repo.host.as_deref(), repo.owner.as_deref()) {
+            (Some(host), Some(owner)) => design::link(
+                design::link_text(owner, design::TEXT_MD, false),
+                wrap(Message::OpenUrl(format!("https://{host}/{owner}"))),
+            ),
+            _ => text(repo.owner.as_deref().unwrap_or("—")).size(design::TEXT_MD).into(),
+        };
+
         details = details.push(
             row![
-                design::field(
-                    "Host",
-                    text(repo.host.as_deref().unwrap_or("—"))
-                        .size(design::TEXT_MD)
-                        .into()
-                ),
-                design::field(
-                    "Owner",
-                    text(repo.owner.as_deref().unwrap_or("—"))
-                        .size(design::TEXT_MD)
-                        .into()
-                ),
+                design::field("Host", host_value),
+                design::field("Owner", owner_value),
             ]
             .spacing(design::MD),
         );
@@ -597,7 +727,7 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
     details = details.push(design::field("Workspaces", membership_view));
 
     if let Some(status) = &app.repos.git_status {
-        details = details.push(git_section(status));
+        details = details.push(git_section(repo, status));
     }
 
     if let Some(candidate) = snapshot.drift_for(repo.id) {
@@ -619,10 +749,7 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
     }
 
     let actions = row![
-        design::secondary_button(
-            "Copy path",
-            wrap(Message::CopyPath(repo.path.display().to_string())),
-        ),
+        design::primary_button("Open project", wrap(Message::OpenProject)),
         design::secondary_button("Remove…", wrap(Message::OpenRemove(repo.id))),
     ]
     .spacing(design::SM);
@@ -634,14 +761,18 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
 }
 
 /// Branch, working-tree, and last-commit summary for the selected repo.
-fn git_section<'a>(status: &'a git::RepoStatus) -> Element<'a, AppMessage> {
+fn git_section<'a>(repo: &'a dm_core::registry::Repo, status: &'a git::RepoStatus) -> Element<'a, AppMessage> {
     let branch: Element<'_, AppMessage> = if status.detached {
         design::badge("detached HEAD", Tone::Warning)
     } else {
-        text(status.branch.as_deref().unwrap_or("—"))
+        let label = text(status.branch.as_deref().unwrap_or("—"))
             .font(design::MONO)
-            .size(design::TEXT_MD)
-            .into()
+            .size(design::TEXT_MD);
+
+        match status.branch.as_deref().and_then(|branch| forge_url(repo, &format!("/tree/{branch}"))) {
+            Some(url) => design::link(label, wrap(Message::OpenUrl(url))),
+            None => label.into(),
+        }
     };
 
     let mut top = row![design::field("Branch", branch)].spacing(design::MD);
@@ -688,15 +819,21 @@ fn git_section<'a>(status: &'a git::RepoStatus) -> Element<'a, AppMessage> {
             commit.summary.clone()
         };
 
+        let hash_line = text(format!("{} by {}", commit.short_id, commit.author))
+            .font(design::MONO)
+            .size(design::TEXT_SM);
+
+        let hash_line: Element<'_, AppMessage> = match forge_url(repo, &format!("/commit/{}", commit.short_id))
+        {
+            Some(url) => design::link(design::muted(hash_line), wrap(Message::OpenUrl(url))),
+            None => design::muted(hash_line),
+        };
+
         body = body.push(design::field(
             "Last commit",
             column![
                 text(format!("{summary} — {}", relative_time(commit.when))).size(design::TEXT_MD),
-                design::muted(
-                    text(format!("{} by {}", commit.short_id, commit.author))
-                        .font(design::MONO)
-                        .size(design::TEXT_SM)
-                ),
+                hash_line,
             ]
             .spacing(2.0)
             .into(),
@@ -857,6 +994,42 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
             .into(),
             "Track",
         ),
+        Dialog::EditRemote { id, url } => {
+            let scheme = git::Scheme::detect(url);
+
+            let retarget = |target: git::Scheme| {
+                let id = *id;
+                let url = reformatted(url, target);
+                wrap(Message::DialogChanged(Dialog::EditRemote { id, url }))
+            };
+
+            let https_button = if scheme == git::Scheme::Https {
+                design::primary_button("HTTPS", None)
+            } else {
+                design::secondary_button("HTTPS", retarget(git::Scheme::Https))
+            };
+
+            let ssh_button = if scheme == git::Scheme::Ssh {
+                design::primary_button("SSH", None)
+            } else {
+                design::secondary_button("SSH", retarget(git::Scheme::Ssh))
+            };
+
+            (
+                "Edit remote",
+                "Switch the transport with a click, or paste a different remote entirely.",
+                column![
+                    row![https_button, ssh_button].spacing(design::SM),
+                    labelled("Remote URL", "https://github.com/owner/repo.git", url, true, {
+                        let id = *id;
+                        move |url| Dialog::EditRemote { id, url }
+                    }),
+                ]
+                .spacing(design::MD)
+                .into(),
+                "Save",
+            )
+        }
         Dialog::Remove { id, name, delete } => (
             "Remove this repo",
             "Removing only stops devmode tracking it, unless you also delete it.",

@@ -5,10 +5,11 @@
 //! moves the whole app at once and the four screens can't quietly drift apart.
 
 use iced::widget::{
-    Column, Row, button, column, container, row, rule, scrollable, space, text, text_input,
+    Column, Row, button, column, container, mouse_area, row, rule, scrollable, space, text,
+    text_input,
 };
 use iced::border;
-use iced::{Center, Color, Element, Fill, Font, Left, Padding, Theme};
+use iced::{Center, Color, Element, Fill, Font, Left, Padding, Theme, mouse};
 
 /// A 4px-based spacing scale. Using named steps instead of magic numbers is
 /// what keeps rhythm consistent across screens.
@@ -78,6 +79,29 @@ pub fn mono_field<'a, Message: 'a>(label: &'a str, value: impl ToString) -> Elem
             .width(Fill)
             .into(),
     )
+}
+
+/// Text styled to read as clickable — tinted with the theme's primary
+/// color. Pair with [`link`] to actually make it respond to clicks.
+pub fn link_text<'a>(content: impl ToString, size: f32, mono: bool) -> iced::widget::Text<'a, Theme> {
+    let content = text(content.to_string()).size(size).style(|theme: &Theme| iced::widget::text::Style {
+        color: Some(theme.extended_palette().primary.base.color),
+    });
+
+    if mono { content.font(MONO) } else { content }
+}
+
+/// Makes `content` clickable: a pointer cursor on hover, `on_press` on
+/// click. Used for anything that opens a URL or copies a value rather than
+/// navigating within the app (which uses a real `button` instead).
+pub fn link<'a, Message: Clone + 'a>(
+    content: impl Into<Element<'a, Message>>,
+    on_press: Message,
+) -> Element<'a, Message> {
+    mouse_area(content)
+        .interaction(mouse::Interaction::Pointer)
+        .on_press(on_press)
+        .into()
 }
 
 /// A titled, bordered group of related controls.
