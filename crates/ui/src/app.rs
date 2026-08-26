@@ -299,9 +299,10 @@ impl App {
     }
 
     pub fn load_repo_status(&self, id: RepoId, path: PathBuf) -> Task<Message> {
-        Task::perform(blocking(move || data::load_repo_status(path)), move |result| {
-            Message::RepoStatusLoaded(id, result)
-        })
+        Task::perform(
+            blocking(move || data::load_repo_status(path)),
+            move |result| Message::RepoStatusLoaded(id, result),
+        )
     }
 
     /// Re-reads git status for whichever repo is currently selected, or does
@@ -398,12 +399,10 @@ impl App {
                 .width(Fill);
 
             if let Some(count) = count {
-                label = label
-                    .push(space::horizontal())
-                    .push(design::badge(
-                        count,
-                        if is_active { Tone::Info } else { Tone::Neutral },
-                    ));
+                label = label.push(space::horizontal()).push(design::badge(
+                    count,
+                    if is_active { Tone::Info } else { Tone::Neutral },
+                ));
             }
 
             design::list_row(label, is_active, Message::Navigate(screen))
@@ -417,22 +416,15 @@ impl App {
         ]
         .spacing(design::XS);
 
-        container(
-            column![
-                container(text("Devmode").size(design::TEXT_LG))
-                    .padding(iced::Padding::from([design::SM, design::MD])),
-                nav,
-            ]
-            .spacing(design::MD),
-        )
-        .width(220)
-        .height(Fill)
-        .padding(design::MD)
-        .style(|theme: &Theme| container::Style {
-            background: Some(theme.extended_palette().background.weakest.color.into()),
-            ..container::Style::default()
-        })
-        .into()
+        container(nav)
+            .width(220)
+            .height(Fill)
+            .padding(design::MD)
+            .style(|theme: &Theme| container::Style {
+                background: Some(theme.extended_palette().background.weakest.color.into()),
+                ..container::Style::default()
+            })
+            .into()
     }
 
     fn status_bar(&self) -> Element<'_, Message> {
@@ -452,12 +444,11 @@ impl App {
             .spacing(design::SM)
             .align_y(Center)
             .into(),
-            None if self.loading => row![
-                text("Working…").size(design::TEXT_SM),
-                space::horizontal(),
-            ]
-            .align_y(Center)
-            .into(),
+            None if self.loading => {
+                row![text("Working…").size(design::TEXT_SM), space::horizontal(),]
+                    .align_y(Center)
+                    .into()
+            }
             None => row![
                 design::muted(
                     text(format!(
@@ -484,35 +475,37 @@ impl App {
 /// Global shortcuts. `keyboard::listen` only reports events no focused widget
 /// consumed, so these can't fire while the user is typing in a text field.
 fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
-    use iced::keyboard::{self, Key, key};
+    use iced::keyboard::{self, key, Key};
 
     // `with` carries the screen into the closure: iced requires subscription
     // closures to be non-capturing so it can identify them across rebuilds.
-    keyboard::listen().with(screen).filter_map(|(screen, event)| {
-        let keyboard::Event::KeyPressed { key, modifiers, .. } = event else {
-            return None;
-        };
-
-        if !modifiers.command() {
-            return match key {
-                Key::Named(key::Named::Escape) => Some(Message::DismissToast),
-                _ => None,
+    keyboard::listen()
+        .with(screen)
+        .filter_map(|(screen, event)| {
+            let keyboard::Event::KeyPressed { key, modifiers, .. } = event else {
+                return None;
             };
-        }
 
-        match key.as_ref() {
-            Key::Character("1") => Some(Message::Navigate(Screen::Repos)),
-            Key::Character("2") => Some(Message::Navigate(Screen::Workspaces)),
-            Key::Character("3") => Some(Message::Navigate(Screen::Discovery)),
-            Key::Character("4") => Some(Message::Navigate(Screen::Settings)),
-            Key::Character("r") => Some(Message::Reload),
-            // Only the repo list has a search field to focus.
-            Key::Character("f") if screen == Screen::Repos => {
-                Some(Message::Repos(repos::Message::FocusSearch))
+            if !modifiers.command() {
+                return match key {
+                    Key::Named(key::Named::Escape) => Some(Message::DismissToast),
+                    _ => None,
+                };
             }
-            _ => None,
-        }
-    })
+
+            match key.as_ref() {
+                Key::Character("1") => Some(Message::Navigate(Screen::Repos)),
+                Key::Character("2") => Some(Message::Navigate(Screen::Workspaces)),
+                Key::Character("3") => Some(Message::Navigate(Screen::Discovery)),
+                Key::Character("4") => Some(Message::Navigate(Screen::Settings)),
+                Key::Character("r") => Some(Message::Reload),
+                // Only the repo list has a search field to focus.
+                Key::Character("f") if screen == Screen::Repos => {
+                    Some(Message::Repos(repos::Message::FocusSearch))
+                }
+                _ => None,
+            }
+        })
 }
 
 /// Watches `path` for filesystem changes and asks the app to re-read git
@@ -526,7 +519,7 @@ fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
 // requires a `fn(&D) -> S` matching the `PathBuf` data it was given.
 #[allow(clippy::ptr_arg)]
 fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> {
-    use iced::futures::{SinkExt, StreamExt, channel::mpsc};
+    use iced::futures::{channel::mpsc, SinkExt, StreamExt};
     use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};
 
     let path = path.clone();
@@ -542,7 +535,11 @@ fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> {
             return;
         };
 
-        if debouncer.watcher().watch(&path, RecursiveMode::Recursive).is_err() {
+        if debouncer
+            .watcher()
+            .watch(&path, RecursiveMode::Recursive)
+            .is_err()
+        {
             return;
         }
 
