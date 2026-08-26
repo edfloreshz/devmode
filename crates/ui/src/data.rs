@@ -89,6 +89,12 @@ fn load_inner() -> dm_core::Result<Snapshot> {
     })
 }
 
+/// A repo's git status, loaded on demand when it's selected rather than
+/// eagerly for every tracked repo.
+pub fn load_repo_status(path: PathBuf) -> Result<dm_core::git::RepoStatus, String> {
+    dm_core::git::repo_status(&path).map_err(|e| e.to_string())
+}
+
 pub fn load_workspace_detail(id: String) -> Result<WorkspaceDetail, String> {
     load_workspace_detail_inner(&id).map_err(|e| e.to_string())
 }

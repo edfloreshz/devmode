@@ -37,6 +37,9 @@ pub struct State {
     pub query: String,
     pub selected: Option<RepoId>,
     pub dialog: Option<Dialog>,
+    /// The selected repo's git status, loaded on demand — `None` while
+    /// loading, or if it isn't (or is no longer) a git repo.
+    pub git_status: Option<git::RepoStatus>,
 }
 
 impl State {
@@ -49,6 +52,7 @@ impl State {
 
         if !still_exists {
             self.selected = snapshot.repos.first().map(|repo| repo.id);
+            self.git_status = None;
         }
     }
 }
@@ -71,8 +75,13 @@ pub enum Message {
     FixDrift,
 }
 
-pub fn on_enter(_app: &mut App) -> Task<AppMessage> {
-    Task::none()
+pub fn on_enter(app: &mut App) -> Task<AppMessage> {
+    // The list is already in the snapshot; only the selected repo's git
+    // status is loaded on demand.
+    match (app.repos.selected, app.repos.git_status.is_some()) {
+        (Some(id), false) => load_status(app, id),
+        _ => Task::none(),
+    }
 }
 
 pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
@@ -86,17 +95,22 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 let visible = filter(snapshot, &app.repos.query);
 
                 if !visible.iter().any(|repo| Some(repo.id) == app.repos.selected) {
-                    app.repos.selected = visible.first().map(|repo| repo.id);
+                    let next = visible.first().map(|repo| repo.id);
+                    return match next {
+                        Some(id) => select(app, id),
+                        None => {
+                            app.repos.selected = None;
+                            app.repos.git_status = None;
+                            Task::none()
+                        }
+                    };
                 }
             }
 
             Task::none()
         }
         Message::FocusSearch => operation::focus(SEARCH_ID),
-        Message::Select(id) => {
-            app.repos.selected = Some(id);
-            Task::none()
-        }
+        Message::Select(id) => select(app, id),
         Message::OpenClone => {
             app.repos.dialog = Some(Dialog::Clone {
                 url: String::new(),
@@ -337,6 +351,25 @@ fn fix_drift() -> Result<String, String> {
     .map_err(|e| e.to_string())
 }
 
+/// Selects `id` and kicks off a fresh git-status load for it, unless it's
+/// already selected.
+fn select(app: &mut App, id: RepoId) -> Task<AppMessage> {
+    if app.repos.selected == Some(id) {
+        return Task::none();
+    }
+
+    app.repos.selected = Some(id);
+    app.repos.git_status = None;
+    load_status(app, id)
+}
+
+fn load_status(app: &App, id: RepoId) -> Task<AppMessage> {
+    match app.snapshot().and_then(|s| s.repo(id)).map(|repo| repo.path.clone()) {
+        Some(path) => app.load_repo_status(id, path),
+        None => Task::none(),
+    }
+}
+
 /// The path field of whichever dialog is open, if it has one.
 fn dialog_path(dialog: &Dialog) -> Option<&str> {
     match dialog {
@@ -570,6 +603,10 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
 
     details = details.push(design::field("Workspaces", membership_view));
 
+    if let Some(status) = &app.repos.git_status {
+        details = details.push(git_section(status));
+    }
+
     if let Some(candidate) = snapshot.drift_for(repo.id) {
         details = details.push(design::section(
             "Layout drift",
@@ -601,6 +638,118 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
         design::page_header(&repo.name, None, Some(actions.into())),
         details,
     ])
+}
+
+/// Branch, working-tree, and last-commit summary for the selected repo.
+fn git_section<'a>(status: &'a git::RepoStatus) -> Element<'a, AppMessage> {
+    let branch: Element<'_, AppMessage> = if status.detached {
+        design::badge("detached HEAD", Tone::Warning)
+    } else {
+        text(status.branch.as_deref().unwrap_or("—"))
+            .font(design::MONO)
+            .size(design::TEXT_MD)
+            .into()
+    };
+
+    let mut top = row![design::field("Branch", branch)].spacing(design::MD);
+
+    if let (Some(ahead), Some(behind)) = (status.ahead, status.behind) {
+        let tracking: Element<'_, AppMessage> = if ahead == 0 && behind == 0 {
+            design::muted(text("up to date").size(design::TEXT_SM))
+        } else {
+            let mut chips = row![].spacing(design::XS);
+            if ahead > 0 {
+                chips = chips.push(design::badge(format!("↑{ahead}"), Tone::Info));
+            }
+            if behind > 0 {
+                chips = chips.push(design::badge(format!("↓{behind}"), Tone::Warning));
+            }
+            chips.into()
+        };
+
+        top = top.push(design::field("Upstream", tracking));
+    }
+
+    let working_tree: Element<'_, AppMessage> = if status.is_clean() {
+        design::badge("clean", Tone::Success)
+    } else {
+        let mut chips = row![].spacing(design::XS);
+        if status.staged > 0 {
+            chips = chips.push(design::badge(format!("{} staged", status.staged), Tone::Info));
+        }
+        if status.modified > 0 {
+            chips = chips.push(design::badge(format!("{} modified", status.modified), Tone::Warning));
+        }
+        if status.untracked > 0 {
+            chips = chips.push(design::badge(format!("{} untracked", status.untracked), Tone::Neutral));
+        }
+        chips.into()
+    };
+
+    let mut body = column![top, design::field("Working tree", working_tree)].spacing(design::SM);
+
+    if let Some(commit) = &status.last_commit {
+        let summary = if commit.summary.is_empty() {
+            "(no summary)".to_string()
+        } else {
+            commit.summary.clone()
+        };
+
+        body = body.push(design::field(
+            "Last commit",
+            column![
+                text(format!("{summary} — {}", relative_time(commit.when))).size(design::TEXT_MD),
+                design::muted(
+                    text(format!("{} by {}", commit.short_id, commit.author))
+                        .font(design::MONO)
+                        .size(design::TEXT_SM)
+                ),
+            ]
+            .spacing(2.0)
+            .into(),
+        ));
+    }
+
+    if status.tag_count > 0 || status.stash_count > 0 {
+        let mut chips = row![].spacing(design::XS);
+        if status.tag_count > 0 {
+            chips = chips.push(design::badge(format!("{} tags", status.tag_count), Tone::Neutral));
+        }
+        if status.stash_count > 0 {
+            chips = chips.push(design::badge(format!("{} stashed", status.stash_count), Tone::Neutral));
+        }
+        body = body.push(chips);
+    }
+
+    design::section("Git", body)
+}
+
+/// A short, human "3 hours ago"-style rendering of a past `SystemTime`.
+fn relative_time(when: std::time::SystemTime) -> String {
+    let Ok(elapsed) = std::time::SystemTime::now().duration_since(when) else {
+        return "just now".to_string();
+    };
+
+    let seconds = elapsed.as_secs();
+
+    let (amount, unit) = if seconds < 60 {
+        return "just now".to_string();
+    } else if seconds < 3600 {
+        (seconds / 60, "minute")
+    } else if seconds < 86_400 {
+        (seconds / 3600, "hour")
+    } else if seconds < 604_800 {
+        (seconds / 86_400, "day")
+    } else if seconds < 2_592_000 {
+        (seconds / 604_800, "week")
+    } else if seconds < 31_536_000 {
+        (seconds / 2_592_000, "month")
+    } else {
+        (seconds / 31_536_000, "year")
+    };
+
+    let plural = if amount == 1 { "" } else { "s" };
+    format!("{amount} {unit}{plural} ago")
 }
 
 // -- dialogs ------------------------------------------------------------------

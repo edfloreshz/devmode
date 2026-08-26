@@ -1,11 +1,14 @@
 //! The application shell: navigation, global state, and the message loop.
 
+use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
 use iced::widget::{column, container, row, rule, space, text};
 use iced::{Center, Element, Fill, Subscription, Task, Theme};
 
 use dm_core::config::ThemeMode;
+use dm_core::git::RepoStatus;
+use dm_core::registry::RepoId;
 
 use crate::data::{self, Snapshot, WorkspaceDetail};
 use crate::design::{self, Tone};
@@ -76,6 +79,9 @@ pub enum Message {
     Reload,
     Loaded(Result<Snapshot, String>),
     WorkspaceDetailLoaded(Result<WorkspaceDetail, String>),
+    /// A repo's git status, tagged with the repo it was read for so a slow
+    /// read landing after the user picked a different repo is ignored.
+    RepoStatusLoaded(RepoId, Result<RepoStatus, String>),
     /// A completed mutation: a message to show, then a reload.
     Completed(Result<String, String>),
     DismissToast,
@@ -172,12 +178,21 @@ impl App {
                 self.snapshot = Some(snapshot);
                 self.fingerprint = data::state_fingerprint();
 
-                // Selecting a workspace loads its members lazily, so a
-                // reload has to refresh whatever is currently open.
-                self.workspaces
-                    .selected()
-                    .map(|id| self.load_workspace_detail(id))
-                    .unwrap_or(Task::none())
+                // Selecting a workspace (or repo) loads its detail lazily,
+                // so a reload has to refresh whatever is currently open.
+                Task::batch([
+                    self.workspaces
+                        .selected()
+                        .map(|id| self.load_workspace_detail(id))
+                        .unwrap_or(Task::none()),
+                    self.repos
+                        .selected
+                        .and_then(|id| {
+                            let path = self.snapshot.as_ref()?.repo(id)?.path.clone();
+                            Some(self.load_repo_status(id, path))
+                        })
+                        .unwrap_or(Task::none()),
+                ])
             }
             Message::Loaded(Err(error)) => {
                 self.loading = false;
@@ -186,6 +201,14 @@ impl App {
             }
             Message::WorkspaceDetailLoaded(Ok(detail)) => {
                 self.workspaces.set_detail(detail);
+                Task::none()
+            }
+            Message::RepoStatusLoaded(id, result) => {
+                // A stale response from a repo the user already navigated
+                // away from would otherwise overwrite the current one.
+                if self.repos.selected == Some(id) {
+                    self.repos.git_status = result.ok();
+                }
                 Task::none()
             }
             Message::WorkspaceDetailLoaded(Err(error)) => {
@@ -275,6 +298,12 @@ impl App {
             blocking(move || data::load_workspace_detail(id)),
             Message::WorkspaceDetailLoaded,
         )
+    }
+
+    pub fn load_repo_status(&self, id: RepoId, path: PathBuf) -> Task<Message> {
+        Task::perform(blocking(move || data::load_repo_status(path)), move |result| {
+            Message::RepoStatusLoaded(id, result)
+        })
     }
 
     /// Runs a mutation on a worker thread, reporting either a success message

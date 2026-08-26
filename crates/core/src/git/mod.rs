@@ -3,8 +3,10 @@
 //! both SSH and HTTPS remotes transparently.
 
 mod credentials;
+mod status;
 mod url;
 
+pub use status::{repo_status, CommitSummary, RepoStatus};
 pub use url::{parse_url, ParsedUrl};
 
 use std::path::{Path, PathBuf};
