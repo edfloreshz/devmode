@@ -589,13 +589,28 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
             .into()
     };
 
+    let page: Element<'_, AppMessage> = column![header(), content]
+        .spacing(design::MD)
+        .height(Fill)
+        .into();
+
     // Applied to whatever the screen rendered: the empty state is the only
     // way to start a clone when nothing is tracked, so its dialogs have to
     // show over it too.
     match &app.repos.dialog {
-        Some(dialog) => modal(content, dialog_view(dialog)),
-        None => content,
+        Some(dialog) => modal(page, dialog_view(dialog)),
+        None => page,
     }
+}
+
+fn header<'a>() -> Element<'a, AppMessage> {
+    container(design::page_header(
+        "Repos",
+        Some("Clone, create, or track the repositories devmode manages.".to_string()),
+        None,
+    ))
+    .padding(iced::Padding::from([design::MD, design::LG]).bottom(0))
+    .into()
 }
 
 fn loading<'a>() -> Element<'a, AppMessage> {
@@ -623,7 +638,7 @@ fn toolbar(app: &App) -> Element<'_, AppMessage> {
         .spacing(design::SM)
         .align_y(Center),
     )
-    .padding(iced::Padding::from([design::MD, design::LG]).bottom(0))
+    .padding(iced::Padding::from([0.0, design::LG]))
     .into()
 }
 
