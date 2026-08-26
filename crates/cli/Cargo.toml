@@ -1,0 +1,16 @@
+[package]
+name = "devmode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "dm"
+path = "src/main.rs"
+
+[dependencies]
+dm-core.workspace = true
+dm-util.workspace = true
+clap.workspace = true
+thiserror.workspace = true
