@@ -40,7 +40,7 @@ impl Default for Config {
 pub struct CloneConfig {
     pub root: PathBuf,
     pub default_host: String,
-    pub path_layout: PathLayout,
+    pub layout: PathLayout,
 }
 
 impl Default for CloneConfig {
@@ -48,7 +48,7 @@ impl Default for CloneConfig {
         Self {
             root: default_clone_root(),
             default_host: "github.com".to_string(),
-            path_layout: PathLayout::default(),
+            layout: PathLayout::default(),
         }
     }
 }
@@ -76,7 +76,7 @@ impl Config {
         match key {
             "clone.root" => Ok(self.clone.root.display().to_string()),
             "clone.default_host" => Ok(self.clone.default_host.clone()),
-            "clone.path_layout" => Ok(self.clone.path_layout.to_config_string()),
+            "clone.layout" => Ok(self.clone.layout.to_config_string()),
             "editor" => Ok(self.editor.clone().unwrap_or_default()),
             other => Err(Error::UnknownConfigKey(other.to_string())),
         }
@@ -94,7 +94,7 @@ impl Config {
                 self.clone.root = path.canonicalize().unwrap_or(path);
             }
             "clone.default_host" => self.clone.default_host = value.to_string(),
-            "clone.path_layout" => self.clone.path_layout = PathLayout::parse(value)?,
+            "clone.layout" => self.clone.layout = PathLayout::parse(value)?,
             "editor" => self.editor = Some(value.to_string()),
             other => return Err(Error::UnknownConfigKey(other.to_string())),
         }

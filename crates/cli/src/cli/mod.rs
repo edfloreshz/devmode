@@ -57,7 +57,7 @@ pub enum RepoCommand {
         #[arg(long)]
         json: bool,
     },
-    /// Preview or apply moving tracked repos to match the current path_layout.
+    /// Preview or apply moving tracked repos to match the current layout.
     Relayout {
         /// Actually move repos on disk and update the registry (default is a dry-run preview).
         #[arg(long)]

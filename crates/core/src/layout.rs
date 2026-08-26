@@ -46,7 +46,7 @@ impl PathLayout {
         PathBuf::from(rendered)
     }
 
-    /// Parses the `dm config set path_layout <value>` argument: one of the
+    /// Parses the `dm config set layout <value>` argument: one of the
     /// built-in names, or `custom:<template>` for a user-defined template.
     pub fn parse(value: &str) -> Result<Self> {
         match value {
@@ -62,7 +62,7 @@ impl PathLayout {
         }
     }
 
-    /// Renders back to the same string form `parse` accepts, for `dm config get path_layout`.
+    /// Renders back to the same string form `parse` accepts, for `dm config get layout`.
     pub fn to_config_string(&self) -> String {
         match self {
             Self::HostOwnerRepo => "host_owner_repo".to_string(),
