@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use dm_core::config::Config;
 use dm_core::error::Error as CoreError;
-use dm_core::registry::{Repo, RegistryStore};
+use dm_core::registry::{RegistryStore, Repo};
 
 use crate::error::Result;
 
@@ -22,17 +22,25 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
     let moves = plan_moves(&repos, &config);
 
     if moves.is_empty() {
-        println!("all tracked repos already match the current layout ({})", config.clone.layout.to_config_string());
+        println!(
+            "all tracked repos already match the current layout ({})",
+            config.repo.layout.to_config_string()
+        );
         return Ok(());
     }
 
     println!(
         "{} repo(s) would move to match layout {}:",
         moves.len(),
-        config.clone.layout.to_config_string()
+        config.repo.layout.to_config_string()
     );
     for mv in &moves {
-        println!("  {}: {} -> {}", mv.name, mv.from.display(), mv.to.display());
+        println!(
+            "  {}: {} -> {}",
+            mv.name,
+            mv.from.display(),
+            mv.to.display()
+        );
     }
 
     if !apply {
@@ -73,9 +81,9 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Move> {
             let host = repo.host.as_deref()?;
             let owner = repo.owner.as_deref()?;
             let target = config
-                .clone
+                .repo
                 .root
-                .join(config.clone.layout.render(host, owner, &repo.name));
+                .join(config.repo.layout.render(host, owner, &repo.name));
             if target == repo.path {
                 return None;
             }
