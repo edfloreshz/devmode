@@ -6,6 +6,9 @@ use predicates::prelude::*;
 
 fn dm(home: &Path) -> Command {
     let mut cmd = Command::cargo_bin("dm").unwrap();
+    // `DEVMODE_HOME` isolates config + registry under the test's tempdir on
+    // every platform; `HOME` alone doesn't on Windows.
+    cmd.env("DEVMODE_HOME", home);
     cmd.env("HOME", home);
     cmd
 }

@@ -8,18 +8,35 @@ fn project_dirs() -> Result<ProjectDirs> {
     ProjectDirs::from("dev", "devmode", "devmode").ok_or(Error::NoHomeDirectory)
 }
 
+/// When `DEVMODE_HOME` is set, all of devmode's state lives under it
+/// (`<DEVMODE_HOME>/config`, `<DEVMODE_HOME>/data`) instead of the OS
+/// config/data directories. This is the one override that works the same on
+/// every platform, which the tests rely on: `directories` keys off the
+/// Windows Known Folder API there, so setting `HOME` alone doesn't isolate
+/// anything.
+fn devmode_home() -> Option<PathBuf> {
+    match std::env::var_os("DEVMODE_HOME") {
+        Some(value) if !value.is_empty() => Some(PathBuf::from(value)),
+        _ => None,
+    }
+}
+
 /// Directory where devmode stores its SQLite registry database.
 pub fn data_dir() -> Result<PathBuf> {
-    let dirs = project_dirs()?;
-    let dir = dirs.data_dir().to_path_buf();
+    let dir = match devmode_home() {
+        Some(home) => home.join("data"),
+        None => project_dirs()?.data_dir().to_path_buf(),
+    };
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
 }
 
 /// Directory where devmode stores user-editable configuration (`config.toml`).
 pub fn config_dir() -> Result<PathBuf> {
-    let dirs = project_dirs()?;
-    let dir = dirs.config_dir().to_path_buf();
+    let dir = match devmode_home() {
+        Some(home) => home.join("config"),
+        None => project_dirs()?.config_dir().to_path_buf(),
+    };
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
 }
