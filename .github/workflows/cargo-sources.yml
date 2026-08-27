@@ -27,7 +27,7 @@ jobs:
 
       - name: Generate generated-sources.json
         run: |
-          pip install --quiet aiohttp toml
+          pip install --quiet aiohttp tomlkit
           curl -sSfL -o /tmp/flatpak-cargo-generator.py \
             https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py
           python /tmp/flatpak-cargo-generator.py Cargo.lock \
