@@ -2,7 +2,7 @@ name: Flatpak cargo sources
 
 on:
   push:
-    branches: [main, rewrite]
+    branches: [main]
     paths:
       - 'Cargo.lock'
       - '.github/workflows/cargo-sources.yml'
