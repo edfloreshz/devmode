@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish-crates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libx11-dev libxkbcommon-dev libwayland-dev
+      # Order matters: libraries before the crates that depend on them.
+      # `dmui` is publish = false and is skipped automatically.
+      - name: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -e
+          for crate in dm-util dm-core devmode dmtui; do
+            echo "::group::publish $crate"
+            cargo publish -p "$crate"
+            echo "::endgroup::"
+            sleep 15
+          done
+
+  binaries:
+    name: binaries (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
+          - { os: macos-latest,   target: aarch64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config libx11-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev libxrandr-dev libxi-dev libxcursor-dev
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }} --bin dm --bin dmtui --bin dmui
+      - name: Package
+        shell: bash
+        run: |
+          dist="devmode-${{ github.ref_name }}-${{ matrix.target }}"
+          mkdir "$dist"
+          ext=""
+          [[ "${{ runner.os }}" == "Windows" ]] && ext=".exe"
+          for bin in dm dmtui dmui; do
+            cp "target/${{ matrix.target }}/release/${bin}${ext}" "$dist/"
+          done
+          cp README.md LICENSE "$dist/"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            7z a "${dist}.zip" "$dist"
+          else
+            tar czf "${dist}.tar.gz" "$dist"
+          fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            devmode-*.tar.gz
+            devmode-*.zip
+          draft: true
+          fail_on_unmatched_files: false

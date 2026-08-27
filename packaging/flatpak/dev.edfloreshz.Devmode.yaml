@@ -1,0 +1,45 @@
+id: dev.edfloreshz.Devmode
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: dmui
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=network
+  - --filesystem=home
+  - --talk-name=org.freedesktop.portal.OpenURI
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  build-args:
+    - --share=network
+  env:
+    CARGO_HOME: /run/build/devmode/cargo
+
+modules:
+  - name: devmode
+    buildsystem: simple
+    build-commands:
+      - cargo build --release --bin dmui --bin dm --bin dmtui
+      - install -Dm755 target/release/dmui /app/bin/dmui
+      - install -Dm755 target/release/dm /app/bin/dm
+      - install -Dm755 target/release/dmtui /app/bin/dmtui
+      - install -Dm644 packaging/flatpak/dev.edfloreshz.Devmode.desktop
+        /app/share/applications/dev.edfloreshz.Devmode.desktop
+      - install -Dm644 packaging/flatpak/dev.edfloreshz.Devmode.metainfo.xml
+        /app/share/metainfo/dev.edfloreshz.Devmode.metainfo.xml
+      - install -Dm644 assets/img/devmode.png
+        /app/share/icons/hicolor/512x512/apps/dev.edfloreshz.Devmode.png
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - .flatpak-builder
+          - build
+          - target

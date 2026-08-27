@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Devmode
+GenericName=Project Manager
+Comment=Manage repos and group them into workspaces, entirely locally
+Exec=dmui
+Icon=dev.edfloreshz.Devmode
+Terminal=false
+Categories=Development;RevisionControl;
+Keywords=git;repository;workspace;projects;developer;
+StartupWMClass=dmui
