@@ -12,7 +12,7 @@ use dm_core::registry::RepoId;
 
 use crate::data::{self, Snapshot, WorkspaceDetail};
 use crate::design::{self, Tone};
-use crate::screen::{self, discovery, repos, settings, workspaces};
+use crate::screen::{self, discovery, repos, settings, setup, workspaces};
 use crate::task::blocking;
 
 /// `modifiers.command()` is Cmd on macOS and Ctrl elsewhere, so the hint
@@ -79,34 +79,28 @@ pub enum Message {
     Reload,
     Loaded(Result<Snapshot, String>),
     WorkspaceDetailLoaded(Result<WorkspaceDetail, String>),
-    /// A repo's git status, tagged with the repo it was read for so a slow
-    /// read landing after the user picked a different repo is ignored.
     RepoStatusLoaded(RepoId, Result<RepoStatus, String>),
-    /// A completed mutation: a message to show, then a reload.
     Completed(Result<String, String>),
     DismissToast,
     ToastTick,
     StateChanged(Option<(SystemTime, SystemTime)>),
-    /// Fires while the Repos screen is open with a repo selected, so the
-    /// git panel reflects commits/edits made outside devmode.
     GitActivityDetected,
     SystemTheme(iced::theme::Mode),
     Repos(repos::Message),
     Workspaces(workspaces::Message),
     Discovery(discovery::Message),
     Settings(settings::Message),
+    Setup(setup::Message),
 }
 
 pub struct App {
-    screen: Screen,
+    pub(crate) screen: Screen,
     snapshot: Option<Snapshot>,
     toast: Option<Toast>,
-    /// `Some(description)` while a reload or mutation is running, shown in
-    /// the status bar instead of a bare "Working…".
     loading: Option<String>,
     fingerprint: Option<(SystemTime, SystemTime)>,
-    /// The desktop's current preference, kept live by `theme_changes`.
     system_mode: iced::theme::Mode,
+    pub setup: Option<setup::State>,
     pub repos: repos::State,
     pub workspaces: workspaces::State,
     pub discovery: discovery::State,
@@ -122,6 +116,7 @@ impl App {
             loading: Some("Loading…".to_string()),
             fingerprint: None,
             system_mode: iced::theme::Mode::default(),
+            setup: None,
             repos: repos::State::default(),
             workspaces: workspaces::State::default(),
             discovery: discovery::State::default(),
@@ -139,26 +134,36 @@ impl App {
     }
 
     pub fn title(&self) -> String {
+        if self.setup.is_some() {
+            return "Devmode, Setup".to_string();
+        }
+
         format!("Devmode, {}", self.screen.title())
     }
 
     /// Resolves the theme from the user's settings and, when they've chosen
     /// to follow the system, its live light/dark preference.
-    ///
-    /// Reads the Settings screen's working copy rather than the saved config
-    /// so picking a theme previews immediately, and reverting puts it back.
     pub fn theme(&self) -> Theme {
         use iced::theme::Base;
 
-        let mode = match self.settings.theme_mode {
+        let (theme_mode, light, dark) = match &self.setup {
+            Some(setup) => (setup.theme_mode, &setup.light_theme, &setup.dark_theme),
+            None => (
+                self.settings.theme_mode,
+                &self.settings.light_theme,
+                &self.settings.dark_theme,
+            ),
+        };
+
+        let mode = match theme_mode {
             ThemeMode::Light => iced::theme::Mode::Light,
             ThemeMode::Dark => iced::theme::Mode::Dark,
             ThemeMode::System => self.system_mode,
         };
 
         let name = match mode {
-            iced::theme::Mode::Dark => &self.settings.dark_theme,
-            _ => &self.settings.light_theme,
+            iced::theme::Mode::Dark => dark,
+            _ => light,
         };
 
         settings::theme_named(name).unwrap_or_else(|| Theme::default(mode))
@@ -180,6 +185,11 @@ impl App {
                 self.settings.sync_from(&snapshot.config);
                 self.repos.reconcile(&snapshot);
                 self.workspaces.reconcile(&snapshot);
+
+                if !snapshot.configured && self.setup.is_none() {
+                    self.setup = Some(setup::State::new(&snapshot.config));
+                }
+
                 self.snapshot = Some(snapshot);
                 self.fingerprint = data::state_fingerprint();
 
@@ -257,6 +267,7 @@ impl App {
             Message::Workspaces(message) => workspaces::update(self, message),
             Message::Discovery(message) => discovery::update(self, message),
             Message::Settings(message) => settings::update(self, message),
+            Message::Setup(message) => setup::update(self, message),
         }
     }
 
@@ -270,6 +281,7 @@ impl App {
             loading: None,
             fingerprint: None,
             system_mode: iced::theme::Mode::Light,
+            setup: None,
             repos: repos::State::default(),
             workspaces: workspaces::State::default(),
             discovery: discovery::State::default(),
@@ -380,6 +392,10 @@ impl App {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        if let Some(setup) = &self.setup {
+            return column![self.title_bar(), setup::view(setup)].into();
+        }
+
         let body = row![
             self.sidebar(),
             container(screen::view(self, self.screen))

@@ -23,14 +23,14 @@ pub enum LayoutChoice {
 }
 
 impl LayoutChoice {
-    const ALL: [LayoutChoice; 4] = [
+    pub(crate) const ALL: [LayoutChoice; 4] = [
         LayoutChoice::HostOwnerRepo,
         LayoutChoice::OwnerRepo,
         LayoutChoice::Flat,
         LayoutChoice::Custom,
     ];
 
-    fn from_layout(layout: &PathLayout) -> Self {
+    pub(crate) fn from_layout(layout: &PathLayout) -> Self {
         match layout {
             PathLayout::HostOwnerRepo => LayoutChoice::HostOwnerRepo,
             PathLayout::OwnerRepo => LayoutChoice::OwnerRepo,
@@ -56,7 +56,6 @@ impl std::fmt::Display for LayoutChoice {
 #[derive(Debug, Default)]
 pub struct State {
     pub root: String,
-    pub host: String,
     pub editor: String,
     pub interactive: bool,
     pub layout: Option<LayoutChoice>,
@@ -77,7 +76,6 @@ impl State {
         }
 
         self.root = config.repo.root.display().to_string();
-        self.host = config.repo.host.clone();
         self.editor = config.editor.clone().unwrap_or_default();
         self.interactive = config.interactive;
         self.layout = Some(LayoutChoice::from_layout(&config.repo.layout));
@@ -97,7 +95,6 @@ impl State {
         };
 
         self.root != saved.repo.root.display().to_string()
-            || self.host != saved.repo.host
             || self.editor != saved.editor.clone().unwrap_or_default()
             || self.interactive != saved.interactive
             || self.layout != Some(LayoutChoice::from_layout(&saved.repo.layout))
@@ -113,21 +110,30 @@ impl State {
 
     /// The layout the form currently describes, or an error to show inline.
     pub(crate) fn current_layout(&self) -> Result<PathLayout, String> {
-        match self.layout {
-            Some(LayoutChoice::HostOwnerRepo) | None => Ok(PathLayout::HostOwnerRepo),
-            Some(LayoutChoice::OwnerRepo) => Ok(PathLayout::OwnerRepo),
-            Some(LayoutChoice::Flat) => Ok(PathLayout::Flat),
-            Some(LayoutChoice::Custom) => {
-                let template = self.template.trim();
+        resolve_layout(
+            self.layout.unwrap_or(LayoutChoice::HostOwnerRepo),
+            &self.template,
+        )
+    }
+}
 
-                if template.is_empty() {
-                    return Err("A custom layout needs a template.".to_string());
-                }
+/// Turns a picker choice plus its (only relevant for `Custom`) template into a
+/// `PathLayout`, or an error to show inline.
+pub(crate) fn resolve_layout(choice: LayoutChoice, template: &str) -> Result<PathLayout, String> {
+    match choice {
+        LayoutChoice::HostOwnerRepo => Ok(PathLayout::HostOwnerRepo),
+        LayoutChoice::OwnerRepo => Ok(PathLayout::OwnerRepo),
+        LayoutChoice::Flat => Ok(PathLayout::Flat),
+        LayoutChoice::Custom => {
+            let template = template.trim();
 
-                Ok(PathLayout::Custom {
-                    template: template.to_string(),
-                })
+            if template.is_empty() {
+                return Err("A custom layout needs a template.".to_string());
             }
+
+            Ok(PathLayout::Custom {
+                template: template.to_string(),
+            })
         }
     }
 }
@@ -137,7 +143,6 @@ pub enum Message {
     RootChanged(String),
     BrowseRoot,
     RootPicked(Option<PathBuf>),
-    HostChanged(String),
     EditorChanged(String),
     InteractiveChanged(bool),
     LayoutChanged(LayoutChoice),
@@ -170,10 +175,6 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             Task::none()
         }
         Message::RootPicked(None) => Task::none(),
-        Message::HostChanged(host) => {
-            app.settings.host = host;
-            Task::none()
-        }
         Message::EditorChanged(editor) => {
             app.settings.editor = editor;
             Task::none()
@@ -222,9 +223,8 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 }
             };
 
-            let (root, host, editor, interactive) = (
+            let (root, editor, interactive) = (
                 app.settings.root.clone(),
-                app.settings.host.clone(),
                 app.settings.editor.clone(),
                 app.settings.interactive,
             );
@@ -238,7 +238,7 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             app.settings.saved = None;
 
             app.run("Saving settings…", move || {
-                save(root, host, editor, interactive, layout, appearance)
+                save(root, editor, interactive, layout, appearance)
             })
         }
         Message::FixDrift => app.run("Moving repos to match layout…", || {
@@ -261,7 +261,6 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
 fn save(
     root: String,
-    host: String,
     editor: String,
     interactive: bool,
     layout: PathLayout,
@@ -271,7 +270,6 @@ fn save(
         let mut config = Config::load()?;
 
         config.set("repo.root", root.trim())?;
-        config.set("repo.host", host.trim())?;
         config.set("repo.layout", &layout.to_config_string())?;
         config.set("interactive", &interactive.to_string())?;
 
@@ -320,22 +318,13 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
 fn repo_section(app: &App) -> Element<'_, AppMessage> {
     design::section(
         "Repositories",
-        column![
-            path_input(
-                "Repo root",
-                "Where clones and new repos land",
-                &app.settings.root,
-                Message::RootChanged,
-                Message::BrowseRoot,
-            ),
-            input(
-                "Default host",
-                "github.com",
-                &app.settings.host,
-                Message::HostChanged,
-            ),
-        ]
-        .spacing(design::MD),
+        path_input(
+            "Repo root",
+            "Where clones and new repos land",
+            &app.settings.root,
+            Message::RootChanged,
+            Message::BrowseRoot,
+        ),
     )
 }
 
@@ -428,7 +417,7 @@ pub fn theme_named(name: &str) -> Option<Theme> {
 /// Splitting them means each picker only offers themes that make sense for
 /// the slot, so "follow system" can't end up showing a dark theme in light
 /// mode because of a mismatched pick.
-fn themes_for(mode: iced::theme::Mode) -> Vec<Theme> {
+pub(crate) fn themes_for(mode: iced::theme::Mode) -> Vec<Theme> {
     use iced::theme::Base;
 
     Theme::ALL
@@ -600,14 +589,14 @@ mod tests {
 
         assert!(!state.is_dirty());
         assert_eq!(state.layout, Some(LayoutChoice::HostOwnerRepo));
-        assert_eq!(state.host, config.repo.host);
+        assert_eq!(state.root, config.repo.root.display().to_string());
         assert_eq!(state.interactive, config.interactive);
     }
 
     #[test]
     fn detects_edits() {
         let mut state = state_from(&Config::default());
-        state.host = "gitlab.com".to_string();
+        state.root = "/somewhere/else".to_string();
 
         assert!(state.is_dirty());
     }

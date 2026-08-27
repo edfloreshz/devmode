@@ -16,7 +16,7 @@ use dm_core::workspace::Workspace;
 
 use crate::app::{App, Message};
 use crate::data::{Snapshot, WorkspaceDetail};
-use crate::screen::{discovery, repos, settings, workspaces};
+use crate::screen::{discovery, repos, settings, setup, workspaces};
 
 fn repo(id: i64, name: &str) -> Repo {
     Repo {
@@ -49,6 +49,7 @@ fn snapshot(repos: Vec<Repo>, workspaces: Vec<Workspace>) -> Snapshot {
         repos,
         workspaces,
         config: Config::default(),
+        configured: true,
         drift: Vec::new(),
         memberships,
         dirty: Default::default(),
@@ -254,10 +255,7 @@ fn settings_save_controls_appear_only_when_something_changed() {
         assert!(ui.find("Save changes").is_err());
     }
 
-    let _ = settings::update(
-        &mut app,
-        settings::Message::HostChanged("gitlab.com".to_string()),
-    );
+    let _ = settings::update(&mut app, settings::Message::EditorChanged("hx".to_string()));
 
     let mut ui = simulator(settings::view(&app));
     assert!(ui.find("Save changes").is_ok());
@@ -465,4 +463,58 @@ fn changing_the_theme_mode_marks_settings_dirty() {
     assert!(app.settings.is_dirty());
     let mut ui = simulator(settings::view(&app));
     assert!(ui.find("Save changes").is_ok());
+}
+
+fn first_run_app() -> App {
+    let mut app = App::for_test();
+    let mut snap = snapshot(Vec::new(), Vec::new());
+    snap.configured = false;
+    let _ = app.update(Message::Loaded(Ok(snap)));
+    app
+}
+
+#[test]
+fn a_first_run_opens_the_setup_wizard() {
+    let app = first_run_app();
+    assert!(app.setup.is_some());
+
+    let mut ui = simulator(app.view());
+    assert!(ui.find("Welcome to devmode").is_ok());
+    assert!(ui.find("Project root").is_ok());
+}
+
+#[test]
+fn a_configured_run_skips_the_wizard() {
+    let mut app = App::for_test();
+    let _ = app.update(Message::Loaded(Ok(snapshot(Vec::new(), Vec::new()))));
+
+    assert!(app.setup.is_none());
+}
+
+#[test]
+fn the_wizard_moves_between_steps() {
+    let mut app = first_run_app();
+
+    let _ = app.update(Message::Setup(setup::Message::Next));
+    {
+        let mut ui = simulator(app.view());
+        assert!(ui.find("Editor command").is_ok());
+    }
+
+    let _ = app.update(Message::Setup(setup::Message::Back));
+    let mut ui = simulator(app.view());
+    assert!(ui.find("Project root").is_ok());
+}
+
+#[test]
+fn the_wizard_previews_the_theme_before_it_is_saved() {
+    let mut app = first_run_app();
+    let _ = app.update(Message::Setup(setup::Message::Next));
+    let _ = app.update(Message::Setup(setup::Message::Next));
+
+    let _ = app.update(Message::Setup(setup::Message::ThemeModeChanged(
+        ThemeMode::Dark,
+    )));
+
+    assert_eq!(app.theme(), settings::theme_named("Dark").unwrap());
 }
