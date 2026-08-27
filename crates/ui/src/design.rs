@@ -50,7 +50,7 @@ pub fn page_header<'a, Message: 'a>(
     header.width(Fill).into()
 }
 
-/// De-emphasised text — labels, hints, secondary metadata.
+/// De-emphasised text, labels, hints, secondary metadata.
 pub fn muted<'a, Message: 'a>(content: iced::widget::Text<'a, Theme>) -> Element<'a, Message> {
     content
         .style(|theme: &Theme| iced::widget::text::Style {
@@ -79,7 +79,7 @@ pub fn mono_field<'a, Message: 'a>(label: &'a str, value: impl ToString) -> Elem
     )
 }
 
-/// Text styled to read as clickable — tinted with the theme's primary
+/// Text styled to read as clickable, tinted with the theme's primary
 /// color. Pair with [`link`] to actually make it respond to clicks.
 pub fn link_text<'a>(
     content: impl ToString,
@@ -109,7 +109,7 @@ pub fn link<'a, Message: Clone + 'a>(
         .into()
 }
 
-/// Like [`link`], but with distinct left- and right-click actions — e.g. a
+/// Like [`link`], but with distinct left- and right-click actions, e.g. a
 /// path that opens on left-click and copies on right-click.
 pub fn split_click<'a, Message: Clone + 'a>(
     content: impl Into<Element<'a, Message>>,
@@ -170,7 +170,7 @@ pub fn empty_state<'a, Message: 'a>(
         .into()
 }
 
-/// A small pill — workspace membership chips, drift markers, counts.
+/// A small pill, workspace membership chips, drift markers, counts.
 pub fn badge<'a, Message: 'a>(label: impl ToString, tone: Tone) -> Element<'a, Message> {
     container(text(label.to_string()).size(TEXT_SM))
         .padding(Padding::from([2.0, SM]))
@@ -194,7 +194,7 @@ pub fn badge<'a, Message: 'a>(label: impl ToString, tone: Tone) -> Element<'a, M
         .into()
 }
 
-/// A small solid dot — a low-emphasis status indicator for a list row, e.g.
+/// A small solid dot, a low-emphasis status indicator for a list row, e.g.
 /// "this repo's working tree has changes", where a full `badge`'s label
 /// would be too much noise repeated down a long list.
 pub fn dot<'a, Message: 'a>(tone: Tone) -> Element<'a, Message> {
@@ -229,7 +229,7 @@ pub enum Tone {
     Danger,
 }
 
-/// A row of buttons, right-aligned — the standard footer for dialogs.
+/// A row of buttons, right-aligned, the standard footer for dialogs.
 pub fn button_row<'a, Message: 'a>(buttons: Vec<Element<'a, Message>>) -> Element<'a, Message> {
     let mut row = Row::new().spacing(SM).align_y(Center);
     for button in buttons {
@@ -284,12 +284,12 @@ pub fn primary_button<'a, Message: Clone + 'a>(
 
 /// A supporting action, alongside a primary one.
 ///
-/// iced's own `button::secondary` pairs its gray background with dark text —
+/// iced's own `button::secondary` pairs its gray background with dark text,
 /// readable, but a flat gray-on-gray that doesn't read as clickable next to
 /// a colored primary button. This keeps the gray but switches to white text,
 /// darkening the background just enough to stay legible: `secondary.base` is
 /// only ~0.59 gray in the Light theme, and white text on that is under 3:1
-/// contrast — noticeably harder to read than iced's own dark-on-gray pairing.
+/// contrast, noticeably harder to read than iced's own dark-on-gray pairing.
 pub fn secondary_button<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: impl Into<Option<Message>>,
@@ -358,7 +358,7 @@ fn contrast(a: Color, b: Color) -> f32 {
 }
 
 /// Darkens `color` by binary search until white text on top reaches `target`
-/// contrast, so this holds for any theme's palette — built-in or custom —
+/// contrast, so this holds for any theme's palette, built-in or custom,
 /// rather than a fixed darkening amount that happens to work for the themes
 /// tested against.
 fn darken_for_contrast(color: Color, target: f32) -> Color {
@@ -400,7 +400,7 @@ pub fn page<'a, Message: 'a>(content: Column<'a, Message>) -> Element<'a, Messag
         .into()
 }
 
-/// A list row that can be selected — the shared building block of the repo,
+/// A list row that can be selected, the shared building block of the repo,
 /// workspace, and discovery lists.
 pub fn list_row<'a, Message: Clone + 'a>(
     content: impl Into<Element<'a, Message>>,
@@ -473,7 +473,7 @@ mod contrast_tests {
     #[test]
     fn a_background_that_already_passes_is_left_alone() {
         // A background already darker than needed shouldn't be darkened
-        // further — that would needlessly flatten a theme's own gray.
+        // further, that would needlessly flatten a theme's own gray.
         let already_dark = Color::from_rgb(0.1, 0.1, 0.1);
 
         assert_eq!(

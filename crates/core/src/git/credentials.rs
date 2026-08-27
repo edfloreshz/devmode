@@ -12,18 +12,18 @@ struct NonInteractiveUi;
 
 impl CredentialUI for NonInteractiveUi {
     fn ask_user_password(&self, _username: &str) -> Result<(String, String), Box<dyn StdError>> {
-        Err("no username/password available (devmode doesn't prompt — \
+        Err("no username/password available (devmode doesn't prompt, \
              configure a git credential helper, or use an SSH URL with a key in your ssh-agent)"
             .into())
     }
 
     fn ask_ssh_passphrase(&self, _passphrase_prompt: &str) -> Result<String, Box<dyn StdError>> {
-        Err("no SSH key passphrase available (devmode doesn't prompt — add the key to ssh-agent instead)".into())
+        Err("no SSH key passphrase available (devmode doesn't prompt, add the key to ssh-agent instead)".into())
     }
 }
 
 /// System-level gitconfig locations that vendor-specific git installs use
-/// but libgit2's own default system-config search doesn't know about — most
+/// but libgit2's own default system-config search doesn't know about, most
 /// notably Xcode's bundled git on macOS, which ships its system config
 /// (setting `credential.helper = osxkeychain`) inside the app bundle rather
 /// than a path libgit2 checks by default. Merging these in (still purely
@@ -50,7 +50,7 @@ fn open_git_config() -> Config {
 }
 
 /// Fetch options wired to try SSH agent/key auth and HTTPS credential-helper
-/// auth as needed, based on what the remote actually asks for — covers both
+/// auth as needed, based on what the remote actually asks for, covers both
 /// `https://` and `git@host:` remote URLs without devmode having to guess
 /// the transport up front.
 pub(super) fn fetch_options() -> FetchOptions<'static> {

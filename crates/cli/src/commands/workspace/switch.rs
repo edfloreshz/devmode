@@ -18,7 +18,7 @@ pub fn run(workspace: String, cd: bool) -> Result<()> {
 
     if repos.is_empty() {
         println!(
-            "workspace '{}' has no members yet — add one with `dm workspace add {} <repo>`",
+            "workspace '{}' has no members yet, add one with `dm workspace add {} <repo>`",
             ws.id, ws.id
         );
         return Ok(());
@@ -36,7 +36,7 @@ pub fn run(workspace: String, cd: bool) -> Result<()> {
     let editor = ws.editor.clone().or(global_config.editor.clone());
     let Some(editor) = editor else {
         println!(
-            "no editor configured for '{}' (or globally) — member repos:",
+            "no editor configured for '{}' (or globally), member repos:",
             ws.id
         );
         for repo in &repos {

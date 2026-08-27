@@ -102,7 +102,7 @@ pub fn draw_picker(frame: &mut Frame, area: Rect, picker: &RepoPicker) {
     frame.render_widget(Clear, popup);
 
     let title = format!(
-        "Add member — type to filter, enter: add, esc: cancel (/{})",
+        "Add member, type to filter, enter: add, esc: cancel (/{})",
         picker.filter.value()
     );
     let block = Block::default().borders(Borders::ALL).title(title);

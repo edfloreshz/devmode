@@ -116,7 +116,7 @@ pub fn remove_repo(registry: &RegistryStore, id: RepoId, path: &Path, delete: bo
 
 /// Spawns the workspace's editor (or the global `editor` config) with every
 /// member repo's path as an argument and the workspace's env vars applied,
-/// blocking until it exits — same behavior as `dm workspace switch`. Meant
+/// blocking until it exits, same behavior as `dm workspace switch`. Meant
 /// to run after the TUI has already restored the terminal, since this takes
 /// over stdio for the duration of the editor process.
 pub fn switch_workspace(id: &str) -> Result<()> {
@@ -132,7 +132,7 @@ pub fn switch_workspace(id: &str) -> Result<()> {
 
     if repos.is_empty() {
         println!(
-            "workspace '{}' has no members yet — add one with `dm workspace add {} <repo>`",
+            "workspace '{}' has no members yet, add one with `dm workspace add {} <repo>`",
             ws.id, ws.id
         );
         return Ok(());
@@ -142,7 +142,7 @@ pub fn switch_workspace(id: &str) -> Result<()> {
     let editor = ws.editor.clone().or(global_config.editor.clone());
     let Some(editor) = editor else {
         println!(
-            "no editor configured for '{}' (or globally) — member repos:",
+            "no editor configured for '{}' (or globally), member repos:",
             ws.id
         );
         for repo in &repos {

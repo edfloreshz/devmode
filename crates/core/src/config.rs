@@ -22,7 +22,7 @@ pub struct Config {
     pub repo: RepoConfig,
     pub editor: Option<String>,
     /// When `false`, the CLI never uses TTY-requiring interactive prompts
-    /// (`inquire::Confirm`/`Select`) — confirmations fall back to a plain
+    /// (`inquire::Confirm`/`Select`), confirmations fall back to a plain
     /// stdin read and ambiguous repo lookups error instead of offering a
     /// picker, so devmode stays usable from scripts and pipes.
     pub interactive: bool,
@@ -48,7 +48,7 @@ impl Default for Config {
 pub struct UiConfig {
     pub theme_mode: ThemeMode,
     /// Theme names, applied according to `theme_mode`. Which names are valid
-    /// is the GUI's business — it owns the theme list — so they're plain
+    /// is the GUI's business, it owns the theme list, so they're plain
     /// strings here, and an unrecognised one falls back to a built-in.
     pub light_theme: String,
     pub dark_theme: String,
@@ -166,7 +166,7 @@ impl Config {
 
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
         match key {
-            // Normalize (not canonicalize — see paths::normalize_path) so
+            // Normalize (not canonicalize, see paths::normalize_path) so
             // this matches how repo paths are stored, regardless of whether
             // the directory exists yet or any ancestor is a symlink.
             "repo.root" => self.repo.root = paths::normalize_path(&PathBuf::from(value)),

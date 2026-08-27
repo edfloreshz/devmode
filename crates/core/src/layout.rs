@@ -11,12 +11,12 @@ use crate::error::{Error, Result};
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(Default)]
 pub enum PathLayout {
-    /// `{host}/{owner}/{repo}` — e.g. `github.com/torvalds/linux`.
+    /// `{host}/{owner}/{repo}`, e.g. `github.com/torvalds/linux`.
     #[default]
     HostOwnerRepo,
-    /// `{owner}/{repo}` — e.g. `torvalds/linux`.
+    /// `{owner}/{repo}`, e.g. `torvalds/linux`.
     OwnerRepo,
-    /// `{repo}` — everything directly under the clone root.
+    /// `{repo}`, everything directly under the clone root.
     Flat,
     /// A user-supplied template using the same `{host}`/`{owner}`/`{repo}` placeholders.
     Custom { template: String },

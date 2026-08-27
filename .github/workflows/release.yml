@@ -18,8 +18,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             cmake pkg-config libx11-dev libxkbcommon-dev libwayland-dev
-      # Order matters: libraries before the crates that depend on them.
-      # `dmui` is publish = false and is skipped automatically.
+      # Publish order follows the dependency graph. dmui is publish = false.
       - name: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

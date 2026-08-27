@@ -12,13 +12,11 @@ mod tests;
 
 use app::App;
 
-/// The application icon, shared with the Flathub packaging
-/// (`dev.edfloreshz.Devmode`). Embedded so the running window and taskbar
-/// entry carry it on every platform, independent of any desktop file.
+/// Window and taskbar icon; same PNG the Flathub packaging installs.
 const ICON: &[u8] = include_bytes!("../../../assets/img/devmode.png");
 
 pub fn main() -> iced::Result {
-    // `mut` is only used on macOS, below.
+    // `window` is only mutated on macOS, below.
     #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
     let mut window = iced::window::Settings {
         icon: iced::window::icon::from_file_data(ICON, None).ok(),

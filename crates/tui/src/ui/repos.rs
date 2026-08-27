@@ -83,10 +83,7 @@ fn format_detail(repo: &Repo, workspaces: &[String], drift: Option<&Candidate>) 
         }
     ));
     lines.push(match drift {
-        Some(c) => format!(
-            "layout: drifted — would move to {} (l: fix)",
-            c.to.display()
-        ),
+        Some(c) => format!("layout: drifted, would move to {} (l: fix)", c.to.display()),
         None => "layout: ok".to_string(),
     });
     lines.join("\n")

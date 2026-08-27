@@ -12,7 +12,7 @@ pub fn run(json: bool) -> Result<()> {
     }
 
     if workspaces.is_empty() {
-        println!("no workspaces yet — run `dm workspace create <id>` to add one");
+        println!("no workspaces yet, run `dm workspace create <id>` to add one");
         return Ok(());
     }
 

@@ -280,8 +280,6 @@ impl App {
         }
     }
 
-    // -- repos ----------------------------------------------------------
-
     pub fn reload_repos(&mut self) -> Result<()> {
         self.repos = self.registry.list(None, None)?;
         self.drift = dm_core::relayout::plan()?;
@@ -340,8 +338,6 @@ impl App {
             .unwrap_or_default()
     }
 
-    // -- movement ---------------------------------------------------------
-
     pub fn move_up(&mut self) {
         self.move_delta(-1);
     }
@@ -372,8 +368,6 @@ impl App {
             },
         }
     }
-
-    // -- repo forms ----------------------------------------------------
 
     pub fn open_clone_form(&mut self) {
         if self.active_tab == Tab::Repos {
@@ -411,8 +405,6 @@ impl App {
             });
         }
     }
-
-    // -- workspaces -------------------------------------------------------
 
     pub fn reload_workspaces(&mut self) -> Result<()> {
         self.workspaces_list = self.workspaces.list()?;
@@ -581,8 +573,6 @@ impl App {
         }
     }
 
-    // -- forms: shared ---------------------------------------------------
-
     pub fn form_next_field(&mut self) {
         if let Some(form) = &mut self.form {
             form.next_field();
@@ -748,8 +738,6 @@ impl App {
         }
         Ok(())
     }
-
-    // -- confirm ----------------------------------------------------------
 
     pub fn confirm_toggle_delete(&mut self) {
         if let Some(confirm) = &mut self.confirm

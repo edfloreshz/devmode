@@ -10,7 +10,7 @@ pub fn add(workspace: String, repos: Vec<String>) -> Result<()> {
     for identifier in repos {
         let repo = resolve_repo(&registry, &identifier)?;
         // Report by the repo's name rather than letting the store's
-        // AlreadyInWorkspace error surface — it only knows the repo id.
+        // AlreadyInWorkspace error surface, it only knows the repo id.
         match workspaces.add_member(&workspace, repo.id) {
             Ok(()) => println!("added {} to {workspace}", repo.name),
             Err(dm_core::Error::AlreadyInWorkspace { .. }) => {

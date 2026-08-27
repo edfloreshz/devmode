@@ -19,7 +19,7 @@ pub fn run(identifier: String, delete: bool, force: bool) -> Result<()> {
             .collect::<Vec<_>>()
             .join(", ");
         if !confirm(&format!(
-            "{} is in {} workspace(s) ({names}) — untrack it anyway? (it will be removed from them too)",
+            "{} is in {} workspace(s) ({names}), untrack it anyway? (it will be removed from them too)",
             repo.name,
             member_of.len()
         ))? {

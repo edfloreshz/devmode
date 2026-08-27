@@ -42,7 +42,7 @@ pub enum Command {
     Find { query: String },
     /// Print shell completions for the given shell.
     Completions { shell: clap_complete::Shell },
-    /// Manage workspaces — named, non-destructive groups of repos.
+    /// Manage workspaces, named, non-destructive groups of repos.
     Workspace {
         #[command(subcommand)]
         command: WorkspaceCommand,
@@ -80,7 +80,7 @@ pub enum RepoCommand {
         /// Exact destination directory (overrides the default local placement).
         #[arg(long)]
         path: Option<std::path::PathBuf>,
-        /// Don't run `git init` — just create the directory.
+        /// Don't run `git init`, just create the directory.
         #[arg(long)]
         no_git: bool,
     },
@@ -110,10 +110,10 @@ pub enum RepoCommand {
         /// Tags to attach to this repo.
         #[arg(long)]
         tag: Vec<String>,
-        /// Host this repo belongs to (e.g. github.com) — needed for `dm repo relayout` to manage it.
+        /// Host this repo belongs to (e.g. github.com), needed for `dm repo relayout` to manage it.
         #[arg(long)]
         host: Option<String>,
-        /// Owner/org this repo belongs to — needed for `dm repo relayout` to manage it.
+        /// Owner/org this repo belongs to, needed for `dm repo relayout` to manage it.
         #[arg(long)]
         owner: Option<String>,
     },

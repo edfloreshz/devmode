@@ -23,3 +23,6 @@ ratatui.workspace = true
 crossterm.workspace = true
 fuzzy-matcher.workspace = true
 tui-input.workspace = true
+
+[lints]
+workspace = true

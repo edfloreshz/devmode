@@ -46,4 +46,5 @@ jobs:
             libwayland-dev libxrandr-dev libxi-dev libxcursor-dev \
             mesa-vulkan-drivers
       - run: cargo clippy --workspace --all-targets --all-features
-      - run: cargo test --workspace --all-features
+      # CLI integration tests are not concurrency-safe: shared config/registry dirs.
+      - run: cargo test --workspace --all-features -- --test-threads=1

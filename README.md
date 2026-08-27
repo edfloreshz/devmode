@@ -4,7 +4,7 @@
   <img src="assets/img/devmode.png" alt="Devmode" width="180">
 </p>
 
-**Devmode** keeps every project on your machine in one place — filed away neatly,
+**Devmode** keeps every project on your machine in one place, filed away neatly,
 searchable by name, and grouped the way you actually work. No accounts, no API
 tokens, nothing leaves your computer.
 
@@ -15,10 +15,10 @@ tokens, nothing leaves your computer.
 - **A tidy projects folder, automatically.** Clones land in a consistent
   structure (`github.com/owner/repo`, or whatever layout you prefer) instead of
   wherever you happened to run the command.
-- **Jump to any project instantly.** Search by name and open it — no more digging
+- **Jump to any project instantly.** Search by name and open it, no more digging
   through nested folders or `cd`-ing around.
 - **Group related projects into workspaces.** Bundle the repos for a client, a
-  product, or a side project, then open the whole set in your editor at once —
+  product, or a side project, then open the whole set in your editor at once,
   each workspace with its own editor and environment variables.
 - **Non-destructive.** Workspaces are just labels. Your repos never move on disk
   to join one, and leaving a workspace never touches your files.
@@ -45,7 +45,7 @@ The desktop app will also be available on Flathub.
 ## Quick start
 
 ```bash
-# Clone a repo — Devmode files it away and remembers it
+# Clone a repo, Devmode files it away and remembers it
 dm clone https://github.com/owner/repo.git
 
 # See everything you're tracking, or find one by name
@@ -63,7 +63,7 @@ Run `dm --help` or `dm <command> --help` for the full reference, and
 
 ## Three ways to use it
 
-Pick whichever fits the moment — they all read and write the same data, so you
+Pick whichever fits the moment, they all read and write the same data, so you
 can switch freely.
 
 | | Best for |

@@ -1,5 +1,5 @@
-//! Reads a repo's current git state — branch, upstream tracking, working
-//! tree, last commit — for display, without shelling out to `git`.
+//! Reads a repo's current git state, branch, upstream tracking, working
+//! tree, last commit, for display, without shelling out to `git`.
 
 use std::path::Path;
 use std::time::{Duration, SystemTime};
@@ -40,7 +40,7 @@ pub struct CommitSummary {
     pub when: SystemTime,
 }
 
-/// Cheaply checks whether a repo's working tree has uncommitted changes —
+/// Cheaply checks whether a repo's working tree has uncommitted changes,
 /// staged, modified, or untracked. Meant for running across every tracked
 /// repo at once (e.g. a dirty indicator per row in a list), so it skips the
 /// extra commit lookups and ahead/behind graph walk `repo_status` does.
@@ -64,7 +64,7 @@ pub fn repo_status(path: &Path) -> Result<RepoStatus> {
     let repo = Repository::open(path)?;
 
     // `head()` errors on an unborn branch (no commits yet), so the branch
-    // name is read from the symbolic ref directly instead — that still
+    // name is read from the symbolic ref directly instead, that still
     // resolves on a brand new repo.
     let detached = repo.head_detached().unwrap_or(false);
     let branch = if detached {
@@ -72,7 +72,7 @@ pub fn repo_status(path: &Path) -> Result<RepoStatus> {
     } else {
         repo.find_reference("HEAD")
             .ok()
-            .and_then(|head| head.symbolic_target().map(str::to_string))
+            .and_then(|head| head.symbolic_target().ok().flatten().map(str::to_string))
             .and_then(|target| target.strip_prefix("refs/heads/").map(str::to_string))
     };
 
@@ -121,7 +121,12 @@ pub fn repo_status(path: &Path) -> Result<RepoStatus> {
 
     let last_commit = head_commit.map(|commit| CommitSummary {
         short_id: commit.id().to_string()[..7].to_string(),
-        summary: commit.summary().unwrap_or_default().to_string(),
+        summary: commit
+            .summary()
+            .ok()
+            .flatten()
+            .unwrap_or_default()
+            .to_string(),
         author: commit.author().name().unwrap_or("unknown").to_string(),
         when: SystemTime::UNIX_EPOCH + Duration::from_secs(commit.time().seconds().max(0) as u64),
     });

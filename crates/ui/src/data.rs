@@ -1,7 +1,7 @@
 //! Loading dm-core state into plain, `Send` snapshots the UI can hold.
 //!
 //! The stores own a `rusqlite::Connection`, which can't be shared across the
-//! worker threads each task runs on — so nothing here holds a store open.
+//! worker threads each task runs on, so nothing here holds a store open.
 //! Every load opens the stores, reads what it needs, and hands back owned
 //! data, exactly as the CLI does per invocation.
 
@@ -24,7 +24,7 @@ pub struct Snapshot {
     pub drift: Vec<Candidate>,
     /// Workspace ids each repo belongs to, aligned with `repos` by id.
     pub memberships: Vec<(RepoId, Vec<String>)>,
-    /// Repos with uncommitted changes, for the list's at-a-glance dot —
+    /// Repos with uncommitted changes, for the list's at-a-glance dot,
     /// checked for every tracked repo up front rather than lazily like
     /// `RepoStatus`, since the list needs an answer for all of them at once.
     pub dirty: HashSet<RepoId>,

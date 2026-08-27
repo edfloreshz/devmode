@@ -20,3 +20,6 @@ git2.workspace = true
 git2_credentials.workspace = true
 git-url-parse.workspace = true
 rusqlite.workspace = true
+
+[lints]
+workspace = true

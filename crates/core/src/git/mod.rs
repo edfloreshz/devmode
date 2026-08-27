@@ -1,4 +1,4 @@
-//! In-process git operations via `git2` — no shelling out to `git`/`gh`, and
+//! In-process git operations via `git2`, no shelling out to `git`/`gh`, and
 //! no GitHub/GitLab API calls. Credential handling (`credentials`) covers
 //! both SSH and HTTPS remotes transparently.
 
@@ -25,7 +25,7 @@ pub fn clone(url: &str, dest: &Path) -> Result<()> {
     builder.clone(url, dest).map_err(|err| {
         // Fixed fallback messages once every credential strategy (SSH
         // agent/key, git credential helper) is exhausted with nothing
-        // usable — from git2_credentials itself, or from libgit2's own
+        // usable, from git2_credentials itself, or from libgit2's own
         // credential-helper invocation. libgit2 doesn't let us distinguish
         // "wrong credentials" from "repo doesn't exist" here (both look
         // like an auth failure over HTTPS), so give the best actionable
@@ -57,7 +57,7 @@ pub fn init(dest: &Path) -> Result<()> {
 pub fn read_origin_url(path: &Path) -> Option<String> {
     let repo = Repository::open(path).ok()?;
     let remote = repo.find_remote("origin").ok()?;
-    remote.url().map(str::to_string)
+    remote.url().ok().map(str::to_string)
 }
 
 /// Points the repo at `path`'s `origin` remote at `url`, creating the remote
