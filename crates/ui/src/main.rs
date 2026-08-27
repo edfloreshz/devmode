@@ -19,5 +19,8 @@ pub fn main() -> iced::Result {
         .subscription(App::subscription)
         .window_size((1180.0, 760.0))
         .centered()
+        // App::view draws its own title bar (drag region, minimize/maximize/
+        // close) to replace the OS one this turns off.
+        .decorations(false)
         .run()
 }

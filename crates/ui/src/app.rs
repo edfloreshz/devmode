@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-use iced::widget::{column, container, row, rule, space, text};
-use iced::{Center, Element, Fill, Subscription, Task, Theme};
+use iced::widget::{column, container, mouse_area, row, rule, space, text};
+use iced::{Center, Element, Fill, Subscription, Task, Theme, window};
 
 use dm_core::config::ThemeMode;
 use dm_core::git::RepoStatus;
@@ -91,6 +91,14 @@ pub enum Message {
     /// git panel reflects commits/edits made outside devmode.
     GitActivityDetected,
     SystemTheme(iced::theme::Mode),
+    /// The window is undecorated, so devmode draws its own title bar and
+    /// needs the window's id to ask the OS to drag/minimize/maximize/close
+    /// it on that bar's behalf.
+    WindowOpened(window::Id),
+    WindowDrag,
+    WindowMinimize,
+    WindowToggleMaximize,
+    WindowClose,
     Repos(repos::Message),
     Workspaces(workspaces::Message),
     Discovery(discovery::Message),
@@ -99,6 +107,9 @@ pub enum Message {
 
 pub struct App {
     screen: Screen,
+    /// Set once `WindowOpened` fires; `None` only for the brief moment
+    /// before that, so the title bar's own buttons are inert until then.
+    window: Option<window::Id>,
     snapshot: Option<Snapshot>,
     toast: Option<Toast>,
     /// `Some(description)` while a reload or mutation is running, shown in
@@ -117,6 +128,7 @@ impl App {
     pub fn boot() -> (Self, Task<Message>) {
         let app = Self {
             screen: Screen::Repos,
+            window: None,
             snapshot: None,
             toast: None,
             loading: Some("Loading…".to_string()),
@@ -253,6 +265,20 @@ impl App {
                 self.system_mode = mode;
                 Task::none()
             }
+            Message::WindowOpened(id) => {
+                self.window = Some(id);
+                Task::none()
+            }
+            Message::WindowDrag => self.window.map(window::drag).unwrap_or(Task::none()),
+            Message::WindowMinimize => self
+                .window
+                .map(|id| window::minimize(id, true))
+                .unwrap_or(Task::none()),
+            Message::WindowToggleMaximize => self
+                .window
+                .map(window::toggle_maximize)
+                .unwrap_or(Task::none()),
+            Message::WindowClose => self.window.map(window::close).unwrap_or(Task::none()),
             Message::Repos(message) => repos::update(self, message),
             Message::Workspaces(message) => workspaces::update(self, message),
             Message::Discovery(message) => discovery::update(self, message),
@@ -265,6 +291,7 @@ impl App {
     pub fn for_test() -> Self {
         Self {
             screen: Screen::Repos,
+            window: None,
             snapshot: None,
             toast: None,
             loading: None,
@@ -343,6 +370,7 @@ impl App {
         let mut subscriptions = vec![
             keyboard_shortcuts(self.screen),
             iced::system::theme_changes().map(Message::SystemTheme),
+            window::open_events().map(Message::WindowOpened),
         ];
 
         // Only poll while there's something to notice: a visible transient
@@ -388,7 +416,46 @@ impl App {
         ]
         .height(Fill);
 
-        column![body, self.status_bar()].into()
+        column![self.title_bar(), body, self.status_bar()].into()
+    }
+
+    /// The window is undecorated (see `main.rs`), so this stands in for the
+    /// OS title bar: drag-to-move, double-click-to-maximize, and its own
+    /// minimize/maximize/close buttons since the real ones are gone too.
+    fn title_bar(&self) -> Element<'_, Message> {
+        // The mouse area only catches clicks over its own content, so that
+        // content has to be sized to Fill itself — wrapping a shrink-sized
+        // label in a bigger container doesn't make the *area* any bigger,
+        // it just leaves the rest of the bar with nothing listening.
+        let drag_area = mouse_area(
+            container(text(self.title()).size(design::TEXT_SM))
+                .padding(iced::Padding::from([0.0, design::MD]))
+                .width(Fill)
+                .height(Fill)
+                .center_y(Fill),
+        )
+        .on_press(Message::WindowDrag)
+        .on_double_click(Message::WindowToggleMaximize);
+
+        let bar = row![
+            drag_area,
+            window_button('–', Message::WindowMinimize, false),
+            window_button('▢', Message::WindowToggleMaximize, false),
+            window_button('×', Message::WindowClose, true),
+        ]
+        .height(36)
+        .align_y(Center);
+
+        column![
+            container(bar)
+                .width(Fill)
+                .style(|theme: &Theme| container::Style {
+                    background: Some(theme.extended_palette().background.weakest.color.into()),
+                    ..container::Style::default()
+                }),
+            rule::horizontal(1.0),
+        ]
+        .into()
     }
 
     fn sidebar(&self) -> Element<'_, Message> {
@@ -475,6 +542,41 @@ impl App {
         ]
         .into()
     }
+}
+
+/// One of the title bar's minimize/maximize/close controls: a fixed-size
+/// flat glyph button, filled on hover — red for `is_close`, matching the
+/// convention every platform's own close button follows, muted otherwise.
+fn window_button(glyph: char, on_press: Message, is_close: bool) -> Element<'static, Message> {
+    iced::widget::button(
+        container(text(glyph).size(design::TEXT_MD))
+            .center_x(Fill)
+            .center_y(Fill),
+    )
+    .width(46)
+    .height(Fill)
+    .on_press(on_press)
+    .style(move |theme: &Theme, status| {
+        let palette = theme.extended_palette();
+
+        let background = match (status, is_close) {
+            (iced::widget::button::Status::Hovered, true) => Some(palette.danger.base.color),
+            (iced::widget::button::Status::Hovered, false) => Some(palette.background.weak.color),
+            _ => None,
+        };
+
+        iced::widget::button::Style {
+            background: background.map(Into::into),
+            text_color: if matches!(status, iced::widget::button::Status::Hovered) && is_close {
+                palette.danger.base.text
+            } else {
+                palette.background.base.text
+            },
+            border: iced::border::rounded(0),
+            ..iced::widget::button::Style::default()
+        }
+    })
+    .into()
 }
 
 /// Global shortcuts. `keyboard::listen` only reports events no focused widget
