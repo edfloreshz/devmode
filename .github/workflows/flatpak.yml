@@ -2,7 +2,7 @@ name: Flatpak
 
 on:
   push:
-    branches: [main, rewrite]
+    branches: [main]
     paths:
       - 'crates/**'
       - 'Cargo.lock'
