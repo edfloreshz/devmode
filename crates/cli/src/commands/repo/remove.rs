@@ -28,13 +28,7 @@ pub fn run(identifier: String, delete: bool, force: bool) -> Result<()> {
         }
     }
 
-    if delete
-        && !force
-        && !confirm(&format!(
-            "delete {} from disk?",
-            repo.path.display()
-        ))?
-    {
+    if delete && !force && !confirm(&format!("delete {} from disk?", repo.path.display()))? {
         println!("aborted, nothing changed");
         return Ok(());
     }

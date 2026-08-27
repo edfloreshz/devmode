@@ -179,7 +179,11 @@ fn fuzzy_filter(repos: &[Repo], query: &str) -> Vec<usize> {
     let mut scored: Vec<(i64, usize)> = repos
         .iter()
         .enumerate()
-        .filter_map(|(i, repo)| matcher.fuzzy_match(&repo.name, query).map(|score| (score, i)))
+        .filter_map(|(i, repo)| {
+            matcher
+                .fuzzy_match(&repo.name, query)
+                .map(|score| (score, i))
+        })
         .collect();
     scored.sort_by_key(|&(score, _)| std::cmp::Reverse(score));
     scored.into_iter().map(|(_, i)| i).collect()
@@ -354,9 +358,11 @@ impl App {
         match self.active_tab {
             Tab::Repos => move_index(&mut self.selected, self.filtered.len(), delta),
             Tab::Workspaces => match self.workspace_focus {
-                WorkspaceFocus::List => {
-                    move_index(&mut self.workspace_selected, self.workspaces_list.len(), delta)
-                }
+                WorkspaceFocus::List => move_index(
+                    &mut self.workspace_selected,
+                    self.workspaces_list.len(),
+                    delta,
+                ),
                 WorkspaceFocus::Items => {
                     if let Some(ws) = self.selected_workspace() {
                         let count = self.workspace_detail_items(&ws.id.clone()).len();
@@ -475,7 +481,11 @@ impl App {
             Err(e) => self.status = Some(format!("error: {e}")),
         }
         let new_len = self.workspace_detail_items(&ws_id).len();
-        self.workspace_item_selected = if new_len == 0 { 0 } else { self.workspace_item_selected.min(new_len - 1) };
+        self.workspace_item_selected = if new_len == 0 {
+            0
+        } else {
+            self.workspace_item_selected.min(new_len - 1)
+        };
     }
 
     pub fn open_workspace_create_form(&mut self) {
@@ -580,10 +590,10 @@ impl App {
     }
 
     pub fn form_toggle_no_git(&mut self) {
-        if let Some(form) = &mut self.form {
-            if form.kind == FormKind::Create {
-                form.no_git = !form.no_git;
-            }
+        if let Some(form) = &mut self.form
+            && form.kind == FormKind::Create
+        {
+            form.no_git = !form.no_git;
         }
     }
 
@@ -682,7 +692,8 @@ impl App {
                     if !name.is_empty() {
                         self.workspaces.set_config(&id, "name", name)?;
                     }
-                    self.workspaces.set_config(&id, "description", description)?;
+                    self.workspaces
+                        .set_config(&id, "description", description)?;
                     self.workspaces.set_config(&id, "editor", editor)?;
                     Ok(())
                 })();
@@ -741,10 +752,10 @@ impl App {
     // -- confirm ----------------------------------------------------------
 
     pub fn confirm_toggle_delete(&mut self) {
-        if let Some(confirm) = &mut self.confirm {
-            if let ConfirmAction::RemoveRepo { delete, .. } = &mut confirm.action {
-                *delete = !*delete;
-            }
+        if let Some(confirm) = &mut self.confirm
+            && let ConfirmAction::RemoveRepo { delete, .. } = &mut confirm.action
+        {
+            *delete = !*delete;
         }
     }
 

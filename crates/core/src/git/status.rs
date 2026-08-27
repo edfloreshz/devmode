@@ -53,7 +53,8 @@ pub fn is_dirty(path: &Path) -> bool {
     let mut options = StatusOptions::new();
     options.include_untracked(true);
 
-    repo.statuses(Some(&mut options)).is_ok_and(|statuses| !statuses.is_empty())
+    repo.statuses(Some(&mut options))
+        .is_ok_and(|statuses| !statuses.is_empty())
 }
 
 /// Reads git state for the repo at `path`. Fails only if `path` isn't a git

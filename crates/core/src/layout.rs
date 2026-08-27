@@ -9,8 +9,10 @@ use crate::error::{Error, Result};
 /// `{host}`/`{owner}`/`{repo}` template.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[derive(Default)]
 pub enum PathLayout {
     /// `{host}/{owner}/{repo}` — e.g. `github.com/torvalds/linux`.
+    #[default]
     HostOwnerRepo,
     /// `{owner}/{repo}` — e.g. `torvalds/linux`.
     OwnerRepo,
@@ -18,12 +20,6 @@ pub enum PathLayout {
     Flat,
     /// A user-supplied template using the same `{host}`/`{owner}`/`{repo}` placeholders.
     Custom { template: String },
-}
-
-impl Default for PathLayout {
-    fn default() -> Self {
-        Self::HostOwnerRepo
-    }
 }
 
 impl PathLayout {

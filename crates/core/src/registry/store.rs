@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::error::{Error, Result};
 use crate::paths;
@@ -49,7 +49,11 @@ impl RegistryStore {
 
     pub fn get(&self, id: RepoId) -> Result<Repo> {
         self.conn
-            .query_row("SELECT * FROM repos WHERE id = ?1", params![id], row_to_repo)
+            .query_row(
+                "SELECT * FROM repos WHERE id = ?1",
+                params![id],
+                row_to_repo,
+            )
             .optional()?
             .ok_or_else(|| Error::RepoNotFound(id.to_string()))
     }
@@ -73,15 +77,15 @@ impl RegistryStore {
         let mut repos = Vec::new();
         for row in rows {
             let repo = row?;
-            if let Some(tag) = tag {
-                if !repo.tags.iter().any(|t| t == tag) {
-                    continue;
-                }
+            if let Some(tag) = tag
+                && !repo.tags.iter().any(|t| t == tag)
+            {
+                continue;
             }
-            if let Some(host) = host {
-                if repo.host.as_deref() != Some(host) {
-                    continue;
-                }
+            if let Some(host) = host
+                && repo.host.as_deref() != Some(host)
+            {
+                continue;
             }
             repos.push(repo);
         }

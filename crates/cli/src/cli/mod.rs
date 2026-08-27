@@ -1,7 +1,11 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[command(name = "dm", version, about = "Devmode: a project management utility for developers")]
+#[command(
+    name = "dm",
+    version,
+    about = "Devmode: a project management utility for developers"
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -37,9 +41,7 @@ pub enum Command {
     /// Search tracked repos by name (shortcut for `dm repo find`).
     Find { query: String },
     /// Print shell completions for the given shell.
-    Completions {
-        shell: clap_complete::Shell,
-    },
+    Completions { shell: clap_complete::Shell },
     /// Manage workspaces — named, non-destructive groups of repos.
     Workspace {
         #[command(subcommand)]

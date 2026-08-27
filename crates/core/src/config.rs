@@ -174,14 +174,13 @@ impl Config {
             "repo.layout" => self.repo.layout = PathLayout::parse(value)?,
             "editor" => self.editor = Some(value.to_string()),
             "interactive" => {
-                self.interactive =
-                    value
-                        .parse::<bool>()
-                        .map_err(|_| Error::InvalidConfigValue {
-                            key: key.to_string(),
-                            value: value.to_string(),
-                            expected: "true or false".to_string(),
-                        })?
+                self.interactive = value
+                    .parse::<bool>()
+                    .map_err(|_| Error::InvalidConfigValue {
+                        key: key.to_string(),
+                        value: value.to_string(),
+                        expected: "true or false".to_string(),
+                    })?
             }
             "ui.theme_mode" => self.ui.theme_mode = ThemeMode::parse(value)?,
             "ui.light_theme" => self.ui.light_theme = value.to_string(),

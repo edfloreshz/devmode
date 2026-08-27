@@ -27,7 +27,11 @@ pub fn draw(frame: &mut Frame, app: &App) {
             Tab::Repos => 0,
             Tab::Workspaces => 1,
         })
-        .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan));
+        .highlight_style(
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .fg(Color::Cyan),
+        );
     frame.render_widget(tabs, tab_bar);
 
     match app.active_tab {

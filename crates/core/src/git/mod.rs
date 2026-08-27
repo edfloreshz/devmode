@@ -6,12 +6,12 @@ mod credentials;
 mod status;
 mod url;
 
-pub use status::{is_dirty, repo_status, CommitSummary, RepoStatus};
-pub use url::{parse_url, ParsedUrl, Scheme};
+pub use status::{CommitSummary, RepoStatus, is_dirty, repo_status};
+pub use url::{ParsedUrl, Scheme, parse_url};
 
 use std::path::{Path, PathBuf};
 
-use git2::{build::RepoBuilder, Repository};
+use git2::{Repository, build::RepoBuilder};
 
 use crate::error::{Error, Result};
 

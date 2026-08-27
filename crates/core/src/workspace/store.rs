@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::error::{Error, Result};
 use crate::paths;
@@ -58,7 +58,8 @@ impl WorkspaceStore {
     pub fn list(&self) -> Result<Vec<Workspace>> {
         let mut stmt = self.conn.prepare("SELECT * FROM workspaces ORDER BY id")?;
         let rows = stmt.query_map([], row_to_workspace)?;
-        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Error::from)
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Error::from)
     }
 
     pub fn delete(&self, id: &str) -> Result<()> {
@@ -136,7 +137,8 @@ impl WorkspaceStore {
             "SELECT repo_id FROM workspace_members WHERE workspace_id = ?1 ORDER BY position",
         )?;
         let rows = stmt.query_map(params![workspace_id], |row| row.get(0))?;
-        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Error::from)
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Error::from)
     }
 
     /// Workspaces that a given repo belongs to — used by `dm repo remove`
@@ -149,7 +151,8 @@ impl WorkspaceStore {
              ORDER BY w.id",
         )?;
         let rows = stmt.query_map(params![repo_id], row_to_workspace)?;
-        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Error::from)
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Error::from)
     }
 
     pub fn env_set(&self, workspace_id: &str, key: &str, value: &str) -> Result<()> {
@@ -177,7 +180,8 @@ impl WorkspaceStore {
             .conn
             .prepare("SELECT key, value FROM workspace_env WHERE workspace_id = ?1 ORDER BY key")?;
         let rows = stmt.query_map(params![workspace_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
-        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Error::from)
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Error::from)
     }
 }
 

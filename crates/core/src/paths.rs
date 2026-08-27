@@ -83,10 +83,7 @@ mod tests {
 
     #[test]
     fn leaves_clean_absolute_paths_untouched() {
-        assert_eq!(
-            normalize_path(Path::new("/a/b/c")),
-            PathBuf::from("/a/b/c")
-        );
+        assert_eq!(normalize_path(Path::new("/a/b/c")), PathBuf::from("/a/b/c"));
     }
 
     #[test]

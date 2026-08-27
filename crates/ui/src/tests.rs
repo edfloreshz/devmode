@@ -76,7 +76,10 @@ fn repos_empty_state_offers_a_way_forward() {
 
 #[test]
 fn repos_list_shows_names_and_selected_detail() {
-    let app = app_with(snapshot(vec![repo(1, "alpha"), repo(2, "beta")], Vec::new()));
+    let app = app_with(snapshot(
+        vec![repo(1, "alpha"), repo(2, "beta")],
+        Vec::new(),
+    ));
     let mut ui = simulator(repos::view(&app));
 
     assert!(ui.find("alpha").is_ok());
@@ -87,7 +90,10 @@ fn repos_list_shows_names_and_selected_detail() {
 
 #[test]
 fn repos_search_narrows_the_list() {
-    let mut app = app_with(snapshot(vec![repo(1, "alpha"), repo(2, "beta")], Vec::new()));
+    let mut app = app_with(snapshot(
+        vec![repo(1, "alpha"), repo(2, "beta")],
+        Vec::new(),
+    ));
 
     let _ = repos::update(&mut app, repos::Message::Search("beta".to_string()));
 
@@ -101,7 +107,10 @@ fn repos_search_narrows_the_list() {
 
 #[test]
 fn repos_search_moves_the_selection_to_a_visible_repo() {
-    let mut app = app_with(snapshot(vec![repo(1, "alpha"), repo(2, "beta")], Vec::new()));
+    let mut app = app_with(snapshot(
+        vec![repo(1, "alpha"), repo(2, "beta")],
+        Vec::new(),
+    ));
     assert_eq!(app.repos.selected, Some(1));
 
     let _ = repos::update(&mut app, repos::Message::Search("beta".to_string()));
@@ -145,7 +154,10 @@ fn clicking_clone_opens_the_clone_dialog() {
         let _ = app.update(message);
     }
 
-    assert!(matches!(app.repos.dialog, Some(repos::Dialog::Clone { .. })));
+    assert!(matches!(
+        app.repos.dialog,
+        Some(repos::Dialog::Clone { .. })
+    ));
 
     // The dialog is now on screen with its fields.
     let mut ui = simulator(repos::view(&app));
@@ -399,10 +411,7 @@ fn picking_a_theme_previews_before_saving() {
     let mut app = app_with(snapshot(Vec::new(), Vec::new()));
     app.settings.theme_mode = ThemeMode::Dark;
 
-    let _ = settings::update(
-        &mut app,
-        settings::Message::DarkThemeChanged(Theme::Nord),
-    );
+    let _ = settings::update(&mut app, settings::Message::DarkThemeChanged(Theme::Nord));
 
     assert_eq!(
         app.theme(),

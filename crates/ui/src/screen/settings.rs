@@ -160,9 +160,10 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             let current = app.settings.root.trim();
             let starting = (!current.is_empty()).then(|| PathBuf::from(current));
 
-            Task::perform(crate::task::pick_folder("Choose a folder", starting), |picked| {
-                wrap(Message::RootPicked(picked))
-            })
+            Task::perform(
+                crate::task::pick_folder("Choose a folder", starting),
+                |picked| wrap(Message::RootPicked(picked)),
+            )
         }
         Message::RootPicked(Some(picked)) => {
             app.settings.root = picked.display().to_string();
@@ -355,9 +356,7 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
     );
 
     let mut body = column![
-        design::muted(
-            text("Where a repo lands under your repo root.").size(design::TEXT_SM)
-        ),
+        design::muted(text("Where a repo lands under your repo root.").size(design::TEXT_SM)),
         picker,
     ]
     .spacing(design::MD);
@@ -378,9 +377,7 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
             format!(
                 "{}/{}",
                 state.root.trim_end_matches('/'),
-                layout
-                    .render("github.com", "torvalds", "linux")
-                    .display()
+                layout.render("github.com", "torvalds", "linux").display()
             ),
         ),
         Err(error) => row![
@@ -394,23 +391,23 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
 
     // Changing the layout never moves anything on its own; surface the drift
     // it creates and offer the fix, exactly as `dm config set` does.
-    if let Some(snapshot) = app.snapshot() {
-        if !snapshot.drift.is_empty() {
-            body = body.push(
-                row![
-                    design::badge("Layout", Tone::Warning),
-                    text(format!(
-                        "{} tracked repo(s) don't match this layout.",
-                        snapshot.drift.len()
-                    ))
-                    .size(design::TEXT_SM),
-                    space::horizontal(),
-                    design::secondary_button("Move them", wrap(Message::FixDrift)),
-                ]
-                .spacing(design::SM)
-                .align_y(Center),
-            );
-        }
+    if let Some(snapshot) = app.snapshot()
+        && !snapshot.drift.is_empty()
+    {
+        body = body.push(
+            row![
+                design::badge("Layout", Tone::Warning),
+                text(format!(
+                    "{} tracked repo(s) don't match this layout.",
+                    snapshot.drift.len()
+                ))
+                .size(design::TEXT_SM),
+                space::horizontal(),
+                design::secondary_button("Move them", wrap(Message::FixDrift)),
+            ]
+            .spacing(design::SM)
+            .align_y(Center),
+        );
     }
 
     design::section("Layout", body)
@@ -422,7 +419,10 @@ fn layout_section(app: &App) -> Element<'_, AppMessage> {
 /// (a hand-edited typo, or a theme from a newer iced) resolves to `None` and
 /// the caller falls back rather than failing to start.
 pub fn theme_named(name: &str) -> Option<Theme> {
-    Theme::ALL.iter().find(|theme| theme.to_string() == name).cloned()
+    Theme::ALL
+        .iter()
+        .find(|theme| theme.to_string() == name)
+        .cloned()
 }
 
 /// The built-in themes with light palettes, and the ones with dark palettes.
@@ -500,8 +500,7 @@ fn appearance_section(app: &App) -> Element<'_, AppMessage> {
             ]
             .spacing(design::MD),
             design::muted(
-                text("Changes preview straight away; Save keeps them.")
-                    .size(design::TEXT_SM)
+                text("Changes preview straight away; Save keeps them.").size(design::TEXT_SM)
             ),
         ]
         .spacing(design::MD),

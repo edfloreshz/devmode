@@ -4,11 +4,11 @@
 //! Screens compose these rather than styling things ad hoc, so a change here
 //! moves the whole app at once and the four screens can't quietly drift apart.
 
+use iced::border;
 use iced::widget::{
     Column, Row, button, column, container, mouse_area, row, rule, scrollable, space, text,
     text_input,
 };
-use iced::border;
 use iced::{Center, Color, Element, Fill, Font, Left, Padding, Theme, mouse};
 
 /// A 4px-based spacing scale. Using named steps instead of magic numbers is
@@ -51,9 +51,7 @@ pub fn page_header<'a, Message: 'a>(
 }
 
 /// De-emphasised text — labels, hints, secondary metadata.
-pub fn muted<'a, Message: 'a>(
-    content: iced::widget::Text<'a, Theme>,
-) -> Element<'a, Message> {
+pub fn muted<'a, Message: 'a>(content: iced::widget::Text<'a, Theme>) -> Element<'a, Message> {
     content
         .style(|theme: &Theme| iced::widget::text::Style {
             color: Some(theme.extended_palette().background.strong.text),
@@ -83,10 +81,17 @@ pub fn mono_field<'a, Message: 'a>(label: &'a str, value: impl ToString) -> Elem
 
 /// Text styled to read as clickable — tinted with the theme's primary
 /// color. Pair with [`link`] to actually make it respond to clicks.
-pub fn link_text<'a>(content: impl ToString, size: f32, mono: bool) -> iced::widget::Text<'a, Theme> {
-    let content = text(content.to_string()).size(size).style(|theme: &Theme| iced::widget::text::Style {
-        color: Some(theme.extended_palette().primary.base.color),
-    });
+pub fn link_text<'a>(
+    content: impl ToString,
+    size: f32,
+    mono: bool,
+) -> iced::widget::Text<'a, Theme> {
+    let content =
+        text(content.to_string())
+            .size(size)
+            .style(|theme: &Theme| iced::widget::text::Style {
+                color: Some(theme.extended_palette().primary.base.color),
+            });
 
     if mono { content.font(MONO) } else { content }
 }
@@ -224,12 +229,8 @@ pub enum Tone {
     Danger,
 }
 
-
-
 /// A row of buttons, right-aligned — the standard footer for dialogs.
-pub fn button_row<'a, Message: 'a>(
-    buttons: Vec<Element<'a, Message>>,
-) -> Element<'a, Message> {
+pub fn button_row<'a, Message: 'a>(buttons: Vec<Element<'a, Message>>) -> Element<'a, Message> {
     let mut row = Row::new().spacing(SM).align_y(Center);
     for button in buttons {
         row = row.push(button);
@@ -497,4 +498,3 @@ mod contrast_tests {
         }
     }
 }
-

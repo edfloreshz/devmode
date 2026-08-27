@@ -51,5 +51,8 @@ pub async fn pick_folder(title: &'static str, starting: Option<PathBuf>) -> Opti
         dialog = dialog.set_directory(starting);
     }
 
-    dialog.pick_folder().await.map(|handle| handle.path().to_path_buf())
+    dialog
+        .pick_folder()
+        .await
+        .map(|handle| handle.path().to_path_buf())
 }
