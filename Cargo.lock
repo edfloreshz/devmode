@@ -1104,7 +1104,7 @@ dependencies = [
 
 [[package]]
 name = "devmode"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -1219,7 +1219,7 @@ dependencies = [
 
 [[package]]
 name = "dm-core"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "directories",
  "git-url-parse",
@@ -1233,14 +1233,14 @@ dependencies = [
 
 [[package]]
 name = "dm-util"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "colored",
 ]
 
 [[package]]
 name = "dmtui"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "crossterm 0.28.1",
  "dm-core",
@@ -1253,7 +1253,7 @@ dependencies = [
 
 [[package]]
 name = "dmui"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "dm-core",
  "fuzzy-matcher",

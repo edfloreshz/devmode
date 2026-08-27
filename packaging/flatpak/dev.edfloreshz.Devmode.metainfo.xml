@@ -44,14 +44,68 @@
   -->
 
   <releases>
-    <release version="0.1.0" date="2026-08-27">
+    <release version="0.5.0" date="2026-08-27">
+      <url type="details">https://github.com/edfloreshz/devmode/releases/tag/v0.5.0</url>
       <description>
-        <p>We are live!</p>
+        <p>
+          First public release, and a ground-up rewrite. Devmode now ships a
+          desktop app, a terminal UI, and the <code>dm</code> command line
+          tool, all sharing one local registry.
+        </p>
         <ul>
           <li>Track repositories you clone, create, or already have on disk in a local registry.</li>
           <li>Lay cloned repositories out automatically under a configurable root, with built-in or custom naming conventions.</li>
           <li>Group repositories into non-destructive workspaces, each with its own default editor and environment variables.</li>
           <li>Open every repository in a workspace at once.</li>
+          <li>Discover untracked repositories on disk and reconcile entries that no longer match reality.</li>
+        </ul>
+      </description>
+    </release>
+
+    <release version="0.4.0" date="2024-12-30">
+      <url type="details">https://github.com/edfloreshz/devmode/releases/tag/v0.4.0</url>
+      <description>
+        <p>Maintenance release focused on trimming the tool down.</p>
+        <ul>
+          <li>Separated the command line interface from the shared core logic.</li>
+          <li>Reworked workspaces to be easier to use.</li>
+          <li>Removed most subcommands and several configuration options.</li>
+          <li>Improved dependency usage and internal error handling.</li>
+        </ul>
+      </description>
+    </release>
+
+    <release version="0.3.0" date="2022-07-24">
+      <url type="details">https://github.com/edfloreshz/devmode/releases/tag/v0.3.0</url>
+      <description>
+        <p>Introduced workspaces.</p>
+        <ul>
+          <li>Create, rename, and delete workspaces.</li>
+          <li>Clone a repository directly into a workspace.</li>
+          <li>Add existing repositories to a workspace and remove them again.</li>
+        </ul>
+      </description>
+    </release>
+
+    <release version="0.2.0" date="2021-12-03">
+      <description>
+        <p>Published to crates.io as <code>dm</code>, with a shorter command name.</p>
+        <ul>
+          <li>Added the <code>fork</code> command: clone a repository and set its upstream to your fork.</li>
+          <li>Clone several repositories in one invocation, including private ones.</li>
+          <li>Added short aliases for the subcommands.</li>
+          <li>Rebuilt the configuration handling with integrity checks for a missing or corrupt config directory.</li>
+        </ul>
+      </description>
+    </release>
+
+    <release version="0.1.0" date="2021-09-10">
+      <description>
+        <p>First release of the <code>devmode</code> command line tool.</p>
+        <ul>
+          <li>Clone repositories into a consistent host/owner/repository folder structure.</li>
+          <li>Open a tracked project in your configured text editor.</li>
+          <li>Configure your text editor, Git host, and Git user.</li>
         </ul>
       </description>
     </release>

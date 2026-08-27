@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/core", "crates/cli", "crates/tui", "crates/ui", "crates/util"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.5.0"
 edition = "2024"
 license = "GPL-3.0-only"
 repository = "https://github.com/edfloreshz/devmode"
@@ -21,8 +21,8 @@ readme = "README.md"
 result_large_err = "allow"
 
 [workspace.dependencies]
-dm-core = { path = "crates/core", version = "0.1.0" }
-dm-util = { path = "crates/util", version = "0.1.0" }
+dm-core = { path = "crates/core", version = "0.5.0" }
+dm-util = { path = "crates/util", version = "0.5.0" }
 clap = { version = "4.5", features = ["derive", "cargo"] }
 clap_complete = "4.5"
 thiserror = "2.0"
