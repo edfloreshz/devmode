@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.edfloreshz.Devmode</id>
+
+  <name>Devmode</name>
+  <summary>Manage repos and group them into workspaces</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="dev.edfloreshz">
+    <name>Eduardo Flores</name>
+  </developer>
+
+  <description>
+    <p>
+      Devmode is a project management utility for developers. It helps you
+      manage repositories and group them into workspaces.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Track repos you clone, create, or already have on disk in a local registry.</li>
+      <li>Lay out cloned repos automatically under a configurable root.</li>
+      <li>Group repos into workspaces with their own editor and environment.</li>
+      <li>Open every repo in a workspace with a single command.</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">dev.edfloreshz.Devmode.desktop</launchable>
+
+  <url type="homepage">https://github.com/edfloreshz/devmode</url>
+  <url type="bugtracker">https://github.com/edfloreshz/devmode/issues</url>
+  <url type="vcs-browser">https://github.com/edfloreshz/devmode</url>
+
+  <content_rating type="oars-1.1" />
+
+  <!-- TODO: Flathub requires at least one screenshot. Add real ones hosted in
+       the repo, then uncomment:
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/edfloreshz/devmode/main/assets/screenshots/repos.png</image>
+      <caption>Browsing tracked repositories</caption>
+    </screenshot>
+  </screenshots>
+  -->
+
+  <releases>
+    <release version="0.1.0" date="2026-08-27">
+      <description>
+        <p>We are live!</p>
+        <ul>
+          <li>Track repositories you clone, create, or already have on disk in a local registry.</li>
+          <li>Lay cloned repositories out automatically under a configurable root, with built-in or custom naming conventions.</li>
+          <li>Group repositories into non-destructive workspaces, each with its own default editor and environment variables.</li>
+          <li>Open every repository in a workspace at once.</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+</component>

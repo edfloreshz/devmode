@@ -4,13 +4,20 @@ members = ["crates/core", "crates/cli", "crates/tui", "crates/ui", "crates/util"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
-license = "MIT"
+edition = "2024"
+license = "GPL-3.0-only"
 repository = "https://github.com/edfloreshz/devmode"
+authors = ["Eduardo Flores <edfloreshz@gmail.com>"]
+description = "A project management utility for developers."
+homepage = "https://github.com/edfloreshz/devmode"
+documentation = "https://github.com/edfloreshz/devmode"
+keywords = ["project", "management", "cli", "tui", "ui"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
 
 [workspace.dependencies]
-dm-core = { path = "crates/core" }
-dm-util = { path = "crates/util" }
+dm-core = { path = "crates/core", version = "0.1.0" }
+dm-util = { path = "crates/util", version = "0.1.0" }
 clap = { version = "4.5", features = ["derive", "cargo"] }
 clap_complete = "4.5"
 thiserror = "2.0"
@@ -31,13 +38,8 @@ ratatui = "0.29"
 crossterm = "0.28"
 fuzzy-matcher = "0.3"
 tui-input = "0.11"
-# `smol` selects the async backend that provides `iced::time::every`; the
-# default `thread-pool` backend has no timer support.
-iced = { version = "0.14", features = ["smol"] }
+iced = { version = "0.14", features = ["smol", "image"] }
 iced_test = "0.14"
-# Default features (`xdg-portal`, `wayland`) give Linux the native
-# xdg-desktop-portal file chooser instead of a GTK dialog; macOS and
-# Windows use their native pickers regardless.
 rfd = "0.17"
 notify-debouncer-mini = "0.4"
 open = "5.4"

@@ -1,0 +1,46 @@
+name: Flatpak cargo sources
+
+on:
+  push:
+    branches: [main, rewrite]
+    paths:
+      - 'Cargo.lock'
+      - '.github/workflows/cargo-sources.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cargo-sources-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate generated-sources.json
+        run: |
+          pip install --quiet aiohttp toml
+          curl -sSfL -o /tmp/flatpak-cargo-generator.py \
+            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py
+          python /tmp/flatpak-cargo-generator.py Cargo.lock \
+            -o packaging/flatpak/generated-sources.json
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- packaging/flatpak/generated-sources.json; then
+            echo "generated-sources.json already up to date."
+            exit 0
+          fi
+          git config user.name  "Eduardo Flores"
+          git config user.email "edfloreshz@gmail.com"
+          git add packaging/flatpak/generated-sources.json
+          git commit -m "chore(flatpak): regenerate generated-sources.json"
+          git push

@@ -560,7 +560,10 @@ fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
 // `&PathBuf` (clippy would rather `&Path`) because `Subscription::run_with`
 // requires a `fn(&D) -> S` matching the `PathBuf` data it was given.
 #[allow(clippy::ptr_arg)]
-fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> {
+// `+ use<>`: the returned stream borrows nothing from `path` (it clones), so it
+// must opt out of the Rust 2024 default of capturing the `&PathBuf` lifetime —
+// otherwise it can't coerce to the `fn(&D) -> S` that `run_with` wants.
+fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> + use<> {
     use iced::futures::{channel::mpsc, SinkExt, StreamExt};
     use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};
 
