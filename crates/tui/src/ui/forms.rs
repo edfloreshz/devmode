@@ -33,6 +33,8 @@ fn title(kind: FormKind) -> &'static str {
         }
         FormKind::WorkspaceConfig => "Edit workspace (tab: next field, enter: submit, esc: cancel)",
         FormKind::WorkspaceEnv => "Set env var (tab: next field, enter: submit, esc: cancel)",
+        FormKind::ConfigEdit => "Edit setting (enter: save, esc: cancel)",
+        FormKind::Setup => "Welcome to devmode, set up (tab: next field, enter: finish)",
     }
 }
 
