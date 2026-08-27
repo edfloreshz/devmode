@@ -1,6 +1,6 @@
 //! Bridging dm-core's synchronous, blocking API into iced's async runtime.
 //!
-//! `dm-core` is deliberately synchronous — it's shared by the CLI, the TUI,
+//! `dm-core` is deliberately synchronous, it's shared by the CLI, the TUI,
 //! and this GUI, and none of the others want an async runtime. Rather than
 //! colour the library async for one consumer, the GUI runs each blocking
 //! call (SQLite queries, filesystem walks, git clones) on its own thread and
@@ -41,7 +41,7 @@ where
 /// cancels.
 ///
 /// `rfd`'s default features give each platform its real picker: Explorer on
-/// Windows, NSOpenPanel on macOS, and — via `xdg-portal` — the desktop's own
+/// Windows, NSOpenPanel on macOS, and, via `xdg-portal`, the desktop's own
 /// xdg-desktop-portal chooser on Linux, so this respects Flatpak/sandboxed
 /// environments instead of shelling out to a bundled GTK dialog.
 pub async fn pick_folder(title: &'static str, starting: Option<PathBuf>) -> Option<PathBuf> {

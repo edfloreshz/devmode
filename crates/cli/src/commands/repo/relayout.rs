@@ -20,7 +20,7 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
 
     if !apply {
         println!(
-            "\nthis was a preview — re-run with --apply to move these repos and update the registry"
+            "\nthis was a preview, re-run with --apply to move these repos and update the registry"
         );
         return Ok(());
     }
@@ -50,7 +50,7 @@ pub fn print_candidates(candidates: &[Candidate], config: &Config) {
 }
 
 /// Whether any tracked repos have host/owner metadata that could drift from
-/// the current layout — used to decide whether to suggest `dm repo
+/// the current layout, used to decide whether to suggest `dm repo
 /// relayout` after `dm config set layout`.
 pub fn has_relayout_candidates() -> Result<bool> {
     Ok(relayout::has_candidates()?)

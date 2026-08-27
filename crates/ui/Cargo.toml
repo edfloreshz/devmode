@@ -26,3 +26,6 @@ open.workspace = true
 
 [dev-dependencies]
 iced_test.workspace = true
+
+[lints]
+workspace = true

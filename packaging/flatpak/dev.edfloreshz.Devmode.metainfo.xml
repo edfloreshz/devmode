@@ -34,8 +34,7 @@
 
   <content_rating type="oars-1.1" />
 
-  <!-- TODO: Flathub requires at least one screenshot. Add real ones hosted in
-       the repo, then uncomment:
+  <!-- Flathub requires at least one screenshot.
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/edfloreshz/devmode/main/assets/screenshots/repos.png</image>

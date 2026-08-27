@@ -114,7 +114,7 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             )
         }
         Message::ScanFinished(Ok(found)) => {
-            // Everything found is worth tracking by default — the user is
+            // Everything found is worth tracking by default, the user is
             // here because they want these in the registry.
             let selected = (0..found.len()).collect();
             app.discovery.scan = Scan::Done { found, selected };
@@ -235,8 +235,6 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
     }
 }
 
-// -- view ---------------------------------------------------------------------
-
 pub fn view(app: &App) -> Element<'_, AppMessage> {
     design::page(column![
         design::page_header(
@@ -296,7 +294,7 @@ fn scan_section(app: &App) -> Element<'_, AppMessage> {
                 column![
                     controls,
                     design::muted(
-                        text("No untracked repos found there — everything is already tracked.")
+                        text("No untracked repos found there, everything is already tracked.")
                             .size(design::TEXT_SM)
                     ),
                 ]

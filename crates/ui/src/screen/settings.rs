@@ -69,7 +69,7 @@ pub struct State {
 }
 
 impl State {
-    /// Adopts freshly loaded config, unless the user has unsaved edits — a
+    /// Adopts freshly loaded config, unless the user has unsaved edits, a
     /// background reload shouldn't discard something half-typed.
     pub fn sync_from(&mut self, config: &Config) {
         if self.saved.is_some() && self.is_dirty() {
@@ -291,8 +291,6 @@ fn save(
     })()
     .map_err(|e| e.to_string())
 }
-
-// -- view ---------------------------------------------------------------------
 
 pub fn view(app: &App) -> Element<'_, AppMessage> {
     let state = &app.settings;

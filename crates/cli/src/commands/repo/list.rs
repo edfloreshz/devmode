@@ -12,7 +12,7 @@ pub fn run(tag: Option<String>, host: Option<String>, json: bool) -> Result<()> 
     }
 
     if repos.is_empty() {
-        println!("no repos tracked yet — run `dm repo track <path>` to add one");
+        println!("no repos tracked yet, run `dm repo track <path>` to add one");
         return Ok(());
     }
 

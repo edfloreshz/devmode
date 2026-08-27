@@ -1,5 +1,5 @@
 //! Computing and applying moves that bring tracked repos in line with the
-//! configured `repo.layout` — shared by `dm repo relayout`, `dm repo scan`'s
+//! configured `repo.layout`, shared by `dm repo relayout`, `dm repo scan`'s
 //! drift report, and (eventually) the TUI's drift indicator.
 
 use std::path::PathBuf;
@@ -27,7 +27,7 @@ pub fn plan() -> Result<Vec<Candidate>> {
 
 /// Moves each candidate on disk and updates its registry entry, skipping
 /// any target that already exists rather than overwriting it. Returns
-/// `(moved, skipped)` — skipped entries are just names, for the caller to
+/// `(moved, skipped)`, skipped entries are just names, for the caller to
 /// report however it likes (println, TUI status line, etc).
 pub fn apply_candidates(candidates: Vec<Candidate>) -> Result<(usize, Vec<String>)> {
     let store = RegistryStore::open_default()?;
@@ -72,7 +72,7 @@ fn plan_moves(repos: &[Repo], config: &Config) -> Vec<Candidate> {
 }
 
 /// Whether any tracked repos have host/owner metadata that could drift from
-/// the current layout — used to decide whether to suggest `dm repo
+/// the current layout, used to decide whether to suggest `dm repo
 /// relayout` after `dm config set layout`.
 pub fn has_candidates() -> Result<bool> {
     Ok(!plan()?.is_empty())

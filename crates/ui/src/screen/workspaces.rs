@@ -423,7 +423,7 @@ fn save_config(id: &str, editing: Editing) -> Result<String, String> {
 /// Opens the workspace's member repos in its editor.
 ///
 /// Unlike `dm workspace switch`, the GUI spawns the editor detached instead
-/// of waiting on it — the window stays usable, and a long-lived editor
+/// of waiting on it, the window stays usable, and a long-lived editor
 /// shouldn't pin the app open.
 fn switch(id: &str) -> Result<String, String> {
     (|| -> dm_core::Result<String> {
@@ -523,8 +523,6 @@ fn candidates<'a>(
     scored.sort_by_key(|&(score, _)| std::cmp::Reverse(score));
     scored.into_iter().map(|(_, repo)| repo).collect()
 }
-
-// -- view ---------------------------------------------------------------------
 
 pub fn view(app: &App) -> Element<'_, AppMessage> {
     let Some(snapshot) = app.snapshot() else {
@@ -826,8 +824,6 @@ fn env_section(app: &App) -> Element<'_, AppMessage> {
     )
 }
 
-// -- dialogs ------------------------------------------------------------------
-
 fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> {
     let (title, hint, fields, confirm, destructive): (_, _, Element<'a, AppMessage>, _, bool) =
         match dialog {
@@ -922,7 +918,7 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                 query,
                 selected,
             } => {
-                // Whether *anything* is left to add — distinct from the
+                // Whether *anything* is left to add, distinct from the
                 // current query matching nothing, which just empties the
                 // results below while keeping the search field around.
                 let available = app
@@ -1050,7 +1046,7 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
             ),
             Dialog::Delete { id, members } => (
                 "Delete this workspace",
-                "The repos themselves are untouched — only the grouping goes away.",
+                "The repos themselves are untouched, only the grouping goes away.",
                 column![
                     text(format!(
                         "“{id}” and its {members} membership(s) will be deleted."

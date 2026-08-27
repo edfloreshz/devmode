@@ -7,7 +7,7 @@ use crate::error::Result;
 
 /// Confirms with the user. When `interactive` config is disabled, falls back
 /// to a plain stdin read instead of `inquire::Confirm`, which hard-errors
-/// without a real TTY — this is what lets `dm` be piped in scripts/CI.
+/// without a real TTY, this is what lets `dm` be piped in scripts/CI.
 pub fn confirm(prompt: &str) -> Result<bool> {
     if Config::load()?.interactive {
         Ok(inquire::Confirm::new(prompt).with_default(false).prompt()?)

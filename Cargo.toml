@@ -15,6 +15,11 @@ keywords = ["project", "management", "cli", "tui", "ui"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 
+[workspace.lints.clippy]
+# `dm_core::Error` carries `toml::de::Error`, which pushes the enum past the
+# lint's 128-byte threshold on some targets (Windows).
+result_large_err = "allow"
+
 [workspace.dependencies]
 dm-core = { path = "crates/core", version = "0.1.0" }
 dm-util = { path = "crates/util", version = "0.1.0" }
@@ -25,8 +30,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "0.8"
 directories = "5.0"
-git2 = "0.20"
-git2_credentials = { version = "0.15", default-features = false }
+git2 = "0.21"
+git2_credentials = { version = "0.16", default-features = false }
 git-url-parse = "0.4"
 rusqlite = { version = "0.32", features = ["bundled"] }
 assert_cmd = "2.0"

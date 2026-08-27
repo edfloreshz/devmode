@@ -40,7 +40,7 @@ pub enum Dialog {
         id: RepoId,
         url: String,
         /// The last SSH host/port seen for this remote, remembered across
-        /// toggling to HTTPS and back — HTTPS has nowhere to display a port,
+        /// toggling to HTTPS and back, HTTPS has nowhere to display a port,
         /// but switching back to SSH shouldn't have to lose it.
         ssh_port: Option<(String, u16)>,
     },
@@ -56,7 +56,7 @@ pub struct State {
     pub query: String,
     pub selected: Option<RepoId>,
     pub dialog: Option<Dialog>,
-    /// The selected repo's git status, loaded on demand — `None` while
+    /// The selected repo's git status, loaded on demand, `None` while
     /// loading, or if it isn't (or is no longer) a git repo.
     pub git_status: Option<git::RepoStatus>,
 }
@@ -295,8 +295,6 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
     }
 }
 
-// -- dm-core calls, each run on a worker thread -------------------------------
-
 fn clone(url: &str, path: Option<PathBuf>) -> Result<String, String> {
     (|| -> dm_core::Result<String> {
         let parsed = git::parse_url(url)?;
@@ -416,7 +414,7 @@ fn remove(id: RepoId, name: &str, delete: bool) -> Result<String, String> {
     .map_err(|e| e.to_string())
 }
 
-/// Spawns the configured editor on `path`, detached — the same approach as
+/// Spawns the configured editor on `path`, detached, the same approach as
 /// opening a workspace, just for a single repo with no per-repo override.
 fn open_project(path: &Path) -> Result<String, String> {
     (|| -> dm_core::Result<String> {
@@ -514,7 +512,7 @@ fn dialog_path_mut(dialog: &mut Dialog) -> Option<&mut String> {
 /// be parsed (e.g. a URL the user is still in the middle of typing).
 ///
 /// `port_hint`, if it's for the same host, fills in the SSH port that a
-/// prior toggle to HTTPS would otherwise have thrown away — HTTPS has
+/// prior toggle to HTTPS would otherwise have thrown away, HTTPS has
 /// nowhere to keep it, but switching back to SSH should restore it.
 fn reformatted(url: &str, scheme: git::Scheme, port_hint: Option<(String, u16)>) -> String {
     let Ok(mut parsed) = git::parse_url(url) else {
@@ -554,8 +552,6 @@ fn optional_path(value: &str) -> Option<PathBuf> {
 
     (!trimmed.is_empty()).then(|| PathBuf::from(trimmed))
 }
-
-// -- view ---------------------------------------------------------------------
 
 /// Fuzzy-matches the query against repo names, best match first. An empty
 /// query keeps the registry's own alphabetical order.
@@ -939,7 +935,7 @@ fn git_section<'a>(
         body = body.push(design::field(
             "Last commit",
             column![
-                text(format!("{summary} — {}", relative_time(commit.when))).size(design::TEXT_MD),
+                text(format!("{summary}, {}", relative_time(commit.when))).size(design::TEXT_MD),
                 hash_line,
             ]
             .spacing(2.0)
@@ -994,8 +990,6 @@ fn relative_time(when: std::time::SystemTime) -> String {
     let plural = if amount == 1 { "" } else { "s" };
     format!("{amount} {unit}{plural} ago")
 }
-
-// -- dialogs ------------------------------------------------------------------
 
 /// Overlays `content` with a centred dialog card, dimming what's behind it.
 pub fn modal<'a>(

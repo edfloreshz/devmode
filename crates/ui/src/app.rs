@@ -139,7 +139,7 @@ impl App {
     }
 
     pub fn title(&self) -> String {
-        format!("Devmode — {}", self.screen.title())
+        format!("Devmode, {}", self.screen.title())
     }
 
     /// Resolves the theme from the user's settings and, when they've chosen
@@ -240,7 +240,7 @@ impl App {
             }
             Message::StateChanged(fingerprint) => {
                 // `dm` or `dmtui` changed the registry or config underneath
-                // us — pick the change up instead of showing stale data.
+                // us, pick the change up instead of showing stale data.
                 if fingerprint.is_some() && fingerprint != self.fingerprint {
                     self.fingerprint = fingerprint;
                     return self.reload();
@@ -397,7 +397,7 @@ impl App {
     /// behind it, keeping the native traffic lights while giving the bar
     /// itself devmode's own color and label instead of the OS default. It's
     /// still the *real* titlebar under there, so the OS keeps handling drag
-    /// and double-click-to-maximize on its own — no custom code needed.
+    /// and double-click-to-maximize on its own, no custom code needed.
     ///
     /// Elsewhere, decorations are just the normal OS ones and this is a
     /// no-op: the traffic-light trick has no equivalent to hook into.
@@ -409,7 +409,7 @@ impl App {
             .padding(iced::Padding::from([0.0, design::MD]).left(88.0))
             .width(Fill)
             // `center_y` also *sets* the height (to whatever's passed), so
-            // this has to be the fixed bar height, not `Fill` — passing
+            // this has to be the fixed bar height, not `Fill`, passing
             // `Fill` here is what stretched the bar over most of the window.
             .center_y(28)
             .style(|theme: &Theme| container::Style {
@@ -512,7 +512,7 @@ impl App {
 }
 
 /// One of the title bar's minimize/maximize/close controls: a fixed-size
-/// flat glyph button, filled on hover — red for `is_close`, matching the
+/// flat glyph button, filled on hover, red for `is_close`, matching the
 /// convention every platform's own close button follows, muted otherwise.
 /// Global shortcuts. `keyboard::listen` only reports events no focused widget
 /// consumed, so these can't fire while the user is typing in a text field.
@@ -552,17 +552,7 @@ fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
 
 /// Watches `path` for filesystem changes and asks the app to re-read git
 /// status each time activity settles, without ever polling.
-///
-/// `notify`'s own callback runs on a thread it owns and can't `.await`, so
-/// it's bridged into this async stream with a plain channel: the callback
-/// sends into a `std::mpsc`, a dedicated thread blocks on that and forwards
-/// into the `futures::mpsc` channel the stream can actually poll.
-// `&PathBuf` (clippy would rather `&Path`) because `Subscription::run_with`
-// requires a `fn(&D) -> S` matching the `PathBuf` data it was given.
 #[allow(clippy::ptr_arg)]
-// `+ use<>`: the returned stream borrows nothing from `path` (it clones), so it
-// must opt out of the Rust 2024 default of capturing the `&PathBuf` lifetime —
-// otherwise it can't coerce to the `fn(&D) -> S` that `run_with` wants.
 fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> + use<> {
     use iced::futures::{SinkExt, StreamExt, channel::mpsc};
     use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};

@@ -2,7 +2,7 @@
 //!
 //! `iced_test::simulator` lays out a real widget tree and lets us query and
 //! click it without a window, so these assert what the screens actually
-//! render — not just that the app starts.
+//! render, not just that the app starts.
 
 use std::path::PathBuf;
 
@@ -353,8 +353,6 @@ fn a_workspace_dialog_opened_from_the_empty_state_is_visible() {
         "the create dialog should render over the empty state"
     );
 }
-
-// -- appearance ---------------------------------------------------------------
 
 use dm_core::config::ThemeMode;
 use iced::Theme;

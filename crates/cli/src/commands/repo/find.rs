@@ -2,7 +2,7 @@ use dm_core::registry::RegistryStore;
 
 use crate::error::Result;
 
-/// Local-only search over tracked repos — deliberately not "search", to
+/// Local-only search over tracked repos, deliberately not "search", to
 /// avoid confusion with GitHub-style remote search, which devmode's
 /// fully-local design doesn't provide.
 pub fn run(query: String) -> Result<()> {

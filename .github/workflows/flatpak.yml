@@ -28,10 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Builds the manifest as committed: the working tree is copied in and
-      # cargo fetches crates over the network (the manifest allows this for
-      # non-Flathub builds). This checks the manifest, desktop file, metainfo,
-      # and that the app actually compiles inside the runtime.
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: devmode.flatpak

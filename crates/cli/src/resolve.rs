@@ -23,7 +23,7 @@ pub fn resolve_repo(store: &RegistryStore, identifier: &str) -> Result<Repo> {
                 .map(|r| format!("{} ({})", r.name, r.path.display()))
                 .collect();
             let selected = inquire::Select::new(
-                &format!("multiple repos match '{identifier}' — pick one:"),
+                &format!("multiple repos match '{identifier}', pick one:"),
                 options,
             )
             .prompt()?;

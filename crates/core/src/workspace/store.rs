@@ -20,7 +20,7 @@ impl WorkspaceStore {
         Ok(Self { conn })
     }
 
-    /// Opens the workspace store at the standard devmode data directory —
+    /// Opens the workspace store at the standard devmode data directory,
     /// the same SQLite file `RegistryStore` uses, since workspace
     /// membership has a foreign key into `repos`.
     pub fn open_default() -> Result<Self> {
@@ -141,7 +141,7 @@ impl WorkspaceStore {
             .map_err(Error::from)
     }
 
-    /// Workspaces that a given repo belongs to — used by `dm repo remove`
+    /// Workspaces that a given repo belongs to, used by `dm repo remove`
     /// to warn before untracking a repo that's still a workspace member.
     pub fn workspaces_containing(&self, repo_id: RepoId) -> Result<Vec<Workspace>> {
         let mut stmt = self.conn.prepare(
@@ -165,7 +165,7 @@ impl WorkspaceStore {
         Ok(())
     }
 
-    /// Idempotent — unsetting a key that isn't set is not an error, matching
+    /// Idempotent, unsetting a key that isn't set is not an error, matching
     /// how shell `unset` behaves.
     pub fn env_unset(&self, workspace_id: &str, key: &str) -> Result<()> {
         self.conn.execute(

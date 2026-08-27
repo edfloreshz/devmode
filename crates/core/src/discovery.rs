@@ -77,7 +77,7 @@ pub fn find_untracked(root: &Path) -> Result<Vec<Discovered>> {
 /// Tracks a batch of discovered repos, returning how many were added.
 ///
 /// Skips any that became tracked since discovery rather than failing the
-/// whole batch — with a GUI the user may sit on results for a while.
+/// whole batch, with a GUI the user may sit on results for a while.
 pub fn track_all(discovered: impl IntoIterator<Item = Discovered>) -> Result<usize> {
     let store = RegistryStore::open_default()?;
     let mut tracked = 0;

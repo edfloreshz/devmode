@@ -66,7 +66,7 @@ pub enum Error {
     Git2(#[from] git2::Error),
 
     #[error(
-        "could not authenticate with '{url}' — the repo may not exist, may be private, \
+        "could not authenticate with '{url}', the repo may not exist, may be private, \
              or you may need to configure a credential helper or an SSH key in your ssh-agent"
     )]
     CloneAuthFailed { url: String },
@@ -77,7 +77,7 @@ pub enum Error {
     #[error("destination already exists: {0}")]
     DestinationExists(PathBuf),
 
-    #[error("'{0}' matches more than one tracked repo — try specifying the full path instead")]
+    #[error("'{0}' matches more than one tracked repo, try specifying the full path instead")]
     AmbiguousRepo(String),
 
     #[error("no workspace named '{0}'")]

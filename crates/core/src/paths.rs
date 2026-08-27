@@ -33,17 +33,17 @@ pub fn registry_db_file() -> Result<PathBuf> {
 }
 
 /// Makes `path` absolute (joining the current directory if it's relative)
-/// and lexically cleans up `.`/`..` components — but deliberately does
+/// and lexically cleans up `.`/`..` components, but deliberately does
 /// **not** resolve symlinks. devmode always derives repo/workspace paths
 /// from one stored root via plain string joining, so as long as every path
 /// of record goes through this same normalization, they compare equal by
-/// construction — regardless of what any ancestor directory happens to be a
+/// construction, regardless of what any ancestor directory happens to be a
 /// symlink to (macOS's `/tmp` -> `/private/tmp`, a repo root pointed at an
 /// external drive, a symlinked `$HOME`, etc). Resolving symlinks instead
 /// (via `fs::canonicalize`) would require the path to already exist and
 /// would make two equivalent-looking paths compare unequal whenever they
 /// were canonicalized at different times relative to their directories
-/// being created — which is exactly the bug this replaces.
+/// being created, which is exactly the bug this replaces.
 pub fn normalize_path(path: &Path) -> PathBuf {
     let absolute = if path.is_absolute() {
         path.to_path_buf()

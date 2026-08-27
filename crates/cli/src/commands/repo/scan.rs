@@ -36,9 +36,9 @@ pub fn run(root: Option<PathBuf>, yes: bool) -> Result<()> {
     report_layout_drift(yes)
 }
 
-/// After scanning, also surface repos that don't match the current layout —
+/// After scanning, also surface repos that don't match the current layout,
 /// not just ones just found, but any already-tracked repo that never
-/// matched it — and offer to fix it right here. Honors `scan`'s own --yes
+/// matched it, and offer to fix it right here. Honors `scan`'s own --yes
 /// so this stays usable non-interactively (inquire's prompts require a TTY).
 fn report_layout_drift(yes: bool) -> Result<()> {
     let config = Config::load()?;
@@ -56,7 +56,7 @@ fn report_layout_drift(yes: bool) -> Result<()> {
         }
         println!("moved {moved} repo(s)");
     } else {
-        println!("skipped — run `dm repo relayout` any time to fix this later");
+        println!("skipped, run `dm repo relayout` any time to fix this later");
     }
     Ok(())
 }

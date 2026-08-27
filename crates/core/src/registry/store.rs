@@ -94,7 +94,7 @@ impl RegistryStore {
 
     /// All tracked repos matching a user-supplied `repo` argument: first by
     /// normalized path (exact), then by name (possibly several). Lets a
-    /// caller offer interactive disambiguation instead of hard-erroring —
+    /// caller offer interactive disambiguation instead of hard-erroring,
     /// see `find` for the non-interactive, single-match version.
     pub fn find_matches(&self, identifier: &str) -> Result<Vec<Repo>> {
         let normalized = crate::paths::normalize_path(Path::new(identifier));

@@ -15,7 +15,7 @@ pub struct ParsedUrl {
     pub ssh_port: Option<u16>,
 }
 
-/// Which transport a remote URL uses — the two forms a git host offers side
+/// Which transport a remote URL uses, the two forms a git host offers side
 /// by side, so a repo can be switched between them without retyping host,
 /// owner, and name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,7 +49,7 @@ impl ParsedUrl {
     ///
     /// A custom SSH port only ever applies to the SSH form. Scp-style SSH
     /// (`git@host:owner/repo.git`) has no syntax for a port at all, so a
-    /// ported SSH remote uses the long `ssh://` form instead — the only way
+    /// ported SSH remote uses the long `ssh://` form instead, the only way
     /// git itself accepts a non-default SSH port.
     pub fn format(&self, scheme: Scheme) -> String {
         match scheme {

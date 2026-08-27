@@ -13,7 +13,7 @@ pub fn run(name: String, path: Option<PathBuf>, no_git: bool) -> Result<()> {
     let store = RegistryStore::open_default()?;
 
     // Local repos have no host/owner, so path_layout templates (which key
-    // off those) don't apply — they get a flat spot under `local/` instead.
+    // off those) don't apply, they get a flat spot under `local/` instead.
     let dest = path.unwrap_or_else(|| config.repo.root.join("local").join(&name));
     let dest = paths::normalize_path(&dest);
 

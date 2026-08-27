@@ -5,7 +5,7 @@ use crate::error::Result;
 /// Creates every table devmode's stores use, if they don't already exist.
 /// `RegistryStore` and `WorkspaceStore` each open their own `Connection` to
 /// the same underlying SQLite file, so either one can be opened first
-/// without the other's tables — or the foreign keys between them — missing.
+/// without the other's tables, or the foreign keys between them, missing.
 pub(crate) fn init_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         "PRAGMA foreign_keys = ON;
