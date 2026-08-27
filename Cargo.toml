@@ -46,5 +46,5 @@ tui-input = "0.11"
 iced = { version = "0.14", features = ["smol", "image"] }
 iced_test = "0.14"
 rfd = "0.17"
-notify-debouncer-mini = "0.4"
+notify-debouncer-mini = "0.7"
 open = "5.4"
