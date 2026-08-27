@@ -517,7 +517,7 @@ impl App {
 /// Global shortcuts. `keyboard::listen` only reports events no focused widget
 /// consumed, so these can't fire while the user is typing in a text field.
 fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
-    use iced::keyboard::{self, key, Key};
+    use iced::keyboard::{self, Key, key};
 
     // `with` carries the screen into the closure: iced requires subscription
     // closures to be non-capturing so it can identify them across rebuilds.
@@ -564,7 +564,7 @@ fn keyboard_shortcuts(screen: Screen) -> Subscription<Message> {
 // must opt out of the Rust 2024 default of capturing the `&PathBuf` lifetime —
 // otherwise it can't coerce to the `fn(&D) -> S` that `run_with` wants.
 fn watch_repo(path: &PathBuf) -> impl iced::futures::Stream<Item = Message> + use<> {
-    use iced::futures::{channel::mpsc, SinkExt, StreamExt};
+    use iced::futures::{SinkExt, StreamExt, channel::mpsc};
     use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};
 
     let path = path.clone();

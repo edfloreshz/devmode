@@ -5,8 +5,8 @@ mod prompt;
 mod resolve;
 
 use clap::{CommandFactory, Parser};
-use colored::Colorize;
 use cli::{Cli, Command, RepoCommand};
+use colored::Colorize;
 
 fn main() {
     let cli = Cli::parse();

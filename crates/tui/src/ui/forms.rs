@@ -31,9 +31,7 @@ fn title(kind: FormKind) -> &'static str {
         FormKind::WorkspaceCreate => {
             "Create workspace (tab: next field, enter: submit, esc: cancel)"
         }
-        FormKind::WorkspaceConfig => {
-            "Edit workspace (tab: next field, enter: submit, esc: cancel)"
-        }
+        FormKind::WorkspaceConfig => "Edit workspace (tab: next field, enter: submit, esc: cancel)",
         FormKind::WorkspaceEnv => "Set env var (tab: next field, enter: submit, esc: cancel)",
     }
 }
@@ -42,7 +40,9 @@ pub fn draw_form(frame: &mut Frame, area: Rect, form: &Form) {
     let popup = centered_rect(70, 50, area);
     frame.render_widget(Clear, popup);
 
-    let block = Block::default().borders(Borders::ALL).title(title(form.kind));
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(title(form.kind));
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
 

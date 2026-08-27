@@ -38,24 +38,13 @@ pub enum Check {
     Done(Vec<Issue>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct State {
     pub root: String,
     /// Set once from config so the field starts at the user's repo root.
     root_initialised: bool,
     pub scan: Scan,
     pub check: Check,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            root: String::new(),
-            root_initialised: false,
-            scan: Scan::default(),
-            check: Check::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -77,11 +66,11 @@ pub enum Message {
 pub fn on_enter(app: &mut App) -> Task<AppMessage> {
     // Default the scan root to the configured repo root the first time the
     // screen is opened, without clobbering anything typed since.
-    if !app.discovery.root_initialised {
-        if let Some(snapshot) = app.snapshot() {
-            app.discovery.root = snapshot.config.repo.root.display().to_string();
-            app.discovery.root_initialised = true;
-        }
+    if !app.discovery.root_initialised
+        && let Some(snapshot) = app.snapshot()
+    {
+        app.discovery.root = snapshot.config.repo.root.display().to_string();
+        app.discovery.root_initialised = true;
     }
 
     Task::none()
@@ -97,9 +86,10 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             let current = app.discovery.root.trim();
             let starting = (!current.is_empty()).then(|| PathBuf::from(current));
 
-            Task::perform(crate::task::pick_folder("Choose a folder", starting), |picked| {
-                wrap(Message::RootPicked(picked))
-            })
+            Task::perform(
+                crate::task::pick_folder("Choose a folder", starting),
+                |picked| wrap(Message::RootPicked(picked)),
+            )
         }
         Message::RootPicked(Some(picked)) => {
             app.discovery.root = picked.display().to_string();
@@ -325,10 +315,9 @@ fn scan_section(app: &App) -> Element<'_, AppMessage> {
 
                     rows = rows.push(
                         row![
-                            checkbox(selected.contains(&index))
-                                .on_toggle(move |checked| wrap(Message::ToggleFound(
-                                    index, checked
-                                ))),
+                            checkbox(selected.contains(&index)).on_toggle(move |checked| wrap(
+                                Message::ToggleFound(index, checked)
+                            )),
                             column![
                                 text(&repo.name).size(design::TEXT_MD),
                                 design::muted(
@@ -352,11 +341,7 @@ fn scan_section(app: &App) -> Element<'_, AppMessage> {
                     controls,
                     row![
                         checkbox(all_selected)
-                            .label(format!(
-                                "{} of {} selected",
-                                selected.len(),
-                                found.len()
-                            ))
+                            .label(format!("{} of {} selected", selected.len(), found.len()))
                             .text_size(design::CONTROL_TEXT)
                             .on_toggle(|checked| wrap(Message::SelectAll(checked))),
                         space::horizontal(),
@@ -420,9 +405,7 @@ fn check_section(app: &App) -> Element<'_, AppMessage> {
                         design::badge(label, tone),
                         column![
                             text(issue.describe()).size(design::TEXT_SM),
-                            design::muted(
-                                text(issue.resolution()).size(design::TEXT_SM)
-                            ),
+                            design::muted(text(issue.resolution()).size(design::TEXT_SM)),
                         ]
                         .spacing(1.0)
                         .width(Fill),

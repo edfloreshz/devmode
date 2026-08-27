@@ -145,10 +145,10 @@ pub fn check() -> Result<Vec<Issue>> {
             continue;
         }
 
-        if let Some(current) = git::read_origin_url(&repo.path) {
-            if repo.remote_url.as_deref() != Some(current.as_str()) {
-                issues.push(Issue::RemoteChanged { repo, current });
-            }
+        if let Some(current) = git::read_origin_url(&repo.path)
+            && repo.remote_url.as_deref() != Some(current.as_str())
+        {
+            issues.push(Issue::RemoteChanged { repo, current });
         }
     }
 

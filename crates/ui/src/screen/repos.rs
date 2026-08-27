@@ -5,9 +5,7 @@ use std::path::{Path, PathBuf};
 
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
-use iced::widget::{
-    checkbox, column, container, operation, row, rule, scrollable, space, text,
-};
+use iced::widget::{checkbox, column, container, operation, row, rule, scrollable, space, text};
 use iced::{Center, Element, Fill, Task};
 
 use dm_core::config::Config;
@@ -26,9 +24,18 @@ const SEARCH_ID: &str = "repos-search";
 /// Which dialog, if any, is open over the list.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Dialog {
-    Clone { url: String, path: String },
-    Create { name: String, path: String, git: bool },
-    Track { path: String },
+    Clone {
+        url: String,
+        path: String,
+    },
+    Create {
+        name: String,
+        path: String,
+        git: bool,
+    },
+    Track {
+        path: String,
+    },
     EditRemote {
         id: RepoId,
         url: String,
@@ -37,7 +44,11 @@ pub enum Dialog {
         /// but switching back to SSH shouldn't have to lose it.
         ssh_port: Option<(String, u16)>,
     },
-    Remove { id: RepoId, name: String, delete: bool },
+    Remove {
+        id: RepoId,
+        name: String,
+        delete: bool,
+    },
 }
 
 #[derive(Debug, Default)]
@@ -106,7 +117,10 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             if let Some(snapshot) = app.snapshot() {
                 let visible = filter(snapshot, &app.repos.query);
 
-                if !visible.iter().any(|repo| Some(repo.id) == app.repos.selected) {
+                if !visible
+                    .iter()
+                    .any(|repo| Some(repo.id) == app.repos.selected)
+                {
                     let next = visible.first().map(|repo| repo.id);
                     return match next {
                         Some(id) => select(app, id),
@@ -235,15 +249,16 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
             let starting = (!current.trim().is_empty()).then(|| PathBuf::from(current.trim()));
 
-            Task::perform(crate::task::pick_folder("Choose a folder", starting), |picked| {
-                wrap(Message::PathPicked(picked))
-            })
+            Task::perform(
+                crate::task::pick_folder("Choose a folder", starting),
+                |picked| wrap(Message::PathPicked(picked)),
+            )
         }
         Message::PathPicked(Some(picked)) => {
-            if let Some(dialog) = app.repos.dialog.as_mut() {
-                if let Some(path) = dialog_path_mut(dialog) {
-                    *path = picked.display().to_string();
-                }
+            if let Some(dialog) = app.repos.dialog.as_mut()
+                && let Some(path) = dialog_path_mut(dialog)
+            {
+                *path = picked.display().to_string();
             }
 
             Task::none()
@@ -289,10 +304,11 @@ fn clone(url: &str, path: Option<PathBuf>) -> Result<String, String> {
         let store = RegistryStore::open_default()?;
 
         let dest = path.unwrap_or_else(|| {
-            config
-                .repo
-                .root
-                .join(config.repo.layout.render(&parsed.host, &parsed.owner, &parsed.name))
+            config.repo.root.join(config.repo.layout.render(
+                &parsed.host,
+                &parsed.owner,
+                &parsed.name,
+            ))
         });
         let dest = paths::normalize_path(&dest);
 
@@ -478,14 +494,18 @@ fn select(app: &mut App, id: RepoId) -> Task<AppMessage> {
 /// The path field of whichever dialog is open, if it has one.
 fn dialog_path(dialog: &Dialog) -> Option<&str> {
     match dialog {
-        Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => Some(path),
+        Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => {
+            Some(path)
+        }
         Dialog::EditRemote { .. } | Dialog::Remove { .. } => None,
     }
 }
 
 fn dialog_path_mut(dialog: &mut Dialog) -> Option<&mut String> {
     match dialog {
-        Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => Some(path),
+        Dialog::Clone { path, .. } | Dialog::Create { path, .. } | Dialog::Track { path } => {
+            Some(path)
+        }
         Dialog::EditRemote { .. } | Dialog::Remove { .. } => None,
     }
 }
@@ -501,12 +521,11 @@ fn reformatted(url: &str, scheme: git::Scheme, port_hint: Option<(String, u16)>)
         return url.to_string();
     };
 
-    if parsed.ssh_port.is_none() {
-        if let Some((host, port)) = port_hint {
-            if host == parsed.host {
-                parsed.ssh_port = Some(port);
-            }
-        }
+    if parsed.ssh_port.is_none()
+        && let Some((host, port)) = port_hint
+        && host == parsed.host
+    {
+        parsed.ssh_port = Some(port);
     }
 
     parsed.format(scheme)
@@ -646,7 +665,9 @@ fn toolbar(app: &App) -> Element<'_, AppMessage> {
         .on_input(|query| wrap(Message::Search(query)))
         .width(Fill);
 
-    container(search).padding(iced::Padding::from([0.0, design::XL])).into()
+    container(search)
+        .padding(iced::Padding::from([0.0, design::XL]))
+        .into()
 }
 
 fn drift_banner<'a>(snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
@@ -763,13 +784,16 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
             None => text("—").size(design::TEXT_MD).into(),
         };
 
-        let owner_value: Element<'_, AppMessage> = match (repo.host.as_deref(), repo.owner.as_deref()) {
-            (Some(host), Some(owner)) => design::link(
-                design::link_text(owner, design::TEXT_MD, false),
-                wrap(Message::OpenUrl(format!("https://{host}/{owner}"))),
-            ),
-            _ => text(repo.owner.as_deref().unwrap_or("—")).size(design::TEXT_MD).into(),
-        };
+        let owner_value: Element<'_, AppMessage> =
+            match (repo.host.as_deref(), repo.owner.as_deref()) {
+                (Some(host), Some(owner)) => design::link(
+                    design::link_text(owner, design::TEXT_MD, false),
+                    wrap(Message::OpenUrl(format!("https://{host}/{owner}"))),
+                ),
+                _ => text(repo.owner.as_deref().unwrap_or("—"))
+                    .size(design::TEXT_MD)
+                    .into(),
+            };
 
         details = details.push(
             row![
@@ -828,7 +852,10 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
 }
 
 /// Branch, working-tree, and last-commit summary for the selected repo.
-fn git_section<'a>(repo: &'a dm_core::registry::Repo, status: &'a git::RepoStatus) -> Element<'a, AppMessage> {
+fn git_section<'a>(
+    repo: &'a dm_core::registry::Repo,
+    status: &'a git::RepoStatus,
+) -> Element<'a, AppMessage> {
     let branch: Element<'_, AppMessage> = if status.detached {
         design::badge("detached HEAD", Tone::Warning)
     } else {
@@ -836,7 +863,11 @@ fn git_section<'a>(repo: &'a dm_core::registry::Repo, status: &'a git::RepoStatu
             .font(design::MONO)
             .size(design::TEXT_MD);
 
-        match status.branch.as_deref().and_then(|branch| forge_url(repo, &format!("/tree/{branch}"))) {
+        match status
+            .branch
+            .as_deref()
+            .and_then(|branch| forge_url(repo, &format!("/tree/{branch}")))
+        {
             Some(url) => design::link(label, wrap(Message::OpenUrl(url))),
             None => label.into(),
         }
@@ -866,13 +897,22 @@ fn git_section<'a>(repo: &'a dm_core::registry::Repo, status: &'a git::RepoStatu
     } else {
         let mut chips = row![].spacing(design::XS);
         if status.staged > 0 {
-            chips = chips.push(design::badge(format!("{} staged", status.staged), Tone::Info));
+            chips = chips.push(design::badge(
+                format!("{} staged", status.staged),
+                Tone::Info,
+            ));
         }
         if status.modified > 0 {
-            chips = chips.push(design::badge(format!("{} modified", status.modified), Tone::Warning));
+            chips = chips.push(design::badge(
+                format!("{} modified", status.modified),
+                Tone::Warning,
+            ));
         }
         if status.untracked > 0 {
-            chips = chips.push(design::badge(format!("{} untracked", status.untracked), Tone::Neutral));
+            chips = chips.push(design::badge(
+                format!("{} untracked", status.untracked),
+                Tone::Neutral,
+            ));
         }
         chips.into()
     };
@@ -890,11 +930,11 @@ fn git_section<'a>(repo: &'a dm_core::registry::Repo, status: &'a git::RepoStatu
             .font(design::MONO)
             .size(design::TEXT_SM);
 
-        let hash_line: Element<'_, AppMessage> = match forge_url(repo, &format!("/commit/{}", commit.short_id))
-        {
-            Some(url) => design::link(design::muted(hash_line), wrap(Message::OpenUrl(url))),
-            None => design::muted(hash_line),
-        };
+        let hash_line: Element<'_, AppMessage> =
+            match forge_url(repo, &format!("/commit/{}", commit.short_id)) {
+                Some(url) => design::link(design::muted(hash_line), wrap(Message::OpenUrl(url))),
+                None => design::muted(hash_line),
+            };
 
         body = body.push(design::field(
             "Last commit",
@@ -910,10 +950,16 @@ fn git_section<'a>(repo: &'a dm_core::registry::Repo, status: &'a git::RepoStatu
     if status.tag_count > 0 || status.stash_count > 0 {
         let mut chips = row![].spacing(design::XS);
         if status.tag_count > 0 {
-            chips = chips.push(design::badge(format!("{} tags", status.tag_count), Tone::Neutral));
+            chips = chips.push(design::badge(
+                format!("{} tags", status.tag_count),
+                Tone::Neutral,
+            ));
         }
         if status.stash_count > 0 {
-            chips = chips.push(design::badge(format!("{} stashed", status.stash_count), Tone::Neutral));
+            chips = chips.push(design::badge(
+                format!("{} stashed", status.stash_count),
+                Tone::Neutral,
+            ));
         }
         body = body.push(chips);
     }
@@ -998,13 +1044,19 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                         }
                     },
                 ),
-                labelled_path("Destination (optional)", "Leave blank to use your layout", path, false, {
-                    let url = url.clone();
-                    move |path| Dialog::Clone {
-                        url: url.clone(),
-                        path,
+                labelled_path(
+                    "Destination (optional)",
+                    "Leave blank to use your layout",
+                    path,
+                    false,
+                    {
+                        let url = url.clone();
+                        move |path| Dialog::Clone {
+                            url: url.clone(),
+                            path,
+                        }
                     }
-                }),
+                ),
             ]
             .spacing(design::MD)
             .into(),
@@ -1022,14 +1074,20 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                         git,
                     }
                 }),
-                labelled_path("Path (optional)", "Leave blank for the default", path, false, {
-                    let (name, git) = (name.clone(), *git);
-                    move |path| Dialog::Create {
-                        name: name.clone(),
-                        path,
-                        git,
+                labelled_path(
+                    "Path (optional)",
+                    "Leave blank for the default",
+                    path,
+                    false,
+                    {
+                        let (name, git) = (name.clone(), *git);
+                        move |path| Dialog::Create {
+                            name: name.clone(),
+                            path,
+                            git,
+                        }
                     }
-                }),
+                ),
                 checkbox(*git)
                     .label("Initialise a git repository")
                     .text_size(design::CONTROL_TEXT)
@@ -1051,13 +1109,9 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
         Dialog::Track { path } => (
             "Track an existing folder",
             "devmode reads the folder's origin remote to fill in host and owner.",
-            column![labelled_path(
-                "Path",
-                "/path/to/repo",
-                path,
-                true,
-                |path| Dialog::Track { path },
-            )]
+            column![labelled_path("Path", "/path/to/repo", path, true, |path| {
+                Dialog::Track { path }
+            },)]
             .into(),
             "Track",
         ),
@@ -1068,7 +1122,11 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                 let id = *id;
                 let url = reformatted(url, target, ssh_port.clone());
                 let ssh_port = ssh_port_hint(ssh_port.clone(), &url);
-                wrap(Message::DialogChanged(Dialog::EditRemote { id, url, ssh_port }))
+                wrap(Message::DialogChanged(Dialog::EditRemote {
+                    id,
+                    url,
+                    ssh_port,
+                }))
             };
 
             let https_button = if scheme == git::Scheme::Https {
@@ -1088,14 +1146,20 @@ fn dialog_view(dialog: &Dialog) -> Element<'_, AppMessage> {
                 "Switch the transport with a click, or paste a different remote entirely.",
                 column![
                     row![https_button, ssh_button].spacing(design::SM),
-                    labelled("Remote URL", "https://github.com/owner/repo.git", url, true, {
-                        let id = *id;
-                        let ssh_port = ssh_port.clone();
-                        move |url| {
-                            let ssh_port = ssh_port_hint(ssh_port.clone(), &url);
-                            Dialog::EditRemote { id, url, ssh_port }
+                    labelled(
+                        "Remote URL",
+                        "https://github.com/owner/repo.git",
+                        url,
+                        true,
+                        {
+                            let id = *id;
+                            let ssh_port = ssh_port.clone();
+                            move |url| {
+                                let ssh_port = ssh_port_hint(ssh_port.clone(), &url);
+                                Dialog::EditRemote { id, url, ssh_port }
+                            }
                         }
-                    }),
+                    ),
                 ]
                 .spacing(design::MD)
                 .into(),
@@ -1200,10 +1264,13 @@ fn labelled_path<'a>(
 
     design::field(
         label,
-        row![input, design::secondary_button("Browse…", wrap(Message::BrowsePath))]
-            .spacing(design::SM)
-            .align_y(Center)
-            .into(),
+        row![
+            input,
+            design::secondary_button("Browse…", wrap(Message::BrowsePath))
+        ]
+        .spacing(design::SM)
+        .align_y(Center)
+        .into(),
     )
 }
 

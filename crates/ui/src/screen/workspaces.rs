@@ -250,7 +250,12 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
 
             let visible: Vec<RepoId> = app
                 .snapshot()
-                .map(|snapshot| candidates(app, snapshot, query).iter().map(|repo| repo.id).collect())
+                .map(|snapshot| {
+                    candidates(app, snapshot, query)
+                        .iter()
+                        .map(|repo| repo.id)
+                        .collect()
+                })
                 .unwrap_or_default();
 
             let Some(Dialog::AddMember { selected, .. }) = app.workspaces.dialog.as_mut() else {
@@ -333,7 +338,11 @@ fn submit_dialog(app: &mut App) -> Task<AppMessage> {
                 Ok(format!("Created workspace {}.", workspace.id))
             })
         }
-        Dialog::AddMember { workspace, selected, .. } => {
+        Dialog::AddMember {
+            workspace,
+            selected,
+            ..
+        } => {
             if selected.is_empty() {
                 app.toast_error("Select at least one repo to add.");
                 return Task::none();
@@ -568,10 +577,7 @@ pub fn view(app: &App) -> Element<'_, AppMessage> {
 fn header<'a>(actions: impl Into<Option<Element<'a, AppMessage>>>) -> Element<'a, AppMessage> {
     container(design::page_header(
         "Workspaces",
-        Some(
-            "Group repos you work on together, with a shared editor and environment."
-                .to_string(),
-        ),
+        Some("Group repos you work on together, with a shared editor and environment.".to_string()),
         actions,
     ))
     .padding(iced::Padding::from([design::XL, design::XL]).bottom(0))
@@ -617,9 +623,12 @@ fn detail<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppMessage> {
 
     let mut page = column![design::page_header(
         &workspace.name,
-        Some(workspace.description.clone().unwrap_or_else(|| {
-            "No description".to_string()
-        })),
+        Some(
+            workspace
+                .description
+                .clone()
+                .unwrap_or_else(|| { "No description".to_string() })
+        ),
         Some(actions.into()),
     )];
 
@@ -684,13 +693,19 @@ fn editing_form(editing: &Editing) -> Element<'_, AppMessage> {
                     })
                 },
             ),
-            field("Description", "What this workspace is for", &editing.description, None, {
-                let editing = editing.clone();
-                Box::new(move |description| Editing {
-                    description,
-                    ..editing.clone()
-                })
-            }),
+            field(
+                "Description",
+                "What this workspace is for",
+                &editing.description,
+                None,
+                {
+                    let editing = editing.clone();
+                    Box::new(move |description| Editing {
+                        description,
+                        ..editing.clone()
+                    })
+                }
+            ),
             field("Editor", "code -n", &editing.editor, None, {
                 let editing = editing.clone();
                 Box::new(move |editor| Editing {
@@ -721,9 +736,7 @@ fn members_section<'a>(app: &'a App, snapshot: &'a Snapshot) -> Element<'a, AppM
         return design::section(
             "Repos",
             column![
-                design::muted(
-                    text("No repos in this workspace yet.").size(design::TEXT_SM)
-                ),
+                design::muted(text("No repos in this workspace yet.").size(design::TEXT_SM)),
                 design::button_row(vec![add]),
             ]
             .spacing(design::SM),
@@ -779,8 +792,10 @@ fn env_section(app: &App) -> Element<'_, AppMessage> {
             "Environment",
             column![
                 design::muted(
-                    text("These are applied to the editor process when you open \
-                          this workspace.")
+                    text(
+                        "These are applied to the editor process when you open \
+                          this workspace."
+                    )
                     .size(design::TEXT_SM)
                 ),
                 design::button_row(vec![add]),
@@ -902,7 +917,11 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                 "Create",
                 false,
             ),
-            Dialog::AddMember { workspace, query, selected } => {
+            Dialog::AddMember {
+                workspace,
+                query,
+                selected,
+            } => {
                 // Whether *anything* is left to add — distinct from the
                 // current query matching nothing, which just empties the
                 // results below while keeping the search field around.
@@ -922,8 +941,8 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                         .map(|snapshot| candidates(app, snapshot, query))
                         .unwrap_or_default();
 
-                    let all_selected =
-                        !matches.is_empty() && matches.iter().all(|repo| selected.contains(&repo.id));
+                    let all_selected = !matches.is_empty()
+                        && matches.iter().all(|repo| selected.contains(&repo.id));
 
                     let mut results = column![].spacing(2.0);
 
@@ -932,8 +951,9 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                         let is_selected = selected.contains(&id);
 
                         let row_content = row![
-                            checkbox(is_selected)
-                                .on_toggle(move |checked| wrap(Message::ToggleAddMember(id, checked))),
+                            checkbox(is_selected).on_toggle(move |checked| wrap(
+                                Message::ToggleAddMember(id, checked)
+                            )),
                             column![
                                 text(&repo.name).size(design::TEXT_MD),
                                 design::muted(
@@ -962,14 +982,20 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                     };
 
                     column![
-                        dialog_field("Search", "Type to narrow", query, Some("ws-dialog-first"), {
-                            let (workspace, selected) = (workspace.clone(), selected.clone());
-                            Box::new(move |query| Dialog::AddMember {
-                                workspace: workspace.clone(),
-                                query,
-                                selected: selected.clone(),
-                            })
-                        }),
+                        dialog_field(
+                            "Search",
+                            "Type to narrow",
+                            query,
+                            Some("ws-dialog-first"),
+                            {
+                                let (workspace, selected) = (workspace.clone(), selected.clone());
+                                Box::new(move |query| Dialog::AddMember {
+                                    workspace: workspace.clone(),
+                                    query,
+                                    selected: selected.clone(),
+                                })
+                            }
+                        ),
                         row![
                             checkbox(all_selected)
                                 .label(format!("{} selected", selected.len()))
@@ -1025,10 +1051,12 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
             Dialog::Delete { id, members } => (
                 "Delete this workspace",
                 "The repos themselves are untouched — only the grouping goes away.",
-                column![text(format!(
-                    "“{id}” and its {members} membership(s) will be deleted."
-                ))
-                .size(design::TEXT_MD)]
+                column![
+                    text(format!(
+                        "“{id}” and its {members} membership(s) will be deleted."
+                    ))
+                    .size(design::TEXT_MD)
+                ]
                 .into(),
                 "Delete",
                 true,

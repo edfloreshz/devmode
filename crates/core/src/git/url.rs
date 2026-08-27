@@ -55,7 +55,10 @@ impl ParsedUrl {
         match scheme {
             Scheme::Https => format!("https://{}/{}/{}.git", self.host, self.owner, self.name),
             Scheme::Ssh => match self.ssh_port {
-                Some(port) => format!("ssh://git@{}:{port}/{}/{}.git", self.host, self.owner, self.name),
+                Some(port) => format!(
+                    "ssh://git@{}:{port}/{}/{}.git",
+                    self.host, self.owner, self.name
+                ),
                 None => format!("git@{}:{}/{}.git", self.host, self.owner, self.name),
             },
         }
@@ -125,7 +128,8 @@ mod tests {
     #[test]
     fn parses_a_port_from_the_long_ssh_form() {
         let parsed =
-            parse_url("ssh://git@code.edfloreshz.dev:2222/edfloreshz/plutotv-downloader.git").unwrap();
+            parse_url("ssh://git@code.edfloreshz.dev:2222/edfloreshz/plutotv-downloader.git")
+                .unwrap();
         assert_eq!(
             parsed,
             ParsedUrl {
@@ -142,29 +146,46 @@ mod tests {
         // An HTTPS port isn't an SSH port, and reformatting to SSH shouldn't
         // invent one from it.
         let parsed =
-            parse_url("https://code.edfloreshz.dev:8443/edfloreshz/plutotv-downloader.git").unwrap();
+            parse_url("https://code.edfloreshz.dev:8443/edfloreshz/plutotv-downloader.git")
+                .unwrap();
         assert_eq!(parsed.ssh_port, None);
     }
 
     #[test]
     fn detects_scheme() {
-        assert_eq!(Scheme::detect("https://github.com/torvalds/linux.git"), Scheme::Https);
-        assert_eq!(Scheme::detect("git@github.com:torvalds/linux.git"), Scheme::Ssh);
-        assert_eq!(Scheme::detect("ssh://git@github.com/torvalds/linux.git"), Scheme::Ssh);
+        assert_eq!(
+            Scheme::detect("https://github.com/torvalds/linux.git"),
+            Scheme::Https
+        );
+        assert_eq!(
+            Scheme::detect("git@github.com:torvalds/linux.git"),
+            Scheme::Ssh
+        );
+        assert_eq!(
+            Scheme::detect("ssh://git@github.com/torvalds/linux.git"),
+            Scheme::Ssh
+        );
     }
 
     #[test]
     fn formats_both_schemes_from_a_parsed_url() {
         let parsed = parse_url("https://github.com/torvalds/linux.git").unwrap();
 
-        assert_eq!(parsed.format(Scheme::Https), "https://github.com/torvalds/linux.git");
-        assert_eq!(parsed.format(Scheme::Ssh), "git@github.com:torvalds/linux.git");
+        assert_eq!(
+            parsed.format(Scheme::Https),
+            "https://github.com/torvalds/linux.git"
+        );
+        assert_eq!(
+            parsed.format(Scheme::Ssh),
+            "git@github.com:torvalds/linux.git"
+        );
     }
 
     #[test]
     fn a_ported_ssh_remote_keeps_its_port_in_ssh_but_not_https() {
         let parsed =
-            parse_url("ssh://git@code.edfloreshz.dev:2222/edfloreshz/plutotv-downloader.git").unwrap();
+            parse_url("ssh://git@code.edfloreshz.dev:2222/edfloreshz/plutotv-downloader.git")
+                .unwrap();
 
         // Scp-style SSH has no slot for a port, so a ported remote has to
         // stay in the long `ssh://` form rather than silently drop it.

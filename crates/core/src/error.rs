@@ -54,7 +54,9 @@ pub enum Error {
     #[error("no tracked repo found matching: {0}")]
     RepoNotFound(String),
 
-    #[error("invalid path layout: {0} (expected host_owner_repo, owner_repo, flat, or custom:<template>)")]
+    #[error(
+        "invalid path layout: {0} (expected host_owner_repo, owner_repo, flat, or custom:<template>)"
+    )]
     InvalidPathLayout(String),
 
     #[error("cannot relayout {path}: target {target} already exists")]
@@ -63,8 +65,10 @@ pub enum Error {
     #[error("git error: {0}")]
     Git2(#[from] git2::Error),
 
-    #[error("could not authenticate with '{url}' — the repo may not exist, may be private, \
-             or you may need to configure a credential helper or an SSH key in your ssh-agent")]
+    #[error(
+        "could not authenticate with '{url}' — the repo may not exist, may be private, \
+             or you may need to configure a credential helper or an SSH key in your ssh-agent"
+    )]
     CloneAuthFailed { url: String },
 
     #[error("invalid git url '{url}': {reason}")]

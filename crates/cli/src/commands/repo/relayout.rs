@@ -19,7 +19,9 @@ pub fn run(apply: bool, yes: bool) -> Result<()> {
     print_candidates(&candidates, &config);
 
     if !apply {
-        println!("\nthis was a preview — re-run with --apply to move these repos and update the registry");
+        println!(
+            "\nthis was a preview — re-run with --apply to move these repos and update the registry"
+        );
         return Ok(());
     }
 
