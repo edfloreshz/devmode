@@ -6,7 +6,7 @@ mod credentials;
 mod status;
 mod url;
 
-pub use status::{repo_status, CommitSummary, RepoStatus};
+pub use status::{is_dirty, repo_status, CommitSummary, RepoStatus};
 pub use url::{parse_url, ParsedUrl, Scheme};
 
 use std::path::{Path, PathBuf};

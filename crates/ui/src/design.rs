@@ -189,6 +189,32 @@ pub fn badge<'a, Message: 'a>(label: impl ToString, tone: Tone) -> Element<'a, M
         .into()
 }
 
+/// A small solid dot — a low-emphasis status indicator for a list row, e.g.
+/// "this repo's working tree has changes", where a full `badge`'s label
+/// would be too much noise repeated down a long list.
+pub fn dot<'a, Message: 'a>(tone: Tone) -> Element<'a, Message> {
+    container(text(""))
+        .width(8)
+        .height(8)
+        .style(move |theme: &Theme| {
+            let palette = theme.extended_palette();
+            let color = match tone {
+                Tone::Neutral => palette.background.strong.color,
+                Tone::Info => palette.primary.base.color,
+                Tone::Warning => palette.warning.base.color,
+                Tone::Danger => palette.danger.base.color,
+                Tone::Success => palette.success.base.color,
+            };
+
+            container::Style {
+                background: Some(color.into()),
+                border: border::rounded(999),
+                ..container::Style::default()
+            }
+        })
+        .into()
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
     Neutral,

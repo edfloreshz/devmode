@@ -40,6 +40,22 @@ pub struct CommitSummary {
     pub when: SystemTime,
 }
 
+/// Cheaply checks whether a repo's working tree has uncommitted changes —
+/// staged, modified, or untracked. Meant for running across every tracked
+/// repo at once (e.g. a dirty indicator per row in a list), so it skips the
+/// extra commit lookups and ahead/behind graph walk `repo_status` does.
+/// Not a git repo, or any other error reading it, reads as clean.
+pub fn is_dirty(path: &Path) -> bool {
+    let Ok(repo) = Repository::open(path) else {
+        return false;
+    };
+
+    let mut options = StatusOptions::new();
+    options.include_untracked(true);
+
+    repo.statuses(Some(&mut options)).is_ok_and(|statuses| !statuses.is_empty())
+}
+
 /// Reads git state for the repo at `path`. Fails only if `path` isn't a git
 /// repo at all; an empty repo or one with no upstream just reports fewer
 /// fields.

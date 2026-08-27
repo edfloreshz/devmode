@@ -51,6 +51,7 @@ fn snapshot(repos: Vec<Repo>, workspaces: Vec<Workspace>) -> Snapshot {
         config: Config::default(),
         drift: Vec::new(),
         memberships,
+        dirty: Default::default(),
     }
 }
 
