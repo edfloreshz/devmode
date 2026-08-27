@@ -40,7 +40,7 @@ tempfile = "3.0"
 colored = "3.0"
 inquire = "0.7"
 ratatui = "0.29"
-crossterm = "0.28"
+crossterm = "0.29"
 fuzzy-matcher = "0.3"
 tui-input = "0.11"
 iced = { version = "0.14", features = ["smol", "image"] }
