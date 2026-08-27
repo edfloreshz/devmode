@@ -21,6 +21,7 @@ pub struct Snapshot {
     pub repos: Vec<Repo>,
     pub workspaces: Vec<Workspace>,
     pub config: Config,
+    pub configured: bool,
     pub drift: Vec<Candidate>,
     /// Workspace ids each repo belongs to, aligned with `repos` by id.
     pub memberships: Vec<(RepoId, Vec<String>)>,
@@ -76,6 +77,7 @@ fn load_inner() -> dm_core::Result<Snapshot> {
     let repos = registry.list(None, None)?;
     let workspaces = workspace_store.list()?;
     let config = Config::load()?;
+    let configured = Config::is_saved();
     let drift = relayout::plan()?;
 
     let memberships = repos
@@ -99,6 +101,7 @@ fn load_inner() -> dm_core::Result<Snapshot> {
         repos,
         workspaces,
         config,
+        configured,
         drift,
         memberships,
         dirty,

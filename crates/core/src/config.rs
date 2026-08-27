@@ -117,7 +117,6 @@ impl std::fmt::Display for ThemeMode {
 #[serde(default)]
 pub struct RepoConfig {
     pub root: PathBuf,
-    pub host: String,
     pub layout: PathLayout,
 }
 
@@ -125,13 +124,18 @@ impl Default for RepoConfig {
     fn default() -> Self {
         Self {
             root: default_clone_root(),
-            host: "github.com".to_string(),
             layout: PathLayout::default(),
         }
     }
 }
 
 impl Config {
+    pub fn is_saved() -> bool {
+        paths::config_file()
+            .map(|path| path.exists())
+            .unwrap_or(false)
+    }
+
     pub fn load() -> Result<Self> {
         let path = paths::config_file()?;
         if !path.exists() {
@@ -153,7 +157,6 @@ impl Config {
     pub fn get(&self, key: &str) -> Result<String> {
         match key {
             "repo.root" => Ok(self.repo.root.display().to_string()),
-            "repo.host" => Ok(self.repo.host.clone()),
             "repo.layout" => Ok(self.repo.layout.to_config_string()),
             "editor" => Ok(self.editor.clone().unwrap_or_default()),
             "interactive" => Ok(self.interactive.to_string()),
@@ -170,7 +173,6 @@ impl Config {
             // this matches how repo paths are stored, regardless of whether
             // the directory exists yet or any ancestor is a symlink.
             "repo.root" => self.repo.root = paths::normalize_path(&PathBuf::from(value)),
-            "repo.host" => self.repo.host = value.to_string(),
             "repo.layout" => self.repo.layout = PathLayout::parse(value)?,
             "editor" => self.editor = Some(value.to_string()),
             "interactive" => {
