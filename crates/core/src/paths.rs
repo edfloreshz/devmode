@@ -90,24 +90,28 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 mod tests {
     use super::*;
 
+    /// Builds an absolute path from `/`-separated parts, with a real root so
+    /// the result is absolute on Windows too (`/a` alone isn't).
+    fn abs(parts: &str) -> PathBuf {
+        let root = if cfg!(windows) { "C:/" } else { "/" };
+        PathBuf::from(format!("{root}{parts}"))
+    }
+
     #[test]
     fn normalizes_dot_and_dotdot_components() {
-        assert_eq!(
-            normalize_path(Path::new("/a/b/../c/./d")),
-            PathBuf::from("/a/c/d")
-        );
+        assert_eq!(normalize_path(&abs("a/b/../c/./d")), abs("a/c/d"));
     }
 
     #[test]
     fn leaves_clean_absolute_paths_untouched() {
-        assert_eq!(normalize_path(Path::new("/a/b/c")), PathBuf::from("/a/b/c"));
+        assert_eq!(normalize_path(&abs("a/b/c")), abs("a/b/c"));
     }
 
     #[test]
     fn does_not_require_the_path_to_exist() {
         assert_eq!(
-            normalize_path(Path::new("/does/not/exist/../exist")),
-            PathBuf::from("/does/not/exist")
+            normalize_path(&abs("does/not/exist/../exist")),
+            abs("does/not/exist")
         );
     }
 }
