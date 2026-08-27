@@ -1,7 +1,7 @@
 //! The Workspaces screen: workspaces beside a detail pane holding their
 //! members, environment variables, and editor override.
 
-use iced::widget::{column, container, operation, row, rule, scrollable, space, text};
+use iced::widget::{checkbox, column, container, operation, row, rule, scrollable, space, text};
 use iced::{Center, Element, Fill, Task};
 
 use dm_core::config::Config;
@@ -24,6 +24,7 @@ pub enum Dialog {
     AddMember {
         workspace: String,
         query: String,
+        selected: std::collections::HashSet<RepoId>,
     },
     SetEnv {
         workspace: String,
@@ -94,6 +95,8 @@ pub enum Message {
     CancelEditing,
     SaveEditing,
     RemoveMember(RepoId),
+    ToggleAddMember(RepoId, bool),
+    SelectAllAddMember(bool),
     UnsetEnv(String),
     Switch,
 }
@@ -152,6 +155,7 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
             app.workspaces.dialog = Some(Dialog::AddMember {
                 workspace,
                 query: String::new(),
+                selected: std::collections::HashSet::new(),
             });
             operation::focus("ws-dialog-first")
         }
@@ -228,6 +232,41 @@ pub fn update(app: &mut App, message: Message) -> Task<AppMessage> {
                 Ok("Removed from workspace.".to_string())
             })
         }
+        Message::ToggleAddMember(repo, checked) => {
+            if let Some(Dialog::AddMember { selected, .. }) = app.workspaces.dialog.as_mut() {
+                if checked {
+                    selected.insert(repo);
+                } else {
+                    selected.remove(&repo);
+                }
+            }
+
+            Task::none()
+        }
+        Message::SelectAllAddMember(checked) => {
+            let Some(Dialog::AddMember { query, .. }) = app.workspaces.dialog.as_ref() else {
+                return Task::none();
+            };
+
+            let visible: Vec<RepoId> = app
+                .snapshot()
+                .map(|snapshot| candidates(app, snapshot, query).iter().map(|repo| repo.id).collect())
+                .unwrap_or_default();
+
+            let Some(Dialog::AddMember { selected, .. }) = app.workspaces.dialog.as_mut() else {
+                return Task::none();
+            };
+
+            if checked {
+                selected.extend(visible);
+            } else {
+                for id in visible {
+                    selected.remove(&id);
+                }
+            }
+
+            Task::none()
+        }
         Message::UnsetEnv(key) => {
             let Some(id) = app.workspaces.selected() else {
                 return Task::none();
@@ -294,32 +333,38 @@ fn submit_dialog(app: &mut App) -> Task<AppMessage> {
                 Ok(format!("Created workspace {}.", workspace.id))
             })
         }
-        Dialog::AddMember { workspace, query } => {
-            // The picker submits the top match, so an empty query is a no-op
-            // rather than an error.
-            let Some(snapshot) = app.snapshot() else {
+        Dialog::AddMember { workspace, selected, .. } => {
+            if selected.is_empty() {
+                app.toast_error("Select at least one repo to add.");
                 return Task::none();
+            }
+
+            let repo_ids: Vec<RepoId> = selected.into_iter().collect();
+            let count = repo_ids.len();
+
+            let label = if count == 1 {
+                format!("Adding to {workspace}…")
+            } else {
+                format!("Adding {count} repos to {workspace}…")
             };
 
-            let Some(repo) = candidates(app, snapshot, &query).first().map(|repo| (repo.id, repo.name.clone()))
-            else {
-                app.toast_error("No repo matches that search.");
-                return Task::none();
-            };
-
-            let (repo_id, repo_name) = repo;
-
-            let label = format!("Adding {repo_name} to {workspace}…");
             app.run(label, move || {
                 let store = WorkspaceStore::open_default().map_err(|e| e.to_string())?;
+                let mut added = 0;
 
-                match store.add_member(&workspace, repo_id) {
-                    Ok(()) => Ok(format!("Added {repo_name} to {workspace}.")),
-                    Err(dm_core::Error::AlreadyInWorkspace { .. }) => {
-                        Ok(format!("{repo_name} is already in {workspace}."))
+                for repo_id in repo_ids {
+                    match store.add_member(&workspace, repo_id) {
+                        Ok(()) => added += 1,
+                        Err(dm_core::Error::AlreadyInWorkspace { .. }) => {}
+                        Err(e) => return Err(e.to_string()),
                     }
-                    Err(e) => Err(e.to_string()),
                 }
+
+                Ok(if added == count {
+                    format!("Added {added} repo(s) to {workspace}.")
+                } else {
+                    format!("Added {added} of {count} repo(s) to {workspace} (the rest were already members).")
+                })
             })
         }
         Dialog::SetEnv {
@@ -857,17 +902,38 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                 "Create",
                 false,
             ),
-            Dialog::AddMember { workspace, query } => {
-                let matches = app
+            Dialog::AddMember { workspace, query, selected } => {
+                // Whether *anything* is left to add — distinct from the
+                // current query matching nothing, which just empties the
+                // results below while keeping the search field around.
+                let available = app
                     .snapshot()
-                    .map(|snapshot| candidates(app, snapshot, query))
+                    .map(|snapshot| candidates(app, snapshot, ""))
                     .unwrap_or_default();
 
-                let mut results = column![].spacing(2.0);
+                let body: Element<'a, AppMessage> = if available.is_empty() {
+                    design::muted(
+                        text("Every tracked repo is already in this workspace.")
+                            .size(design::TEXT_SM),
+                    )
+                } else {
+                    let matches = app
+                        .snapshot()
+                        .map(|snapshot| candidates(app, snapshot, query))
+                        .unwrap_or_default();
 
-                for repo in matches.iter().take(8) {
-                    results = results.push(
-                        container(
+                    let all_selected =
+                        !matches.is_empty() && matches.iter().all(|repo| selected.contains(&repo.id));
+
+                    let mut results = column![].spacing(2.0);
+
+                    for repo in &matches {
+                        let id = repo.id;
+                        let is_selected = selected.contains(&id);
+
+                        let row_content = row![
+                            checkbox(is_selected)
+                                .on_toggle(move |checked| wrap(Message::ToggleAddMember(id, checked))),
                             column![
                                 text(&repo.name).size(design::TEXT_MD),
                                 design::muted(
@@ -876,42 +942,50 @@ fn dialog_view<'a>(app: &'a App, dialog: &'a Dialog) -> Element<'a, AppMessage> 
                                         .font(design::MONO)
                                 ),
                             ]
-                            .spacing(1.0),
-                        )
-                        .padding(iced::Padding::from([design::XS, design::SM]))
-                        .width(Fill),
-                    );
-                }
+                            .spacing(1.0)
+                            .width(Fill),
+                        ]
+                        .spacing(design::SM)
+                        .align_y(Center);
 
-                let body: Element<'a, AppMessage> = if matches.is_empty() {
-                    design::muted(
-                        text("Every tracked repo is already in this workspace.")
-                            .size(design::TEXT_SM),
-                    )
-                } else {
+                        results = results.push(design::list_row(
+                            row_content,
+                            is_selected,
+                            wrap(Message::ToggleAddMember(id, !is_selected)),
+                        ));
+                    }
+
+                    let results_area: Element<'a, AppMessage> = if matches.is_empty() {
+                        design::muted(text("No repos match your search.").size(design::TEXT_SM))
+                    } else {
+                        scrollable(results).height(240).into()
+                    };
+
                     column![
-                        dialog_field(
-                            "Search",
-                            "Type to narrow, Enter adds the top match",
-                            query,
-                            Some("ws-dialog-first"),
-                            {
-                                let workspace = workspace.clone();
-                                Box::new(move |query| Dialog::AddMember {
-                                    workspace: workspace.clone(),
-                                    query,
-                                })
-                            }
-                        ),
-                        design::muted(text("Matches").size(design::TEXT_SM)),
-                        results,
+                        dialog_field("Search", "Type to narrow", query, Some("ws-dialog-first"), {
+                            let (workspace, selected) = (workspace.clone(), selected.clone());
+                            Box::new(move |query| Dialog::AddMember {
+                                workspace: workspace.clone(),
+                                query,
+                                selected: selected.clone(),
+                            })
+                        }),
+                        row![
+                            checkbox(all_selected)
+                                .label(format!("{} selected", selected.len()))
+                                .text_size(design::CONTROL_TEXT)
+                                .on_toggle(|checked| wrap(Message::SelectAllAddMember(checked))),
+                            space::horizontal(),
+                        ]
+                        .align_y(Center),
+                        results_area,
                     ]
                     .spacing(design::SM)
                     .into()
                 };
 
                 (
-                    "Add a repo",
+                    "Add repos",
                     "Repos can belong to any number of workspaces, and never move on disk.",
                     body,
                     "Add",
