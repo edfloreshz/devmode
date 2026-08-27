@@ -703,6 +703,10 @@ fn list<'a>(
             .align_y(Center)
             .width(Fill);
 
+        if snapshot.is_dirty(repo.id) {
+            label = label.push(design::dot(Tone::Warning));
+        }
+
         if snapshot.drift_for(repo.id).is_some() {
             label = label
                 .push(space::horizontal())

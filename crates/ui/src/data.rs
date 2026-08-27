@@ -5,6 +5,7 @@
 //! Every load opens the stores, reads what it needs, and hands back owned
 //! data, exactly as the CLI does per invocation.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -23,6 +24,10 @@ pub struct Snapshot {
     pub drift: Vec<Candidate>,
     /// Workspace ids each repo belongs to, aligned with `repos` by id.
     pub memberships: Vec<(RepoId, Vec<String>)>,
+    /// Repos with uncommitted changes, for the list's at-a-glance dot —
+    /// checked for every tracked repo up front rather than lazily like
+    /// `RepoStatus`, since the list needs an answer for all of them at once.
+    pub dirty: HashSet<RepoId>,
 }
 
 impl Snapshot {
@@ -32,6 +37,10 @@ impl Snapshot {
             .find(|(id, _)| *id == repo)
             .map(|(_, names)| names.as_slice())
             .unwrap_or_default()
+    }
+
+    pub fn is_dirty(&self, repo: RepoId) -> bool {
+        self.dirty.contains(&repo)
     }
 
     pub fn drift_for(&self, repo: RepoId) -> Option<&Candidate> {
@@ -80,12 +89,19 @@ fn load_inner() -> dm_core::Result<Snapshot> {
         })
         .collect();
 
+    let dirty = repos
+        .iter()
+        .filter(|repo| dm_core::git::is_dirty(&repo.path))
+        .map(|repo| repo.id)
+        .collect();
+
     Ok(Snapshot {
         repos,
         workspaces,
         config,
         drift,
         memberships,
+        dirty,
     })
 }
 
