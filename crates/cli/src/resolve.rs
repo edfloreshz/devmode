@@ -1,8 +1,8 @@
-use dm_core::config::Config;
 use dm_core::error::Error as CoreError;
 use dm_core::registry::{RegistryStore, Repo};
 
 use crate::error::Result;
+use crate::prompt::interactive;
 
 /// Resolves a `repo` argument, prompting the user to pick one via `inquire`
 /// when the name matches more than one tracked repo instead of erroring.
@@ -14,9 +14,7 @@ pub fn resolve_repo(store: &RegistryStore, identifier: &str) -> Result<Repo> {
     match matches.len() {
         0 => Err(CoreError::RepoNotFound(identifier.to_string()).into()),
         1 => Ok(matches.remove(0)),
-        _ if !Config::load()?.interactive => {
-            Err(CoreError::AmbiguousRepo(identifier.to_string()).into())
-        }
+        _ if !interactive() => Err(CoreError::AmbiguousRepo(identifier.to_string()).into()),
         _ => {
             let options: Vec<String> = matches
                 .iter()
