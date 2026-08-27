@@ -1,5 +1,7 @@
+mod discovery;
 mod forms;
 mod repos;
+mod settings;
 mod workspaces;
 
 use ratatui::{
@@ -22,10 +24,12 @@ pub fn draw(frame: &mut Frame, app: &App) {
     ])
     .areas(frame.area());
 
-    let tabs = Tabs::new(vec!["Repos", "Workspaces"])
+    let tabs = Tabs::new(vec!["Repos", "Workspaces", "Discovery", "Settings"])
         .select(match app.active_tab {
             Tab::Repos => 0,
             Tab::Workspaces => 1,
+            Tab::Discovery => 2,
+            Tab::Settings => 3,
         })
         .highlight_style(
             Style::default()
@@ -37,6 +41,8 @@ pub fn draw(frame: &mut Frame, app: &App) {
     match app.active_tab {
         Tab::Repos => repos::draw(frame, body, app),
         Tab::Workspaces => workspaces::draw(frame, body, app),
+        Tab::Discovery => discovery::draw(frame, body, app),
+        Tab::Settings => settings::draw(frame, body, app),
     }
 
     if let Some(form) = &app.form {
@@ -80,6 +86,13 @@ pub fn draw(frame: &mut Frame, app: &App) {
                     "esc: back to list  j/k: move  x: remove selected item".to_string()
                 }
             },
+            Tab::Discovery => {
+                "q: quit  tab: switch  j/k: move  s: scan  a: track all  enter: track/resolve selected"
+                    .to_string()
+            }
+            Tab::Settings => {
+                "q: quit  tab: switch  j/k: move  e/enter: edit selected setting".to_string()
+            }
         }
     };
     frame.render_widget(Line::from(status), status_bar);

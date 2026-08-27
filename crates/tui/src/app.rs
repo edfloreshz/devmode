@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::mpsc;
 
@@ -6,6 +7,10 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use tui_input::Input;
 use tui_input::backend::crossterm::EventHandler;
 
+use dm_core::config::Config;
+use dm_core::discovery::{self, Discovered, Issue};
+use dm_core::git::{self, RepoStatus};
+use dm_core::layout::PathLayout;
 use dm_core::registry::{RegistryStore, Repo, RepoId};
 use dm_core::relayout::Candidate;
 use dm_core::workspace::{NewWorkspace, Workspace, WorkspaceId, WorkspaceStore};
@@ -19,7 +24,28 @@ pub enum Tab {
     #[default]
     Repos,
     Workspaces,
+    Discovery,
+    Settings,
 }
+
+/// The config keys the Settings tab lists and lets you edit, in display order.
+/// Every one round-trips through `Config::get`/`Config::set`.
+pub const SETTINGS_KEYS: [&str; 7] = [
+    "repo.root",
+    "repo.layout",
+    "editor",
+    "interactive",
+    "ui.theme_mode",
+    "ui.light_theme",
+    "ui.dark_theme",
+];
+
+const SETUP_LABELS: &[&str] = &[
+    "project root",
+    "layout (host_owner_repo, owner_repo, flat, custom:<template>)",
+    "editor (optional)",
+    "interactive (true/false)",
+];
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum WorkspaceFocus {
@@ -42,6 +68,11 @@ pub enum FormKind {
     WorkspaceCreate,
     WorkspaceConfig,
     WorkspaceEnv,
+    /// Editing one config key. `Form::target` holds the key name.
+    ConfigEdit,
+    /// First-run wizard, shown when there's no config file yet. Can't be
+    /// cancelled: it stays up until the config is written.
+    Setup,
 }
 
 pub struct Form {
@@ -115,6 +146,28 @@ impl Form {
             focus: 0,
             no_git: false,
             target: Some(ws.id.clone()),
+        }
+    }
+
+    fn config_edit_form(key: &str, value: &str) -> Self {
+        Self {
+            kind: FormKind::ConfigEdit,
+            labels: &["value"],
+            fields: vec![Input::new(value.to_string())],
+            focus: 0,
+            no_git: false,
+            target: Some(key.to_string()),
+        }
+    }
+
+    fn setup_form(values: &[String]) -> Self {
+        Self {
+            kind: FormKind::Setup,
+            labels: SETUP_LABELS,
+            fields: values.iter().map(|v| Input::new(v.clone())).collect(),
+            focus: 0,
+            no_git: false,
+            target: None,
         }
     }
 
@@ -205,12 +258,26 @@ pub struct App {
     registry: RegistryStore,
     workspaces: WorkspaceStore,
 
+    config: Config,
+    pub settings_selected: usize,
+
+    pub found: Vec<Discovered>,
+    pub issues: Vec<Issue>,
+    pub discovery_selected: usize,
+
     pub repos: Vec<Repo>,
     pub filter: Input,
     pub filtering: bool,
     pub filtered: Vec<usize>,
     pub selected: usize,
     pub drift: Vec<Candidate>,
+    /// Ids of repos whose working tree has uncommitted changes, refreshed
+    /// whenever the repo list reloads. Drives the list's dirty marker.
+    pub dirty: HashSet<RepoId>,
+    /// Full git state for the currently selected repo, `(id, status)`.
+    /// `status` is `None` when the path isn't a git repo. Refreshed on every
+    /// selection change so the detail pane's Git card stays current.
+    pub repo_status: Option<(RepoId, Option<RepoStatus>)>,
 
     pub workspaces_list: Vec<Workspace>,
     pub workspace_selected: usize,
@@ -226,8 +293,10 @@ impl App {
         let filtered = (0..repos.len()).collect();
         let workspaces_list = workspaces.list()?;
         let drift = dm_core::relayout::plan().unwrap_or_default();
+        let config = Config::load()?;
+        let first_run = !Config::is_saved();
 
-        Ok(Self {
+        let mut app = Self {
             active_tab: Tab::default(),
             should_quit: false,
             status: None,
@@ -240,17 +309,33 @@ impl App {
             pending_switch: None,
             registry,
             workspaces,
+            config,
+            settings_selected: 0,
+            found: Vec::new(),
+            issues: Vec::new(),
+            discovery_selected: 0,
             repos,
             filter: Input::default(),
             filtering: false,
             filtered,
             selected: 0,
             drift,
+            dirty: HashSet::new(),
+            repo_status: None,
             workspaces_list,
             workspace_selected: 0,
             workspace_focus: WorkspaceFocus::default(),
             workspace_item_selected: 0,
-        })
+        };
+
+        if first_run {
+            app.form = Some(Form::setup_form(&setup_defaults(&Config::default())));
+        }
+
+        app.refresh_dirty();
+        app.refresh_repo_status();
+
+        Ok(app)
     }
 
     pub fn mode(&self) -> Mode {
@@ -270,7 +355,9 @@ impl App {
     pub fn next_tab(&mut self) {
         self.active_tab = match self.active_tab {
             Tab::Repos => Tab::Workspaces,
-            Tab::Workspaces => Tab::Repos,
+            Tab::Workspaces => Tab::Discovery,
+            Tab::Discovery => Tab::Settings,
+            Tab::Settings => Tab::Repos,
         };
     }
 
@@ -284,7 +371,35 @@ impl App {
         self.repos = self.registry.list(None, None)?;
         self.drift = dm_core::relayout::plan()?;
         self.apply_filter();
+        self.refresh_dirty();
         Ok(())
+    }
+
+    fn refresh_dirty(&mut self) {
+        self.dirty = self
+            .repos
+            .iter()
+            .filter(|repo| git::is_dirty(&repo.path))
+            .map(|repo| repo.id)
+            .collect();
+    }
+
+    /// Reads full git state for the selected repo into `repo_status`. Cheap
+    /// enough to call on every selection change.
+    pub fn refresh_repo_status(&mut self) {
+        self.repo_status = self
+            .selected_repo()
+            .map(|repo| (repo.id, git::repo_status(&repo.path).ok()));
+    }
+
+    /// The selected repo's git state, or `None` if the cache is for a
+    /// different repo or the path isn't a git repo.
+    pub fn selected_repo_status(&self) -> Option<&RepoStatus> {
+        let selected = self.selected_repo()?.id;
+        match &self.repo_status {
+            Some((id, status)) if *id == selected => status.as_ref(),
+            _ => None,
+        }
     }
 
     pub fn drift_for(&self, repo_id: RepoId) -> Option<&Candidate> {
@@ -322,6 +437,7 @@ impl App {
     pub fn apply_filter(&mut self) {
         self.filtered = fuzzy_filter(&self.repos, self.filter.value());
         self.selected = 0;
+        self.refresh_repo_status();
     }
 
     pub fn selected_repo(&self) -> Option<&Repo> {
@@ -352,7 +468,16 @@ impl App {
             return;
         }
         match self.active_tab {
-            Tab::Repos => move_index(&mut self.selected, self.filtered.len(), delta),
+            Tab::Repos => {
+                move_index(&mut self.selected, self.filtered.len(), delta);
+                self.refresh_repo_status();
+            }
+            Tab::Settings => move_index(&mut self.settings_selected, SETTINGS_KEYS.len(), delta),
+            Tab::Discovery => move_index(
+                &mut self.discovery_selected,
+                self.found.len() + self.issues.len(),
+                delta,
+            ),
             Tab::Workspaces => match self.workspace_focus {
                 WorkspaceFocus::List => move_index(
                     &mut self.workspace_selected,
@@ -602,7 +727,98 @@ impl App {
     }
 
     pub fn cancel_form(&mut self) {
+        // The first-run wizard has no config to fall back on, so it can't be
+        // dismissed, only completed.
+        if matches!(self.form.as_ref().map(|f| f.kind), Some(FormKind::Setup)) {
+            return;
+        }
         self.form = None;
+    }
+
+    pub fn open_settings_edit(&mut self) {
+        if self.active_tab != Tab::Settings {
+            return;
+        }
+        let key = SETTINGS_KEYS[self.settings_selected];
+        let value = self.config.get(key).unwrap_or_default();
+        self.form = Some(Form::config_edit_form(key, &value));
+    }
+
+    pub fn settings_rows(&self) -> Vec<(&'static str, String)> {
+        SETTINGS_KEYS
+            .iter()
+            .map(|&key| (key, self.config.get(key).unwrap_or_default()))
+            .collect()
+    }
+
+    /// Scans the configured repo root for untracked repos and validates the
+    /// tracked ones against disk, filling the Discovery tab.
+    pub fn run_discovery(&mut self) {
+        match discovery::find_untracked(&self.config.repo.root) {
+            Ok(found) => self.found = found,
+            Err(e) => {
+                self.status = Some(format!("scan error: {e}"));
+                return;
+            }
+        }
+        match discovery::check() {
+            Ok(issues) => self.issues = issues,
+            Err(e) => {
+                self.status = Some(format!("check error: {e}"));
+                return;
+            }
+        }
+        self.discovery_selected = 0;
+        self.status = Some(format!(
+            "found {} untracked, {} issue(s)",
+            self.found.len(),
+            self.issues.len()
+        ));
+    }
+
+    pub fn discovery_track_all(&mut self) -> Result<()> {
+        if self.active_tab != Tab::Discovery || self.found.is_empty() {
+            return Ok(());
+        }
+        let found = std::mem::take(&mut self.found);
+        match discovery::track_all(found) {
+            Ok(n) => {
+                self.status = Some(format!("tracked {n} repo(s)"));
+                self.reload_repos()?;
+            }
+            Err(e) => self.status = Some(format!("error: {e}")),
+        }
+        self.run_discovery();
+        Ok(())
+    }
+
+    /// Tracks the selected discovered repo, or resolves the selected issue.
+    pub fn discovery_activate_selected(&mut self) -> Result<()> {
+        if self.active_tab != Tab::Discovery {
+            return Ok(());
+        }
+        let idx = self.discovery_selected;
+        if idx < self.found.len() {
+            let discovered = self.found.remove(idx);
+            let name = discovered.name.clone();
+            match discovery::track_all([discovered]) {
+                Ok(_) => {
+                    self.status = Some(format!("tracked {name}"));
+                    self.reload_repos()?;
+                }
+                Err(e) => self.status = Some(format!("error: {e}")),
+            }
+        } else if let Some(issue) = self.issues.get(idx - self.found.len()).cloned() {
+            match discovery::resolve(&issue) {
+                Ok(()) => {
+                    self.status = Some("resolved".to_string());
+                    self.reload_repos()?;
+                }
+                Err(e) => self.status = Some(format!("error: {e}")),
+            }
+        }
+        self.run_discovery();
+        Ok(())
     }
 
     pub fn submit_form(&mut self) -> Result<()> {
@@ -710,6 +926,81 @@ impl App {
                     Err(e) => self.status = Some(format!("error: {e}")),
                 }
             }
+            FormKind::ConfigEdit => {
+                let Some(key) = form.target.clone() else {
+                    return Ok(());
+                };
+                let value = form.fields[0].value().trim();
+                let result = self
+                    .config
+                    .set(&key, value)
+                    .and_then(|()| self.config.save());
+                match result {
+                    Ok(()) => {
+                        self.status = Some(format!("set {key}"));
+                        self.reload_repos()?;
+                    }
+                    Err(e) => {
+                        // Reload so a rejected value doesn't linger in memory.
+                        self.config = Config::load().unwrap_or_default();
+                        self.status = Some(format!("error: {e}"));
+                    }
+                }
+            }
+            FormKind::Setup => {
+                let values: Vec<String> =
+                    form.fields.iter().map(|f| f.value().to_string()).collect();
+                let root = values[0].trim().to_string();
+
+                if root.is_empty() {
+                    self.status = Some("setup: project root is required".to_string());
+                    self.form = Some(Form::setup_form(&values));
+                    return Ok(());
+                }
+
+                let layout = match PathLayout::parse(values[1].trim()) {
+                    Ok(layout) => layout,
+                    Err(e) => {
+                        self.status = Some(format!("setup: {e}"));
+                        self.form = Some(Form::setup_form(&values));
+                        return Ok(());
+                    }
+                };
+
+                let editor = values[2].trim().to_string();
+                let interactive = match values[3].trim() {
+                    "" => true,
+                    other => other.parse().unwrap_or(true),
+                };
+
+                let result = (|| -> dm_core::error::Result<usize> {
+                    let mut config = Config::default();
+                    config.set("repo.root", &root)?;
+                    config.repo.layout = layout;
+                    config.editor = (!editor.is_empty()).then(|| editor.clone());
+                    config.interactive = interactive;
+                    config.save()?;
+
+                    let found = discovery::find_untracked(&config.repo.root)?;
+                    discovery::track_all(found)
+                })();
+
+                match result {
+                    Ok(tracked) => {
+                        self.config = Config::load().unwrap_or_default();
+                        self.status = Some(match tracked {
+                            0 => "setup complete, no repos found to track".to_string(),
+                            1 => "setup complete, tracked 1 repo already on disk".to_string(),
+                            n => format!("setup complete, tracked {n} repos already on disk"),
+                        });
+                        self.reload_repos()?;
+                    }
+                    Err(e) => {
+                        self.status = Some(format!("setup error: {e}"));
+                        self.form = Some(Form::setup_form(&values));
+                    }
+                }
+            }
         }
         Ok(())
     }
@@ -775,6 +1066,17 @@ impl App {
         }
         Ok(())
     }
+}
+
+/// The wizard's fields, prefilled from `config` (on a real first run, the
+/// defaults). Order matches `SETUP_LABELS`.
+fn setup_defaults(config: &Config) -> Vec<String> {
+    vec![
+        config.repo.root.display().to_string(),
+        config.repo.layout.to_config_string(),
+        config.editor.clone().unwrap_or_default(),
+        config.interactive.to_string(),
+    ]
 }
 
 fn move_index(current: &mut usize, len: usize, delta: isize) {
