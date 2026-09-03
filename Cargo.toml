@@ -32,7 +32,7 @@ toml = "0.8"
 directories = "6.0"
 git2 = "0.21"
 git2_credentials = { version = "0.16", default-features = false }
-git-url-parse = "0.4"
+git-url-parse = "0.6"
 rusqlite = { version = "0.40", features = ["bundled"] }
 assert_cmd = "2.0"
 predicates = "3.1"
